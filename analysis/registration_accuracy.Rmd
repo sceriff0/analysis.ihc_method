@@ -1,15 +1,131 @@
 ---
-title: "registration_accuracy"
+title: "Registration accuracy (landmark-free, in-pipeline)"
 author: "sceriff0"
-date: "2026-06-30"
+date: "2026-07-24"
 output: workflowr::wflow_html
 editor_options:
   chunk_output_type: console
 ---
 
-## Introduction
-
-```{r}
-
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+})
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      dev = c("png", "pdf"))
+source(here("code", "pdf_export.R"))                     # export_pdf_figures()
+reg_dir  <- here("data", "benchmark")
+have_reg <- any(file.exists(file.path(reg_dir,
+  c("registration_valis_rtre.csv", "registration_accuracy.csv", "param_matrix.csv"))))
 ```
 
+## Starting data and notation
+
+Two **independent, landmark-free** estimates of how well the Mirage pipeline
+registers each moving slide onto its reference, plus a cost view and an explicit
+agreement check. Every figure is built by sourcing
+`code/registration_accuracy_plots.R` and rendered inline from the CSVs in
+`data/benchmark/` — no PNGs on disk. Figures whose input is absent are silently
+skipped.
+
+**Where the numbers come from.** All tables are produced by mirage
+`benchmarks/analysis/make_tables.py` (the `paper_data/` set) — drop them into
+`data/benchmark/` and re-knit.
+
+- **`registration_valis_rtre.csv`** — VALIS's *own* feature error per moving
+  slide (`original_rTRE` → `rigid_rTRE` → `non_rigid_rTRE`, with `n_matches`;
+  some VALIS builds emit `*_D` raw distances instead). rTRE is **relative** (a
+  fraction of the image diagonal), so it is unitless and comparable across image
+  sizes. Auto-harvested by `make_tables.py` from the summary CSVs VALIS writes
+  during `register()` — the same numbers the pipeline's QC report shows
+  ("Registration Accuracy (Valis rTRE)").
+- **`registration_accuracy.csv`** — an *independent* re-scoring by DAPI-nucleus
+  overlap (`bin/warp_seg_qc.py`, `reg_qc=2`, harvested by `make_tables.py`). Per
+  (run, moving, stage ∈ {native, rigid, non_rigid, micro}): `dice_matched` (areal
+  Dice over matched nuclei) and `displacement_um_p50/p90` (centroid residual, in
+  microns). This does not trust VALIS's features — a second method for the same
+  question.
+- **`param_matrix.csv`** — one wide row per run: the headline registration
+  metrics (`reg_displacement_um_p50`, `reg_dice_matched`) and the VALIS median
+  (`valis_non_rigid_D`/`valis_non_rigid_rTRE`) joined to cost (`cpu_hours`).
+- **`feature_dist/*.json`** (optional/legacy) — before/after matched-feature
+  distance per slide; only present if a run set `enable_feature_error`.
+
+The finding to look for: the VALIS feature rTRE (§1) and the segmentation-overlap
+Dice/displacement (§2) are computed by **different methods** yet should agree that
+rigid → non-rigid registration tightens alignment — §5 plots that agreement
+directly. Convergence of independent estimates is the point.
+
+```{r build}
+reg_figs <- list()
+if (have_reg) {
+  source(here("code", "registration_accuracy_plots.R"))
+  cat(length(reg_figs), "figure(s) built from", basename(reg_dir), "data.\n")
+} else {
+  cat("No registration data found — add mirage `paper_data` CSVs",
+      "(`registration_valis_rtre.csv` / `registration_accuracy.csv` /",
+      "`param_matrix.csv`) to `data/benchmark/` and re-knit.")
+}
+```
+
+```{r fig-notes}
+fig_notes <- c(
+  "01_valis_rtre_by_stage" = paste(
+    "VALIS self-reported feature error (`registration_valis_rtre.csv`: `original_rTRE`,",
+    "`rigid_rTRE`, `non_rigid_rTRE`, or the `*_D` distance variants), one line per moving",
+    "slide across the stages. rTRE is relative to the image diagonal (unitless); lower = better."),
+  "01b_valis_n_matches" = paste(
+    "Feature-match count per slide (`n_matches`) — the evidence behind each rTRE.",
+    "A slide with few matches has a low-confidence estimate."),
+  "02_overlap_dice_by_stage" = paste(
+    "Independent overlap check: `dice_matched` from `registration_accuracy.csv` per",
+    "stage (native → rigid → non_rigid → micro), box across slides, faint per-slide",
+    "lines. Computed from DAPI-nucleus overlap, not VALIS features; higher = better."),
+  "02b_displacement_um_by_stage" = paste(
+    "Matched-nucleus centroid residual in microns (`displacement_um_p50`/`_p90`) per",
+    "stage. Physical units; lower = tighter alignment. Same source table as above."),
+  "03_feature_distance_reduction" = paste(
+    "(Legacy) percent drop in mean matched-feature distance before → after registration",
+    "(`feature_dist/*.json`); only present if a run enabled `enable_feature_error`."),
+  "04_accuracy_vs_cost" = paste(
+    "Accuracy vs cost: `reg_displacement_um_p50` vs `cpu_hours` from `param_matrix.csv`,",
+    "one point per config. Lower-left is better — less residual for fewer CPU-hours."),
+  "05_valis_vs_overlap_agreement" = paste(
+    "Agreement of the two independent estimates: VALIS feature error",
+    "(`valis_non_rigid_rTRE`/`_D`) vs matched-nucleus Dice (`reg_dice_matched`) per run",
+    "(`param_matrix.csv`). Two different methods; a clear trend = they corroborate each other.")
+)
+```
+
+## Figures
+
+Each figure is preceded by its derivation note. Figures whose CSV was not present
+in `data/benchmark/` are silently absent.
+
+```{r figures, results="asis", fig.width=9, fig.height=5.5}
+if (length(reg_figs)) {
+  for (nm in names(reg_figs)) {
+    title <- gsub("_", " ", sub("^[0-9]+[a-z]?_", "", nm))
+    cat("\n\n### ", title, "\n\n", sep = "")
+    if (!is.na(fig_notes[nm])) cat(fig_notes[[nm]], "\n\n")
+    print(reg_figs[[nm]])
+    cat("\n\n")
+  }
+}
+```
+
+## Notes
+
+- **Two independent methods.** §1 is VALIS grading itself from feature
+  correspondences; §2 re-scores the same registrations by nucleus overlap. They
+  are not derived from each other, so agreement (§5) is meaningful.
+- **rTRE is relative, displacement is physical.** rTRE (§1) is a fraction of the
+  image diagonal; `displacement_um` (§2) is in microns. Read §1 for cross-size
+  comparability, §2 for an interpretable physical residual.
+- Absolute-scale registration cost on synthetic sweep offsets is covered in the
+  [pipeline benchmarks](benchmarks.html); this page uses the real patient slides.
+
+```{r export-pdfs, include=FALSE}
+export_pdf_figures("registration_accuracy")
+```
