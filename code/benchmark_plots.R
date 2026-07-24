@@ -285,39 +285,54 @@ read_opt <- function(name) {
 truthy <- function(x) tolower(as.character(x)) %in% c("true", "1", "yes")
 
 # ── 11. REGISTRATION ACCURACY vs COST (the Pareto view) ──
-qual <- read_opt("quality.csv"); cost <- read_opt("run_cost.csv")
-if (!is.null(qual) && !is.null(cost) && "reg_tre_median_px" %in% names(qual)) {
-  ac <- qual %>% select(any_of(c("run_id","varied_axis","memory_mode","skip_micro_registration",
-                                 "reg_tre_median_px"))) %>%
-    inner_join(cost %>% select(run_id, cpu_hours), by = "run_id") %>%
-    filter(is.finite(reg_tre_median_px))
+# Current mirage emits the headline registration residual pre-joined to cost in
+# param_matrix.csv (reg_displacement_um_p50, physical µm). The old quality.csv/
+# reg_tre_median_px is retired upstream.
+pm  <- read_opt("param_matrix.csv")
+cost <- read_opt("run_cost.csv")
+if (!is.null(pm) && all(c("reg_displacement_um_p50", "cpu_hours") %in% names(pm))) {
+  ac <- pm %>% filter(is.finite(reg_displacement_um_p50), is.finite(cpu_hours))
   if (nrow(ac) > 0) {
     p11 <- ac %>%
-      ggplot(aes(cpu_hours, reg_tre_median_px)) +
-      geom_point(aes(colour = if ("memory_mode" %in% names(ac)) memory_mode else NULL,
-                     shape  = if ("skip_micro_registration" %in% names(ac))
-                                factor(skip_micro_registration) else NULL), size = 3, alpha = .8) +
-      scale_colour_manual(values = oi, name = "memory_mode", na.translate = FALSE) +
-      scale_shape_discrete(name = "skip_micro") +
+      ggplot(aes(cpu_hours, reg_displacement_um_p50)) +
+      geom_point(aes(colour = if ("memory_mode" %in% names(ac)) memory_mode else NULL),
+                 size = 3, alpha = .8) +
+      { if ("memory_mode" %in% names(ac))
+          scale_colour_manual(values = oi, name = "memory_mode", na.translate = FALSE) } +
       labs(title = "Registration accuracy vs cost",
-           subtitle = "Lower-left is better: less error for fewer CPU-hours. Each point is a config.",
-           x = "registration CPU-hours", y = "feature TRE, median (px)")
+           subtitle = "Lower-left is better: less residual for fewer CPU-hours. Each point is a config.",
+           x = "registration CPU-hours", y = "residual displacement, median (µm)")
     save_fig(p11, "11_accuracy_vs_cost", 8, 5)
   }
 }
 
-# ── 12. SEGMENTATION METHOD QUALITY — cell count by method + cross-method agreement ──
-if (!is.null(qual) && "n_cells" %in% names(qual) && "seg_method" %in% names(qual)) {
-  sc <- qual %>% filter(is.finite(n_cells))
-  if (nrow(sc) > 0) {
+# ── 12. SEGMENTATION cell counts by method ──
+# n_cells and seg_method both live in param_matrix.csv now (make_tables carries seg_method through);
+# fall back to runs_master.csv only if a stripped param_matrix lacks seg_method.
+rm_tbl <- read_opt("runs_master.csv")
+sc <- NULL
+if (!is.null(pm) && "n_cells" %in% names(pm)) {
+  sc <- pm
+  if (!("seg_method" %in% names(sc)) && !is.null(rm_tbl) && "seg_method" %in% names(rm_tbl))
+    sc <- sc %>% left_join(rm_tbl %>% select(any_of(c("run_id", "seg_method"))), by = "run_id")
+  sc <- sc %>% filter(is.finite(n_cells))
+}
+if (!is.null(sc) && nrow(sc) > 0) {
+  if ("seg_method" %in% names(sc)) {
     p12 <- ggplot(sc, aes(seg_method, n_cells, colour = seg_method)) +
       geom_boxplot(outlier.shape = NA, width = .5) + geom_jitter(width = .12, alpha = .5) +
       scale_colour_manual(values = oi, guide = "none") +
       labs(title = "Segmentation: cells detected per method",
            subtitle = "Spread = each method's own parameter sweep. Large gaps = methods disagree on cell count.",
            x = NULL, y = "cells detected (max mask label)")
-    save_fig(p12, "12_segmentation_cell_counts", 8, 5)
+  } else {
+    p12 <- ggplot(sc, aes("all runs", n_cells)) +
+      geom_boxplot(outlier.shape = NA, width = .4) + geom_jitter(width = .1, alpha = .5) +
+      labs(title = "Segmentation: cells detected",
+           subtitle = "seg_method unavailable — pooled distribution.",
+           x = NULL, y = "cells detected (max mask label)")
   }
+  save_fig(p12, "12_segmentation_cell_counts", 8, 5)
 }
 agree <- read_opt("segmentation_agreement.csv")
 if (!is.null(agree) && "instance_f1" %in% names(agree)) {
@@ -408,20 +423,21 @@ if (!is.null(drift) && "path" %in% names(drift)) {
   }
 }
 
-# ── 17. REGISTRATION ERROR by path — feature-TRE for classic vs separated vs tiled ──
-if (!is.null(qual) && "reg_tre_median_px" %in% names(qual) && "reg_distributed_tiling" %in% names(qual)) {
-  ep <- qual %>% filter(is.finite(reg_tre_median_px)) %>%
-    mutate(path = case_when(!truthy(reg_distributed_tiling) ~ "classic",
-                            "reg_dist_force_tiling" %in% names(.) & truthy(reg_dist_force_tiling) ~ "tiled",
-                            TRUE ~ "separated"))
-  if (nrow(ep) > 0 && dplyr::n_distinct(ep$path) > 1) {
-    p17 <- ggplot(ep, aes(path, reg_tre_median_px, colour = path)) +
-      geom_boxplot(outlier.shape = NA, width = .5) + geom_jitter(width = .12, alpha = .6) +
-      scale_colour_manual(values = oi[c(8, 1, 2)], guide = "none") +
-      labs(title = "Registration error by path (accuracy, not just pixel drift)",
-           subtitle = "Feature-based TRE proxy (median px). Separated should match classic; tiled shows any accuracy cost of tiling.",
-           x = NULL, y = "feature TRE, median (px)")
-    save_fig(p17, "17_registration_error_by_path", 8, 5)
+# ── 17. VALIS vs SEGMENTATION-OVERLAP agreement (two independent accuracy estimates) ──
+# Single registration path now, so the classic/separated/tiled comparison is retired. Instead show
+# that VALIS's own feature error and the DAPI-overlap Dice agree per run — both live in param_matrix.
+if (!is.null(pm) && "reg_dice_matched" %in% names(pm)) {
+  valis_col <- intersect(c("valis_non_rigid_rTRE", "valis_non_rigid_D"), names(pm))[1]
+  if (!is.na(valis_col)) {
+    ag <- pm %>% filter(is.finite(.data[[valis_col]]), is.finite(reg_dice_matched))
+    if (nrow(ag) > 1) {
+      p17 <- ggplot(ag, aes(.data[[valis_col]], reg_dice_matched)) +
+        geom_point(size = 3, alpha = .8, colour = oi[1]) +
+        labs(title = "Registration accuracy: VALIS vs segmentation-overlap",
+             subtitle = "Independent estimates per run — VALIS feature error (x) vs matched-nucleus Dice (y). They should track.",
+             x = valis_col, y = "matched-nucleus Dice (reg_dice_matched)")
+      save_fig(p17, "17_valis_vs_overlap_agreement", 8, 5)
+    }
   }
 }
 
