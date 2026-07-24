@@ -30,3 +30,18 @@ test_that("registration_valis_rtre.csv builds the rTRE slopegraph and n_matches 
   expect_true("01b_valis_n_matches"   %in% names(figs))
   expect_s3_class(figs[["01_valis_rtre_by_stage"]], "ggplot")
 })
+
+test_that("registration_accuracy.csv builds the overlap Dice and displacement figures", {
+  d <- tmp_data()
+  readr::write_csv(tibble::tibble(
+    run_id             = "r1",
+    moving             = rep(c("P001_mov1", "P001_mov2"), each = 4),
+    stage              = rep(c("native", "rigid", "non_rigid", "micro"), 2),
+    dice_matched       = c(.10, .55, .72, .74, .12, .50, .70, .71),
+    displacement_um_p50 = c(9.0, 3.1, 1.3, 1.2, 8.5, 3.4, 1.5, 1.4),
+    displacement_um_p90 = c(18.0, 6.2, 2.6, 2.4, 17.0, 6.8, 3.0, 2.8)
+  ), file.path(d, "registration_accuracy.csv"))
+  figs <- build_reg_figs(d)
+  expect_true(all(c("02_overlap_dice_by_stage", "02b_displacement_um_by_stage") %in% names(figs)))
+  expect_s3_class(figs[["02b_displacement_um_by_stage"]], "ggplot")
+})

@@ -70,6 +70,40 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     }
   }
 
+  # -- §2 independent overlap accuracy (DAPI-nucleus Dice + centroid residual) --
+  ra <- .reg_read_opt(dir, "registration_accuracy.csv")
+  if (!is.null(ra) && all(c("stage", "dice_matched") %in% names(ra))) {
+    ra <- ra %>%
+      dplyr::mutate(stage = factor(stage, levels = STAGE_LEVELS_OVERLAP)) %>%
+      dplyr::filter(!is.na(stage))
+    has_slide <- "moving" %in% names(ra)
+    dice_p <- ggplot(ra, aes(stage, dice_matched)) +
+      geom_boxplot(outlier.shape = NA, width = .5)
+    if (has_slide)
+      dice_p <- dice_p + geom_line(aes(group = moving), alpha = .25)
+    figs[["02_overlap_dice_by_stage"]] <- dice_p +
+      geom_jitter(width = .10, alpha = .5) +
+      labs(title = "Nucleus-overlap Dice by registration stage",
+           subtitle = "Independent check via DAPI segmentation overlap (not VALIS features); higher = better.",
+           x = NULL, y = "matched-nucleus Dice", caption = REG_CAPTION)
+
+    if (all(c("displacement_um_p50", "displacement_um_p90") %in% names(ra))) {
+      disp_long <- ra %>%
+        tidyr::pivot_longer(c(displacement_um_p50, displacement_um_p90),
+                            names_to = "pct", values_to = "um") %>%
+        dplyr::mutate(pct = dplyr::recode(pct,
+          displacement_um_p50 = "median", displacement_um_p90 = "90th pct")) %>%
+        dplyr::filter(is.finite(um))
+      figs[["02b_displacement_um_by_stage"]] <-
+        ggplot(disp_long, aes(stage, um, colour = pct)) +
+        geom_boxplot(outlier.shape = NA, width = .5, position = position_dodge(.6)) +
+        scale_colour_manual(values = oi[c(1, 2)], name = NULL) +
+        labs(title = "Centroid residual displacement by stage",
+             subtitle = "Matched-nucleus centroid distance in physical units; lower = tighter alignment.",
+             x = NULL, y = "displacement (µm)", caption = REG_CAPTION)
+    }
+  }
+
   figs
 }
 
