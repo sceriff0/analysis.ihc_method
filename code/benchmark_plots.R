@@ -10,8 +10,9 @@
 #
 #   measurements.csv  one row per (run x PROCESS): peak_rss_gb, peak_vmem_gb,
 #                     realtime_s, duration_s, cpus, input_gb + every swept param.
-#   resource_stats.csv / quality.csv / run_cost.csv / segmentation_agreement.csv /
-#   classic_vs_distributed_registration.csv / registration_drift.csv  (all optional)
+#   param_matrix.csv / registration_accuracy.csv / registration_valis_rtre.csv /
+#   run_cost.csv / segmentation_agreement.csv / runs_master.csv /
+#   resource_stats.csv  (all optional)
 # ============================================================================
 .need <- c("ggplot2", "dplyr", "readr", "tidyr", "stringr", "forcats", "purrr", "scales")
 .missing <- .need[!vapply(.need, requireNamespace, logical(1), quietly = TRUE)]
@@ -96,31 +97,6 @@ if (has_io && any(is.finite(m$total_io_gb) & m$total_io_gb > 0)) {
   if (!is.null(io_fig)) save_fig(io_fig, "02b_io_volume_scaling", 11, 8)
 }
 
-# ── 3. CLASSIC vs DISTRIBUTED registration — the RAM ceiling vs size ──
-cvd_path <- file.path(adir, "classic_vs_distributed_registration.csv")
-if (file.exists(cvd_path) && nrow(read_csv(cvd_path, show_col_types = FALSE)) > 0) {
-  cvd <- read_csv(cvd_path, show_col_types = FALSE)
-  long <- cvd %>%
-    select(target_px, n_channels,
-           classic = reg_peak_rss_gb_classic, distributed = reg_peak_rss_gb_distributed) %>%
-    pivot_longer(c(classic, distributed), names_to = "path", values_to = "peak_rss_gb")
-  p3 <- ggplot(long, aes(target_px, peak_rss_gb, colour = path)) +
-    geom_line(linewidth = .8) + geom_point(size = 2) +
-    facet_wrap(~ n_channels, labeller = label_both) +
-    scale_colour_manual(values = oi[c(8,2)]) +
-    labs(title = "Registration peak RAM: classic vs distributed",
-         subtitle = "Classic holds the BioFormats JVM heap (climbs with size); the JVM-free distributed path stays bounded.",
-         x = "image size (px)", y = "registration-stage peak RSS (GiB)", colour = NULL)
-  save_fig(p3, "03_classic_vs_distributed_ram", 9, 5)
-
-  p3b <- ggplot(cvd, aes(target_px, rss_saving_gb, colour = factor(n_channels))) +
-    geom_line(linewidth = .8) + geom_point(size = 2) +
-    scale_colour_manual(values = oi, name = "channels") +
-    labs(title = "Distributed RAM saving vs classic", x = "image size (px)",
-         y = "classic - distributed peak RSS (GiB)")
-  save_fig(p3b, "03b_distributed_ram_saving", 8, 5)
-}
-
 # ── 4. N-IMAGE REGISTRATION — REGISTER cost vs number of slides ──
 reg <- m %>% filter(proc == "REGISTER", varied_axis %in% c("registration_grid", "baseline", "scaling_grid"))
 if (nrow(reg) > 0) {
@@ -138,8 +114,9 @@ if (nrow(reg) > 0) {
 
 # ── 5. OFAT KNOB EFFECTS — one panel per single-knob axis ──
 # For each OFAT axis, plot the most-affected process's realtime vs the knob value.
-# Only the true single-knob OFAT axes belong here; memory_mode / skip_micro_registration go to plot 10
-# (both paths) and the segmentation tile knobs to plots 9/9b (per method).
+# Only the true single-knob OFAT axes belong here; memory_mode / skip_micro_registration have no
+# dedicated figure (the classic/distributed-path comparison that read them was retired) and the
+# segmentation tile knobs go to plots 9/9b (per method).
 knob_targets <- tribble(
   ~axis,                       ~proc,          ~metric,
   "preproc_n_iter",            "PREPROCESS",   "realtime_s",
@@ -252,28 +229,6 @@ if (nrow(seg) > 0) {
   }
 }
 
-# ── 10. REGISTRATION PARAMETERS in BOTH paths — memory_mode / skip_micro, classic vs distributed ──
-reg_leaves <- c("REGISTER","REG_PREP","REG_TILE","REG_NONRIGID","REG_MICRO_PREP",
-                "REG_FINALIZE","REG_FINALIZE_FIELD","REG_FINALIZE_MICRO","REG_WARP_REF")
-truthy <- function(x) tolower(as.character(x)) %in% c("true","1","yes")
-rp <- m %>% filter(varied_axis == "registration_param_grid", proc %in% reg_leaves)
-if (nrow(rp) > 0) {
-  p10 <- rp %>%
-    group_by(run_id, memory_mode, skip_micro_registration, reg_distributed_tiling) %>%
-    summarise(reg_peak_gb = max(peak_rss_gb), .groups = "drop") %>%
-    mutate(path = ifelse(truthy(reg_distributed_tiling), "distributed", "classic")) %>%
-    group_by(memory_mode, skip_micro_registration, path) %>%
-    summarise(reg_peak_gb = mean(reg_peak_gb), .groups = "drop") %>%
-    ggplot(aes(fct_relevel(memory_mode, "low", "medium", "high"), reg_peak_gb, fill = path)) +
-    geom_col(position = "dodge", width = .7) +
-    facet_wrap(~ skip_micro_registration, labeller = label_both) +
-    scale_fill_manual(values = oi[c(8, 2)], name = NULL) +
-    labs(title = "Registration knobs, measured in both paths",
-         subtitle = "memory_mode x skip_micro_registration \u2014 classic vs distributed registration.",
-         x = "memory_mode", y = "registration-stage peak RSS (GiB)")
-  save_fig(p10, "10_registration_params_both_paths", 9, 5)
-}
-
 # Helper: read an optional analysis CSV, returning NULL if absent/empty (keeps plots robust to
 # failed runs / signals the sweep didn't produce).
 read_opt <- function(name) {
@@ -282,7 +237,6 @@ read_opt <- function(name) {
   d <- suppressWarnings(read_csv(p, show_col_types = FALSE))
   if (nrow(d) == 0) NULL else d
 }
-truthy <- function(x) tolower(as.character(x)) %in% c("true", "1", "yes")
 
 # ── 11. REGISTRATION ACCURACY vs COST (the Pareto view) ──
 # Current mirage emits the headline registration residual pre-joined to cost in
@@ -380,46 +334,6 @@ if (!is.null(cost) && all(c("bottleneck_stage", "target_px") %in% names(cost))) 
            subtitle = "Share of runs whose slowest single process is each stage — the bottleneck shifts with size.",
            x = "image size (px)", y = "share of runs")
     save_fig(p14, "14_bottleneck_by_size", 8, 5)
-  }
-}
-
-# ── 15. DISTRIBUTED TILED PATH — granularity study (tile size x overlap) ──
-# The tiled fan-out is a DIFFERENT algorithm from classic (excluded from the parity comparison), so it
-# gets its own figure: registration-stage peak RSS + compute vs tile_wh, coloured by tile_buffer.
-if ("varied_axis" %in% names(m) && any(m$varied_axis == "distributed_tiling_grid")) {
-  reg_leaves2 <- c("REG_PREP","REG_TILE","REG_NONRIGID","REG_FINALIZE","REG_FINALIZE_FIELD",
-                   "REG_FINALIZE_MICRO","REG_WARP_REF","REG_MICRO_PREP")
-  tg <- m %>% filter(varied_axis == "distributed_tiling_grid", proc %in% reg_leaves2)
-  if (nrow(tg) > 0 && all(c("reg_dist_tile_wh","reg_dist_tile_buffer") %in% names(tg))) {
-    p15 <- tg %>%
-      group_by(reg_dist_tile_wh, reg_dist_tile_buffer, run_id) %>%
-      summarise(reg_peak_gb = max(peak_rss_gb), reg_time_s = sum(realtime_s), .groups = "drop") %>%
-      group_by(reg_dist_tile_wh, reg_dist_tile_buffer) %>%
-      summarise(reg_peak_gb = mean(reg_peak_gb), reg_time_s = mean(reg_time_s), .groups = "drop") %>%
-      ggplot(aes(factor(reg_dist_tile_wh), reg_peak_gb, fill = factor(reg_dist_tile_buffer))) +
-      geom_col(position = "dodge", width = .7) +
-      scale_fill_manual(values = oi, name = "tile_buffer (px)") +
-      labs(title = "Distributed tiled path: RAM vs tile granularity",
-           subtitle = "Registration-stage peak RSS by tile size and overlap (the fan-out is a separate algorithm from classic).",
-           x = "reg_dist_tile_wh (px)", y = "registration-stage peak RSS (GiB)")
-    save_fig(p15, "15_tiled_path_granularity", 8, 5)
-  }
-}
-
-# ── 16. TILED PATH DRIFT from classic — how far the tiled fan-out moves from classic whole-image ──
-drift <- read_opt("registration_drift.csv")
-if (!is.null(drift) && "path" %in% names(drift)) {
-  td <- drift %>% filter(path == "tiled", is.finite(max_abs_delta))
-  if (nrow(td) > 0 && all(c("tile_wh", "tile_buffer") %in% names(td))) {
-    p16 <- td %>% group_by(tile_wh, tile_buffer) %>%
-      summarise(max_abs_delta = mean(max_abs_delta), pct_pixels_diff = mean(pct_pixels_diff), .groups = "drop") %>%
-      ggplot(aes(factor(tile_wh), max_abs_delta, fill = factor(tile_buffer))) +
-      geom_col(position = "dodge", width = .7) +
-      scale_fill_manual(values = oi, name = "tile_buffer (px)") +
-      labs(title = "Tiled path: pixel drift from classic",
-           subtitle = "max|delta| vs the classic slide, by tile size/overlap (0 = identical). Drift, not a failure — tiled is a different algorithm.",
-           x = "reg_dist_tile_wh (px)", y = "max |delta| vs classic (intensity levels)")
-    save_fig(p16, "16_tiled_drift_from_classic", 8, 5)
   }
 }
 

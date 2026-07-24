@@ -50,10 +50,7 @@ input_gb    = input size of that run                  (GiB, size_logs)
 plus every swept parameter and the label `varied_axis` naming which knob that run
 varied off baseline. Size-scaling figures keep only the runs whose `varied_axis`
 is a size axis, `size_axes = {baseline, scaling_grid, registration_grid,
-distributed_grid, target_px, n_channels}`; registration-stage RAM is aggregated over
-the registration **leaf** processes (`REGISTER, REG_PREP, REG_TILE, REG_NONRIGID,
-REG_MICRO_PREP, REG_FINALIZE, …`); boolean sweep flags are read as "truthy" when the
-lower-cased value is one of `true`, `1`, `yes`.
+distributed_grid, target_px, n_channels}`.
 
 !!! warning "Two caveats that change how these figures read"
     **The sweep images are synthetic.** Extra channels and the moving registration
@@ -106,14 +103,6 @@ fig_notes <- c(
     "Total I/O **volume** per process, `read_gb + write_gb` (trace `rchar`/`wchar`,",
     "cumulative bytes moved through read/write syscalls) vs `input_gb`, same power-law fit.",
     "This is transferred volume, not throughput (no per-second rate)."),
-  "03_classic_vs_distributed_ram" = paste(
-    "Registration-stage peak RAM, classic vs distributed path, from",
-    "`classic_vs_distributed_registration.csv`: columns `reg_peak_rss_gb_classic` and",
-    "`reg_peak_rss_gb_distributed` plotted vs `target_px`, faceted by `n_channels`.",
-    "The classic path holds the BioFormats JVM heap; the JVM-free distributed path stays bounded."),
-  "03b_distributed_ram_saving" = paste(
-    "The precomputed RAM saving `rss_saving_gb = reg_peak_rss_gb_classic -",
-    "reg_peak_rss_gb_distributed` (GiB) vs `target_px`, coloured by channel count."),
   "04_nimage_registration_ram" = paste(
     "`REGISTER` peak RSS vs the number of co-registered slides. Rows on",
     "`registration_grid`/`baseline`/`scaling_grid`; value = mean `peak_rss_gb` grouped by",
@@ -145,19 +134,17 @@ fig_notes <- c(
   "09b_stardist_tile_grid" = paste(
     "StarDist only: mean `peak_rss_gb` per `(seg_n_tiles_x, seg_n_tiles_y)` tile grid —",
     "how tiling trades memory."),
-  "10_registration_params_both_paths" = paste(
-    "Registration knobs measured in both paths. On `registration_param_grid`, per run the",
-    "registration peak = **max** `peak_rss_gb` over the `reg_leaves`; path = distributed if",
-    "`reg_distributed_tiling` is truthy else classic; value = mean per",
-    "`(memory_mode, skip_micro_registration, path)`."),
   "11_accuracy_vs_cost" = paste(
     "Accuracy vs cost (lower-left is better). `reg_displacement_um_p50` (matched-nucleus",
     "centroid residual, µm) from `param_matrix.csv` vs `cpu_hours`, one point per config.",
     "For the real-slide, landmark-free accuracy detail see the",
     "[registration accuracy](registration_accuracy.html) page."),
   "12_segmentation_cell_counts" = paste(
-    "Cells detected per method: raw `n_cells` (max mask label, from `quality.csv`) distribution",
-    "per `seg_method`. Large gaps between methods mean they disagree on how many cells exist."),
+    "Cells detected per method: raw `n_cells` (max mask label) from `param_matrix.csv`, with",
+    "`seg_method` falling back to `runs_master.csv` when a stripped `param_matrix.csv` lacks it,",
+    "distribution per `seg_method`. Large gaps between methods mean they disagree on how many",
+    "cells exist. Degrades to a pooled distribution (no per-method split) when `seg_method` is",
+    "unavailable from either source."),
   "12b_segmentation_agreement" = paste(
     "Cross-method **agreement**, from `segmentation_agreement.csv`: bar = `instance_f1`",
     "(IoU-matched per-cell F1 between two methods, 1 = agree on every cell); text = `cell_count_ratio`.",
@@ -170,14 +157,6 @@ fig_notes <- c(
     "Which stage dominates, from `run_cost.csv`: count of runs per `(target_px, bottleneck_stage)`",
     "drawn as a filled bar, so each bar is the **share** of runs whose slowest single process is",
     "that stage — the bottleneck shifts with image size."),
-  "15_tiled_path_granularity" = paste(
-    "Distributed tiled path only (`distributed_tiling_grid`): per run the registration peak =",
-    "**max** `peak_rss_gb` over `reg_leaves`; value = mean per `(reg_dist_tile_wh,",
-    "reg_dist_tile_buffer)`. How tile size and overlap trade RAM."),
-  "16_tiled_drift_from_classic" = paste(
-    "Tiled path pixel drift from `registration_drift.csv` (`path == \"tiled\"`): mean of the",
-    "precomputed `max_abs_delta` (max absolute intensity difference vs the classic slide; 0 =",
-    "identical) per `(tile_wh, tile_buffer)`. Drift, not a failure — tiled is a different algorithm."),
   "17_valis_vs_overlap_agreement" = paste(
     "Agreement of two independent registration-accuracy estimates from `param_matrix.csv`:",
     "VALIS's own feature error (`valis_non_rigid_rTRE`/`_D`, x) vs the DAPI-overlap",
@@ -214,12 +193,11 @@ if (length(bench_figs)) {
   `valis_non_rigid_D`/`_rTRE` (VALIS's own feature error),
   `instance_f1`/`cell_count_ratio` (segmentation agreement), and the replicate
   mean/sd all arrive precomputed in their CSVs. The reductions `benchmark_plots.R`
-  performs itself are the log-space OLS (β, R²), the per-run max/sum over
-  `reg_leaves`, and replicate means/shares.
+  performs itself are the log-space OLS (β, R²) and grouped means/shares (by
+  process, image size, or channel count).
 - **Reductions are means over replicates** unless noted; SLURM isolates per-process
-  resources, so `peak_rss_gb` is one process's peak and registration-stage RAM is the
-  max across its leaf processes within a run. I/O (`read_gb`/`write_gb`) is transferred
-  **volume**, not throughput.
+  resources, so `peak_rss_gb` is one process's peak, not a whole-run aggregate.
+  I/O (`read_gb`/`write_gb`) is transferred **volume**, not throughput.
 - Any figure whose optional CSV (or required column) is missing is silently skipped;
   the rendered set depends on which sweep outputs were dropped into `data/benchmark/`.
 
