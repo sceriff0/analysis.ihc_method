@@ -45,3 +45,38 @@ test_that("registration_accuracy.csv builds the overlap Dice and displacement fi
   expect_true(all(c("02_overlap_dice_by_stage", "02b_displacement_um_by_stage") %in% names(figs)))
   expect_s3_class(figs[["02b_displacement_um_by_stage"]], "ggplot")
 })
+
+test_that("param_matrix.csv builds the accuracy-vs-cost Pareto figure", {
+  d <- tmp_data()
+  readr::write_csv(tibble::tibble(
+    run_id                = c("r1", "r2", "r3"),
+    cpu_hours             = c(1.2, 2.5, 4.1),
+    reg_displacement_um_p50 = c(2.1, 1.4, 1.3)
+  ), file.path(d, "param_matrix.csv"))
+  figs <- build_reg_figs(d)
+  expect_true("04_accuracy_vs_cost" %in% names(figs))
+  expect_s3_class(figs[["04_accuracy_vs_cost"]], "ggplot")
+})
+
+test_that("param_matrix.csv builds the VALIS-vs-overlap agreement figure", {
+  d <- tmp_data()
+  readr::write_csv(tibble::tibble(
+    run_id            = c("r1", "r2", "r3"),
+    reg_dice_matched  = c(0.72, 0.80, 0.83),
+    valis_non_rigid_D = c(5.1, 3.8, 3.2)
+  ), file.path(d, "param_matrix.csv"))
+  figs <- build_reg_figs(d)
+  expect_true("05_valis_vs_overlap_agreement" %in% names(figs))
+})
+
+test_that("feature_dist/*.json builds the (legacy) distance-reduction figure when present", {
+  skip_if_not_installed("jsonlite")
+  d <- tmp_data()
+  dir.create(file.path(d, "feature_dist"))
+  jsonlite::write_json(list(
+    moving_image = "P001_mov1",
+    improvement  = list(distance_reduction_percent = 62.5)
+  ), file.path(d, "feature_dist", "P001_mov1.json"), auto_unbox = TRUE)
+  figs <- build_reg_figs(d)
+  expect_true("03_feature_distance_reduction" %in% names(figs))
+})

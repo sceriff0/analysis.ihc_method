@@ -25,6 +25,8 @@ STAGE_LEVELS_OVERLAP <- c("native", "rigid", "non_rigid", "micro")     # warp_se
   if (nrow(d) == 0) NULL else d
 }
 
+`%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
+
 build_reg_figs <- function(dir = here::here("data", "benchmark")) {
   figs <- list()
 
@@ -101,6 +103,65 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
         labs(title = "Centroid residual displacement by stage",
              subtitle = "Matched-nucleus centroid distance in physical units; lower = tighter alignment.",
              x = NULL, y = "displacement (µm)", caption = REG_CAPTION)
+    }
+  }
+
+  # -- §3 feature-distance improvement (OPTIONAL / LEGACY) ----------------------
+  # mirage no longer emits feature_dist/*.json by default (the sweep uses reg_qc=2 + VALIS rTRE);
+  # this renders only if a run set enable_feature_error. Needs jsonlite.
+  fd_dir <- file.path(dir, "feature_dist")
+  if (dir.exists(fd_dir) && requireNamespace("jsonlite", quietly = TRUE)) {
+    jf <- list.files(fd_dir, pattern = "\\.json$", full.names = TRUE)
+    if (length(jf)) {
+      rows <- lapply(jf, function(j) {
+        x <- tryCatch(jsonlite::fromJSON(j), error = function(e) NULL)
+        if (is.null(x) || is.null(x$improvement$distance_reduction_percent)) return(NULL)
+        data.frame(moving = x$moving_image %||% basename(j),
+                   reduction_pct = as.numeric(x$improvement$distance_reduction_percent))
+      })
+      fd <- do.call(rbind, rows)
+      if (!is.null(fd) && nrow(fd)) {
+        figs[["03_feature_distance_reduction"]] <-
+          ggplot(fd, aes(stats::reorder(moving, reduction_pct), reduction_pct)) +
+          geom_col(fill = oi[3], width = .7) + coord_flip() +
+          labs(title = "Feature-distance reduction after registration (legacy)",
+               subtitle = "Per moving slide: percent drop in mean matched-feature distance (before → after).",
+               x = NULL, y = "distance reduction (%)", caption = REG_CAPTION)
+      }
+    }
+  }
+
+  # -- §4 accuracy vs cost (Pareto) --------------------------------------------
+  pm <- .reg_read_opt(dir, "param_matrix.csv")
+  if (!is.null(pm) && all(c("reg_displacement_um_p50", "cpu_hours") %in% names(pm))) {
+    pmf <- pm %>% dplyr::filter(is.finite(reg_displacement_um_p50), is.finite(cpu_hours))
+    if (nrow(pmf)) {
+      figs[["04_accuracy_vs_cost"]] <-
+        ggplot(pmf, aes(cpu_hours, reg_displacement_um_p50)) +
+        geom_point(size = 2, alpha = .8, colour = oi[1]) +
+        labs(title = "Registration accuracy vs cost",
+             subtitle = "Lower-left is better: less residual for fewer CPU-hours. One point per config.",
+             x = "registration CPU-hours", y = "residual displacement, median (µm)",
+             caption = REG_CAPTION)
+    }
+  }
+
+  # -- §5 agreement of the two independent estimates ---------------------------
+  # The paper's thesis: VALIS's own feature error and the segmentation-overlap Dice are computed by
+  # DIFFERENT methods yet should track per run. Both are pre-joined in param_matrix.csv, so this is a
+  # single scatter — no extra plumbing. Prefer the relative rTRE median, fall back to the distance.
+  if (!is.null(pm) && "reg_dice_matched" %in% names(pm)) {
+    valis_col <- intersect(c("valis_non_rigid_rTRE", "valis_non_rigid_D"), names(pm))[1]
+    if (!is.na(valis_col)) {
+      ag <- pm %>% dplyr::filter(is.finite(.data[[valis_col]]), is.finite(reg_dice_matched))
+      if (nrow(ag) > 1) {
+        figs[["05_valis_vs_overlap_agreement"]] <-
+          ggplot(ag, aes(.data[[valis_col]], reg_dice_matched)) +
+          geom_point(size = 3, alpha = .8, colour = oi[1]) +
+          labs(title = "Registration accuracy: VALIS vs segmentation-overlap",
+               subtitle = "Independent estimates per run — VALIS feature error (x) vs matched-nucleus Dice (y). They should track.",
+               x = valis_col, y = "matched-nucleus Dice (reg_dice_matched)", caption = REG_CAPTION)
+      }
     }
   }
 
