@@ -30,8 +30,10 @@ how IHC markers are quality-controlled, and how the imaging pipeline is benchmar
   sf point-in-polygon membership vs. the `Out_of_annotation` flag, compared per cell.
 - [IHC marker QC](ihc_qc.html) _(in progress)_ — per-marker distribution and
   bimodality checks on `ihc_data`, with no external reference.
-- [Registration accuracy](registration_accuracy.html) — accuracy of the image
-  registration used to align modalities.
+- [Registration accuracy](registration_accuracy.html) — landmark-free accuracy of
+  the image registration on the real patient slides: VALIS feature rTRE per stage,
+  an independent segmentation-overlap (Dice / µm displacement) cross-check, and an
+  explicit agreement view of the two.
 - [Pipeline benchmarks](benchmarks.html) — Mirage image-processing benchmark:
   resource scaling, registration cost/accuracy, and segmentation-method
   comparison from the SLURM sweep.

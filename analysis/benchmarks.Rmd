@@ -60,21 +60,21 @@ lower-cased value is one of `true`, `1`, `yes`.
     panels are *synthesized* from channel 0 (duplicate + intensity jitter + a fixed
     pixel shift), so figures that touch channels or registration *accuracy* on sweep
     cells reflect a known synthetic offset, **not** biological registration
-    difficulty. **`reg_tre_median_px` is a feature-distance proxy, not landmark
-    TRE** — treat the accuracy figures (11, 17) as relative, cost-vs-error views,
-    not absolute accuracy. (Absolute landmark accuracy for the classic VALIS path is
-    established separately on the ANHIR/ACROBAT challenges.)
+    difficulty. Treat the accuracy figures (11, 17) as relative cost-vs-error and
+    method-agreement views on synthetic offsets. Landmark-free accuracy on the
+    **real** patient slides is reported separately on the
+    [registration accuracy](registration_accuracy.html) page.
 
 **Axes are linear throughout** (no log-log): the power-law scaling figures fit the
 exponent in log space but draw the fitted curve on linear axes, with the exponent
 `β` and `R²` shown in each facet strip.
 
 **Optional CSVs** (a figure needing an absent file is skipped): `resource_stats.csv`,
-`quality.csv`, `run_cost.csv`, `segmentation_agreement.csv`,
-`classic_vs_distributed_registration.csv`, `registration_drift.csv`. Accuracy
-columns (`reg_tre_median_px`, `max_abs_delta`, `pct_pixels_diff`, `rss_saving_gb`,
+`param_matrix.csv`, `registration_accuracy.csv`, `registration_valis_rtre.csv`,
+`run_cost.csv`, `segmentation_agreement.csv`, `runs_master.csv`. Accuracy columns
+(`reg_displacement_um_p50`, `reg_dice_matched`, `valis_non_rigid_D`/`_rTRE`,
 `instance_f1`, `cell_count_ratio`, `peak_rss_gb_mean`/`_std`) are **precomputed
-upstream** and only read here.
+upstream** by mirage `make_tables.py` and only read here.
 
 ```{r run-benchmark}
 bench_figs <- list()
@@ -151,10 +151,10 @@ fig_notes <- c(
     "`reg_distributed_tiling` is truthy else classic; value = mean per",
     "`(memory_mode, skip_micro_registration, path)`."),
   "11_accuracy_vs_cost" = paste(
-    "Accuracy vs cost (lower-left is better). `reg_tre_median_px` from `quality.csv` vs",
-    "`cpu_hours` from `run_cost.csv`, joined on `run_id`, one point per config.",
-    "**`reg_tre_median_px` is a feature-distance proxy, not landmark TRE** — read this as a",
-    "relative cost/error trade-off, not absolute registration accuracy."),
+    "Accuracy vs cost (lower-left is better). `reg_displacement_um_p50` (matched-nucleus",
+    "centroid residual, µm) from `param_matrix.csv` vs `cpu_hours`, one point per config.",
+    "For the real-slide, landmark-free accuracy detail see the",
+    "[registration accuracy](registration_accuracy.html) page."),
   "12_segmentation_cell_counts" = paste(
     "Cells detected per method: raw `n_cells` (max mask label, from `quality.csv`) distribution",
     "per `seg_method`. Large gaps between methods mean they disagree on how many cells exist."),
@@ -178,11 +178,12 @@ fig_notes <- c(
     "Tiled path pixel drift from `registration_drift.csv` (`path == \"tiled\"`): mean of the",
     "precomputed `max_abs_delta` (max absolute intensity difference vs the classic slide; 0 =",
     "identical) per `(tile_wh, tile_buffer)`. Drift, not a failure — tiled is a different algorithm."),
-  "17_registration_error_by_path" = paste(
-    "Registration error by path, from `quality.csv`: `reg_tre_median_px` distribution per path",
-    "(classic / separated / tiled, decided from `reg_distributed_tiling` and `reg_dist_force_tiling`).",
-    "Separated should match classic; tiled shows any accuracy cost of tiling.",
-    "Same **feature-distance-proxy** caveat as figure 11.")
+  "17_valis_vs_overlap_agreement" = paste(
+    "Agreement of two independent registration-accuracy estimates from `param_matrix.csv`:",
+    "VALIS's own feature error (`valis_non_rigid_rTRE`/`_D`, x) vs the DAPI-overlap",
+    "`reg_dice_matched` (y), one point per run. They are computed by different methods, so a",
+    "clear trend means they corroborate each other. (Replaces the retired classic-vs-distributed",
+    "error-by-path view — mirage now has a single registration path.)")
 )
 ```
 
@@ -208,12 +209,13 @@ if (length(bench_figs)) {
 
 ## Notes
 
-- **Accuracy metrics are read, not recomputed.** `reg_tre_median_px` (a
-  feature-distance proxy), `max_abs_delta`/`pct_pixels_diff` (drift),
-  `instance_f1`/`cell_count_ratio` (segmentation agreement), `rss_saving_gb`, and the
-  replicate mean/sd all arrive precomputed in their CSVs. The reductions
-  `benchmark_plots.R` performs itself are the log-space OLS (β, R²), the per-run
-  max/sum over `reg_leaves`, and replicate means/shares.
+- **Accuracy metrics are read, not recomputed.** `reg_displacement_um_p50` /
+  `reg_dice_matched` (registration residual and matched-nucleus Dice),
+  `valis_non_rigid_D`/`_rTRE` (VALIS's own feature error),
+  `instance_f1`/`cell_count_ratio` (segmentation agreement), and the replicate
+  mean/sd all arrive precomputed in their CSVs. The reductions `benchmark_plots.R`
+  performs itself are the log-space OLS (β, R²), the per-run max/sum over
+  `reg_leaves`, and replicate means/shares.
 - **Reductions are means over replicates** unless noted; SLURM isolates per-process
   resources, so `peak_rss_gb` is one process's peak and registration-stage RAM is the
   max across its leaf processes within a run. I/O (`read_gb`/`write_gb`) is transferred
