@@ -126,7 +126,12 @@ if (length(reg_figs)) {
 - **rTRE is relative, displacement is physical.** rTRE (§1) is a fraction of the
   image diagonal; `displacement_um` (§2) is in microns. Read §1 for cross-size
   comparability, §2 for an interpretable physical residual.
-- **This page owns registration accuracy.** §4 and §5 read the same
+- **This is the SWEEP, not your samples.** These tables come from mirage's
+  `benchmarks/` runs on synthetic images. For the registration accuracy of the run
+  that produced this study's cells — including VALIS's and STARE's own error and the
+  per-tile spatial error map — see [run QC](run_qc.html), which reads `data/mirage/`
+  and needs no sweep.
+- **This page owns sweep registration accuracy.** §4 and §5 read the same
   `param_matrix.csv` columns the [pipeline benchmarks](benchmarks.html) page used to
   duplicate as its figures 11 and 17; they are built here only, by
   `code/registration_accuracy_plots.R`. The benchmarks page covers resource scaling,

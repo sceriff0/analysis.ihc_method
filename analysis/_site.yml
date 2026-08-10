@@ -11,6 +11,8 @@ navbar:
     href: annotation_membership_qc.html
   - text: mirage phenotyping
     href: clinical_data_mirage.html
+  - text: Run QC
+    href: run_qc.html
   - text: Registration accuracy
     href: registration_accuracy.html
   - text: Benchmarks

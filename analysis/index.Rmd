@@ -37,14 +37,20 @@ how IHC markers are quality-controlled, and how the imaging pipeline is benchmar
   sf point-in-polygon membership vs. the `Out_of_annotation` flag, compared per cell.
 - [IHC marker QC](ihc_qc.html) _(in progress)_ — per-marker distribution and
   bimodality checks on `ihc_data`, with no external reference.
-- [Registration accuracy](registration_accuracy.html) — landmark-free accuracy of
-  the image registration: VALIS feature rTRE per stage, an independent
-  segmentation-overlap (Dice / µm displacement) cross-check, accuracy vs cost, and
-  an explicit agreement view of the two estimates. **All** registration-accuracy
-  figures live here.
-- [Pipeline benchmarks](benchmarks.html) — Mirage image-processing benchmark:
-  resource scaling, I/O volume, whole-pipeline cost and segmentation-method
-  comparison from the SLURM sweep.
+- [Run QC](run_qc.html) — **the QC of the run on the study samples**: VALIS's or
+  STARE's own registration error (including STARE's per-tile spatial map), the
+  independent DAPI-nucleus overlap cross-check, and the phenotyping calibration and
+  constraint audit. Reads `data/mirage/` and needs nothing else — the only page that
+  renders from a pipeline run alone.
+
+The next two read mirage's `benchmarks/` **sweep**, which runs on synthetic images
+to measure cost and scaling. They say nothing about your samples; Run QC does.
+
+- [Registration accuracy](registration_accuracy.html) — sweep registration accuracy:
+  VALIS feature rTRE per stage, the segmentation-overlap cross-check, accuracy vs
+  cost, and an agreement view of the two estimates.
+- [Pipeline benchmarks](benchmarks.html) — sweep resource scaling, I/O volume,
+  whole-pipeline cost and segmentation-method comparison.
 
 ## Molecular & clinical analyses
 

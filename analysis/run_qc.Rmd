@@ -1,0 +1,267 @@
+---
+title: "Run QC — registration and phenotyping accuracy on the study samples"
+author: "sceriff0"
+date: "2026-08-10"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+})
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+
+# This page reads ONLY the QC artifacts mirage published for the run, so it does not
+# source load_data.R: it renders from a pipeline run alone, with no counts.RData, no
+# clinical table and no FlowPath gating.
+source(here("code", "run_qc.R"))              # readers + build_run_qc_figs()
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG    <- "run_qc"
+qc_root <- RUN_QC_ROOT
+```
+
+## Starting data and notation
+
+How well was **this cohort** registered and phenotyped? Everything here is measured
+on the real patient slides, by the pipeline, during the run that produced the cells
+the other pages analyse.
+
+That is a different question from the one the benchmark pages answer. [Pipeline
+benchmarks](benchmarks.html) and [registration accuracy](registration_accuracy.html)
+read the tables mirage's `benchmarks/` sweep produces on **synthetic** images —
+rescaled copies with a known injected offset, run to measure cost and scaling. Useful
+for choosing parameters, silent about your samples. This page reads
+`data/mirage/<patient>/`, the same tree [`clinical_data_mirage`](clinical_data_mirage.html)
+takes its cells from, so a run already copied in needs nothing further.
+
+**Where the numbers come from.**
+
+| artifact | what it is |
+|---|---|
+| `qc/registration/*_seg_qc.json` | staged **segmentation-overlap** QC (`reg_qc = 2`): matched-nucleus Dice, per-pair IoU and centroid residual, per moving slide per stage |
+| `registered/summary/*.csv` | **VALIS's own** error, written during `register()` — rTRE / D / `n_matches` |
+| `qc/registration/*_tre.json` | **STARE's own** TRE, when the tiled path ran — plus a per-tile spatial map |
+| `phenotyping/phenotype_qc.json` | conformal calibration: the risk budget used, degraded markers |
+| `phenotyping/constraint_audit.csv` | observed vs asserted co-expression rate per panel constraint |
+
+**Three signals, and only one comparison is meaningful.** VALIS rTRE and STARE TRE
+are both **intrinsic**: each method grading itself, from the very features it
+registered on. They are not comparable to each other — only one of them ran — and
+neither is evidence on its own, because a method that aligned its own features well
+has demonstrated exactly that and nothing more. The segmentation-overlap Dice is
+computed from **DAPI nuclei, not features**, by a different method entirely, so it
+is the independent check on whichever intrinsic number this run has. §4 plots them
+against each other; a run where the self-report looks excellent and the overlap does
+not is the failure mode worth catching.
+
+```
+stage        what the transform is at that point
+-----------  -----------------------------------------------------------
+native       none — the raw between-slide offset
+rigid        rigid only (post micro-rigid). THE ANCHOR: correspondences are
+             established once here and then held fixed, so every later change
+             is geometry rather than a different set of cells being paired
+non_rigid    rigid + the wave-1 non-rigid field
+micro        + the micro residual — what the pipeline actually ships
+```
+
+**Two traps in these files.**
+
+- `register_micro()` re-runs `measure_error()` and **overwrites** `<name>_summary.csv`,
+  so that file is *post*-micro. `<name>_summary_premicro.csv` (written only at
+  `micro_reg >= 2`) is the one that isolates the non-rigid stage. They are tagged
+  `stage_scope` and faceted apart here rather than pooled — averaging them would mix
+  a pre- and a post-micro estimate of the same slide.
+- **Pair fraction gates everything above it.** A Dice computed over 30% of the cells
+  is a Dice over a thin and probably biased subset. Read §3c before quoting any
+  accuracy number from §3.
+
+```{r build}
+qc_tables <- run_qc_tables(qc_root)
+qc_figs   <- build_run_qc_figs(qc_root, qc_tables)
+
+found <- vapply(qc_tables, nrow, integer(1))
+if (sum(found) == 0) {
+  cat("No mirage QC found under `", qc_root, "`.\n\n",
+      "Copy (or symlink) a pipeline run's `--outdir` to `data/mirage/` and re-knit —\n",
+      "the per-patient `qc/`, `registered/summary/` and `phenotyping/` directories\n",
+      "are what this page reads.\n", sep = "")
+} else {
+  cat("artifacts found — ",
+      paste(sprintf("%s: %d rows", names(found), found), collapse = " | "), "\n", sep = "")
+  path <- if (nrow(qc_tables$stare)) "tiled (STARE)" else
+          if (nrow(qc_tables$valis)) "VALIS"          else "unknown"
+  cat("registration path in this run: ", path, "\n", sep = "")
+}
+```
+
+## Headline accuracy per slide
+
+One row per moving slide at the **final** stage — the alignment the cells were
+actually quantified on. `dice_matched` is the matched-nucleus overlap and
+`disp_um_p50` the median centroid residual in microns, which is the number to quote
+as the pipeline's spatial resolution on this cohort. `pair_fraction` is how much of
+the slide those two are based on.
+
+```{r headline}
+if (nrow(qc_tables$seg_qc)) {
+  qc_tables$seg_qc |>
+    group_by(patient_id, moving) |>
+    slice_max(as.integer(stage), n = 1, with_ties = FALSE) |>
+    ungroup() |>
+    transmute(patient_id, moving, final_stage = as.character(stage),
+              dice = round(dice_matched, 3),
+              disp_um_p50 = round(disp_um_p50, 2),
+              disp_um_p90 = round(disp_um_p90, 2),
+              pair_fraction = round(pair_fraction, 2),
+              gain_vs_rigid_dice = round(d_dice_vs_rigid, 3),
+              gain_vs_rigid_um   = round(d_disp_um_vs_rigid, 2)) |>
+    arrange(desc(disp_um_p50)) |>
+    knitr::kable(caption = paste(
+      "Registration accuracy per moving slide, worst residual first. The gain_* columns",
+      "are the change from the rigid anchor: negative micron gain = the non-rigid and",
+      "micro stages tightened the alignment. A low pair_fraction undermines the row."))
+}
+```
+
+## Phenotyping calibration
+
+`chosen_alpha` is the conformal risk budget the run actually certified. Below
+`alpha_target` means CRC tightened it; `crc_ran = FALSE` means calibration data was
+too thin to certify any level, and the signs are **reporting-only** — usable as a
+description, not as a controlled-risk call. Any marker in `degraded` fell back the
+same way, so populations gated on it are the ones to distrust first.
+
+```{r pheno-qc}
+if (nrow(qc_tables$pheno_qc))
+  qc_tables$pheno_qc |>
+    transmute(patient_id, n_cells,
+              chosen_alpha = round(chosen_alpha, 4), alpha_target,
+              crc_ran, reporting_mode, n_degraded, degraded) |>
+    arrange(patient_id) |>
+    knitr::kable(caption = paste(
+      "Conformal calibration per patient. reporting_mode = TRUE means no risk level",
+      "was certified for that slide."))
+```
+
+```{r audit-fails}
+# Only the constraints the data contradicts — the full audit is long and mostly passes.
+if (nrow(qc_tables$audit) && "verdict" %in% names(qc_tables$audit)) {
+  bad <- filter(qc_tables$audit, !tolower(as.character(verdict)) %in% c("pass", "ok", "true"))
+  if (nrow(bad))
+    bad |>
+      transmute(patient_id, markers, observed = round(observed, 4),
+                nominal = round(nominal, 4), verdict) |>
+      arrange(desc(observed - nominal)) |>
+      knitr::kable(caption = paste(
+        "Constraints the slide contradicts: the panel asserts these marker pairs are",
+        "mutually exclusive at `nominal`, and `observed` is what the data shows. The",
+        "usual cause is spillover or a mis-set gate, and it undermines every phenotype",
+        "that depends on those markers."))
+  else
+    cat("Every panel constraint passed on every patient.\n")
+}
+```
+
+```{r fig-notes}
+fig_notes <- c(
+  "01_valis_error_by_stage" = paste(
+    "VALIS's own error per moving slide across `original` → `rigid` → `non_rigid`,",
+    "from `registered/summary/*.csv`. rTRE is relative to the image diagonal (unitless,",
+    "comparable across slide sizes); some builds emit raw `*_D` distances instead.",
+    "**Intrinsic** — VALIS scoring its own feature matches. Facets separate the",
+    "post-micro summary from the pre-micro one; they are different measurements."),
+  "01b_valis_n_matches" = paste(
+    "`n_matches`: how many correspondences each rTRE above is based on. A slide with",
+    "few matches has a low-confidence estimate no matter how good the number looks."),
+  "02_stare_tre" = paste(
+    "STARE's intrinsic TRE from `qc/registration/*_tre.json`, in pixels.",
+    "`coarse` is the RMS ORB residual after the global rigid M0 (directly comparable",
+    "to VALIS's rigid error); the per-tile rigid median and p90 summarise local",
+    "misalignment before the mesh; `after mesh` is the post-refinement residual —",
+    "STARE's analogue of VALIS's non-rigid error."),
+  "02b_stare_tre_map" = paste(
+    "The per-tile records behind those percentiles, laid out on the slide grid.",
+    "**This is what the tiled path gives that VALIS cannot**: a summary number averages",
+    "a hot corner away, and tissue folds and slide edges fail locally. A patch of high",
+    "TRE means cells there are misregistered even when the slide's median looks fine."),
+  "03_overlap_dice_by_stage" = paste(
+    "Matched-nucleus Dice per stage, from `qc/registration/*_seg_qc.json`. Computed by",
+    "warping each slide's natively-segmented DAPI nuclei and measuring overlap — it does",
+    "not use the features the registration was fitted on, which is what makes it the",
+    "independent check. Correspondences are fixed at the rigid anchor, so a change",
+    "between stages is geometry, not a different set of pairs."),
+  "03b_displacement_um_by_stage" = paste(
+    "Matched-nucleus centroid residual in **microns** (`displacement_um_p50`/`_p90`).",
+    "Physical units, so this is the figure to quote as the pipeline's spatial",
+    "resolution on this cohort — and to compare against cell diameter when deciding",
+    "whether per-cell marker assignment across cycles is trustworthy."),
+  "03c_pair_fraction" = paste(
+    "The fraction of cells that paired between the two slides, per moving slide. Every",
+    "Dice and displacement above is computed over this subset. Below the dashed 0.5 line",
+    "the pairing is thin and probably biased toward the well-aligned regions, which",
+    "flatters the accuracy numbers."),
+  "04_intrinsic_vs_overlap" = paste(
+    "The self-report against the independent check, one point per moving slide at the",
+    "final stage: whichever intrinsic error this run has (STARE TRE, else VALIS) on x,",
+    "matched-nucleus Dice on y. They should track. A slide with low intrinsic error and",
+    "low Dice is one where the method aligned its own features but not the tissue."),
+  "05_phenotype_alpha" = paste(
+    "The conformal risk budget actually used per patient (`phenotype_qc.json`), against",
+    "the requested `alpha_target` (dashed). Bars coloured by whether CRC ran: 'reporting",
+    "only' means calibration was too thin to certify a risk level, so that patient's",
+    "signs carry no guarantee."),
+  "05b_constraint_audit" = paste(
+    "Observed vs asserted co-expression rate for every panel constraint",
+    "(`constraint_audit.csv`). The tick marks the rate `panel.yaml` asserts; the point is",
+    "what the slide shows. A point well right of its tick means those markers co-occur",
+    "more than the panel allows — spillover, a mis-set gate, or a genuinely unusual",
+    "sample, and a reason to distrust phenotypes that depend on them.")
+)
+```
+
+## Figures
+
+Each figure is preceded by its derivation note. A figure whose artifact this run did
+not produce is simply absent — a VALIS run has no §2, a tiled run has no §1.
+
+```{r figures, results="asis", fig.width=9, fig.height=5.5}
+for (nm in names(qc_figs)) {
+  title <- gsub("_", " ", sub("^[0-9]+[a-z]?_", "", nm))
+  cat("\n\n### ", title, "\n\n", sep = "")
+  if (!is.na(fig_notes[nm])) cat(fig_notes[[nm]], "\n\n")
+  print(qc_figs[[nm]])
+  cat("\n\n")
+}
+```
+
+## Notes
+
+- **Landmark-free throughout.** No manual fiducials are placed anywhere: the
+  intrinsic scores come from the registration's own correspondences and the overlap
+  score from DAPI segmentation. That is what makes this runnable on every cohort,
+  and also why the independent cross-check in §4 matters more than either number
+  alone.
+- **Intrinsic scores are not interchangeable.** VALIS rTRE is relative to the image
+  diagonal and unitless; STARE TRE is in pixels; the overlap residual is in microns.
+  Only the last is a physical distance. Compare across cohorts with the first,
+  quote the third.
+- **This page says nothing about cost.** Resource scaling, runtime and the
+  segmentation-method comparison live on [pipeline benchmarks](benchmarks.html),
+  which needs the sweep — it is not produced by an ordinary run.
+- mirage also writes a self-contained HTML QC report per run (`<outdir>/qc/`) with
+  the preprocessing, registration and segmentation **images**. This page is the
+  numeric complement: it is what you can tabulate, compare across patients and carry
+  into the analysis pages, not what you eyeball.
+
+```{r export-pdfs, include=FALSE}
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
+```

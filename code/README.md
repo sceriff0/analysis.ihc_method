@@ -15,7 +15,8 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
 | `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
-| `registration_accuracy_plots.R` | the registration-accuracy figures — **the only place** they are built |
+| `registration_accuracy_plots.R` | the **sweep** registration-accuracy figures — the only place they are built |
+| `run_qc.R` | the **run's own** QC on the study samples: readers for mirage's per-patient QC artifacts, plus `build_run_qc_figs()` |
 
 The dependency order is `cell_tables.R` → `validation_helpers.R` → `membership.R`
 (→ `mirage_cells.R`); sourcing `validation_helpers.R` pulls in the first and
@@ -46,6 +47,25 @@ coordinates are already in pixels is not rescaled a second time. `read_cell_csv(
 applies `normalise_cell_flags()`, which forces the boolean columns to real logicals so
 two exports of the same cohort can be bound without a type clash. The file header
 documents all three schemas.
+
+## Sweep QC vs run QC
+
+Two different questions, two different trees, and they must not be conflated:
+
+| | reads | measures |
+|---|---|---|
+| `benchmark_plots.R`, `registration_accuracy_plots.R` | `data/benchmark/` — mirage's `benchmarks/` sweep | cost, scaling and accuracy on **synthetic** images with a known injected offset |
+| `run_qc.R` | `data/mirage/<patient>/` — an ordinary pipeline run | how well **the study samples** were registered and phenotyped |
+
+`run_qc.R` deliberately does not source `load_data.R` or `mirage_cells.R`: the QC
+page reads the run's QC artifacts, not its cells, so it renders from a pipeline run
+alone with no `counts.RData`, no clinical table and no FlowPath gating.
+
+Its one rule: **VALIS rTRE and STARE TRE are intrinsic** — each method scoring itself
+on the features it registered on — so neither is evidence on its own, and they are
+not comparable to each other (only one path runs). The matched-nucleus Dice from
+`*_seg_qc.json` is computed from DAPI segmentation instead, which is what makes it
+the independent check; §4 of the page plots the two against each other.
 
 ## The two phenotype vocabularies
 
