@@ -149,5 +149,5 @@ MEMBERSHIP_NOTES <- c(
   "The `old/` subfolder **overrides** the top-level file for every `(patient, annotation)` it provides — see the `file_origin == \"old\"` rows of the inventory above. `clinical_data_per_annotation.Rmd` is the same report with the overlay switched off.")
 ```
 
-```{r body, child = "_clinical_data_body.Rmd"}
+```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}
 ```

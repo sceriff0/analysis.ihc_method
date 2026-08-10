@@ -48,6 +48,21 @@ applies `normalise_cell_flags()`, which forces the boolean columns to real logic
 two exports of the same cohort can be bound without a type clash. The file header
 documents all three schemas.
 
+## Child documents
+
+The four `clinical_data` pages are thin parents over `analysis/_clinical_data_body.Rmd`.
+Two rules, both enforced by `tests/testthat/test-child-documents.R`:
+
+- The **leading underscore** is what keeps `render_site()` (and so workflowr) from
+  building the body as a page of its own.
+- The `child=` path must be **absolute**, via `here::here("analysis", ...)`. knitr
+  resolves it against the knit working directory, and `_workflowr.yml` sets
+  `knit_root_dir: "."` — the project root — so a bare filename is looked for beside
+  `_workflowr.yml` rather than beside its parent. The failure is
+  `Error in file(con, "r") : cannot open the connection` partway through the parent,
+  naming neither the child nor the path, because that is `readLines()`'s internal
+  call inside `knitr:::call_block`.
+
 ## Sweep QC vs run QC
 
 Two different questions, two different trees, and they must not be conflated:

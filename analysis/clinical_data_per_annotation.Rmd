@@ -142,5 +142,5 @@ MEMBERSHIP_NOTES <- c(
   "The `old/` subfolder is **ignored** here. `clinical_data_per_annotation_old.Rmd` is identical except that it layers `per_annotation/old/` over the top-level files, so differences between the two pages are attributable to those re-exported annotations alone.")
 ```
 
-```{r body, child = "_clinical_data_body.Rmd"}
+```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}
 ```

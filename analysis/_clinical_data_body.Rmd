@@ -2,7 +2,19 @@
 _clinical_data_body.Rmd — the shared body of the three clinical_data reports.
 
 Not a page: the leading underscore keeps rmarkdown's site generator (and therefore
-workflowr) from building it on its own. It is pulled in with a `child` chunk by
+workflowr) from building it on its own — render_site() skips files beginning with
+`_` or `.`, which is the same rule that keeps `_site.yml` from being rendered.
+
+THE CHILD PATH MUST BE ABSOLUTE. knitr resolves a `child=` option against the KNIT
+WORKING DIRECTORY, not against the parent document, and `_workflowr.yml` sets
+`knit_root_dir: "."` — the project root. A bare `child = "_clinical_data_body.Rmd"`
+is therefore looked for at `<root>/_clinical_data_body.Rmd`, and the build dies
+mid-parent with `Error in file(con, "r") : cannot open the connection`, which names
+neither the child nor the missing path. Use `here::here("analysis", ...)`; it also
+keeps RStudio's Knit button working, since that knits from the document's own
+directory. tests/testthat/test-child-documents.R enforces this.
+
+It is pulled in with a `child` chunk by
 
   clinical_data.Rmd                        membership: geojson polygons
   clinical_data_per_annotation.Rmd         membership: the exporter flag

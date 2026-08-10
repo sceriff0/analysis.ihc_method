@@ -102,5 +102,5 @@ MEMBERSHIP_NOTES <- c(
   "Because a polygon is read, `area_mm2` and the `dens_*_per_mm2` columns carry real values here — the one thing the flag variants cannot report.")
 ```
 
-```{r body, child = "_clinical_data_body.Rmd"}
+```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}
 ```

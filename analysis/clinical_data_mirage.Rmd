@@ -153,5 +153,5 @@ MEMBERSHIP_NOTES <- c(
   "mirage's `Myeloid` / `Macrophage_M2` leaves have no FlowPath counterpart and fold into `Immune_other`; its four unresolved outcomes (Unclassified, Ambiguous, Conflict, Artefact) all count as unresolved, matching FlowPath's `Unknown`.")
 ```
 
-```{r body, child = "_clinical_data_body.Rmd"}
+```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}
 ```
