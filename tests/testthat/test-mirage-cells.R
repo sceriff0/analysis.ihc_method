@@ -94,3 +94,18 @@ test_that("mirage cells flow through the shared metric helpers", {
   expect_equal(r$n_tumor_inside, 2)        # PANCK_Tumor matched despite the _ spelling
   expect_false(any(is.na(cell_lineage(cells$phenotype_clean))))
 })
+
+test_that("cohort-level directories in a raw outdir are skipped silently", {
+  # A mirage outdir carries phenotyping/ (COMPILE_PANEL), qc/, size_logs/ and
+  # _UNROUTED_PUBLISH/ alongside the patient dirs. Warning about each of them on
+  # every knit would train the reader to ignore the warnings that matter, so a
+  # patient is recognised by structure — it has phenotyping/phenotypes.csv.
+  root <- mirage_tree(list(`046` = 3))
+  for (d in c("phenotyping", "qc", "size_logs", "_UNROUTED_PUBLISH"))
+    dir.create(file.path(root, d), recursive = TRUE, showWarnings = FALSE)
+  writeLines("model", file.path(root, "phenotyping", "model_config.json"))
+
+  expect_no_warning(cells <- load_mirage_cells(root))
+  expect_equal(unique(cells$patient_id), "046")
+  expect_false(is_mirage_patient_dir(file.path(root, "phenotyping")))
+})

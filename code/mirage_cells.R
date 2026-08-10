@@ -50,18 +50,29 @@ MIRAGE_FILES <- c(phenotypes = "phenotyping/phenotypes.csv",
                   morphology = "cell_properties/morphology.csv",
                   quant      = "quantification/merged_quant.csv")
 
+# Is this directory a phenotyped patient? Structure, not name: a mirage outdir has
+# cohort-level directories sitting next to the patient ones — `phenotyping/` (the
+# compiled panel from COMPILE_PANEL), `qc/`, `size_logs/`, `_UNROUTED_PUBLISH/` —
+# and treating those as broken patients would warn four times on every knit. The
+# presence of phenotypes.csv is what makes a directory a patient, so data/mirage can
+# point straight at (or symlink) a raw outdir.
+is_mirage_patient_dir <- function(dir) {
+  file.exists(file.path(dir, MIRAGE_FILES[["phenotypes"]]))
+}
+
 # One patient. Returns a 0-row tibble and warns — rather than aborting the cohort
-# load — when a required table is missing, so a partially-processed results tree
-# still yields the patients it does have.
+# load — when a directory IS a patient but a required table is missing, so a
+# partially-processed results tree still yields the patients it does have.
 read_mirage_patient <- function(dir, patient_id = fs::path_file(dir)) {
   paths <- file.path(dir, MIRAGE_FILES)
   names(paths) <- names(MIRAGE_FILES)
 
-  for (need in c("phenotypes", "morphology")) {
-    if (!file.exists(paths[[need]])) {
-      warning("mirage: skipping ", patient_id, " — no ", MIRAGE_FILES[[need]])
-      return(tibble::tibble())
-    }
+  if (!is_mirage_patient_dir(dir)) return(tibble::tibble())   # not a patient; silent
+  if (!file.exists(paths[["morphology"]])) {
+    warning("mirage: skipping ", patient_id, " — has ", MIRAGE_FILES[["phenotypes"]],
+            " but no ", MIRAGE_FILES[["morphology"]], ", so its cells have no ",
+            "coordinates and cannot be placed in an annotation")
+    return(tibble::tibble())
   }
 
   pheno <- read_cell_csv(paths[["phenotypes"]])
@@ -96,12 +107,14 @@ load_mirage_cells <- function(root = MIRAGE_DIR) {
     warning("mirage: directory not found: ", root)
     return(tibble::tibble())
   }
-  dirs <- fs::dir_ls(root, type = "directory")
-  if (!length(dirs)) {
-    warning("mirage: no patient directories under ", root)
+  dirs <- as.character(fs::dir_ls(root, type = "directory"))
+  patients <- dirs[vapply(dirs, is_mirage_patient_dir, logical(1))]
+  if (!length(patients)) {
+    warning("mirage: no patient directories under ", root,
+            " (a patient directory is one containing ", MIRAGE_FILES[["phenotypes"]], ")")
     return(tibble::tibble())
   }
-  purrr::map_dfr(as.character(dirs), read_mirage_patient)
+  purrr::map_dfr(patients, read_mirage_patient)
 }
 
 # Provenance table for the report: which patients loaded, how many cells, and how
