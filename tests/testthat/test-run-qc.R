@@ -35,7 +35,13 @@ qc_fixture <- function(patients = list(`046` = c("cycle2", "cycle3")),
       }
     }
     if (!tiled) {
-      dir.create(file.path(d, "registered", "summary"), recursive = TRUE, showWarnings = FALSE)
+      # NOT `registered/summary/` itself. REGISTER declares these as
+      # path("preprocessed/data/*.csv") and Nextflow's publishDir preserves the
+      # producer subdirectory, so a real run puts them two levels down. Writing them
+      # flat here is what let a one-level dir_ls() pass its tests while finding
+      # nothing on every actual pipeline output.
+      sdir <- file.path(d, "registered", "summary", "preprocessed", "data")
+      dir.create(sdir, recursive = TRUE, showWarnings = FALSE)
       mv <- patients[[pid]]
       # post-micro AND pre-micro: register_micro() overwrites the plain summary, so
       # the two files are different measurements of the same slide
@@ -44,7 +50,7 @@ qc_fixture <- function(patients = list(`046` = c("cycle2", "cycle3")),
           img_name = mv, original_rTRE = 50, rigid_rTRE = 10,
           non_rigid_rTRE = if (suffix == "_summary.csv") 3 else 5,
           n_matches = 120L),
-          file.path(d, "registered", "summary", paste0(pid, suffix)))
+          file.path(sdir, paste0(pid, suffix)))
     }
     if (phenotyping) {
       dir.create(file.path(d, "phenotyping"), recursive = TRUE, showWarnings = FALSE)
@@ -105,6 +111,69 @@ test_that("VALIS pre- and post-micro summaries are tagged, never pooled", {
   expect_true(grepl("rTRE", long$metric[1]))
 })
 
+test_that("VALIS summaries are found under their producer subdirectory, and flat", {
+  # The regression: Nextflow preserves REGISTER's `preprocessed/data/` on publish, so a
+  # one-level dir_ls() found nothing on a real run — and, because a patient is detected
+  # by finding FILES, `registered/summary/` holding only a directory meant a VALIS run
+  # with reg_qc < 2 was not detected at all. Both depths must work: a hand-copied or
+  # flattened tree is still a legitimate input.
+  for (sub in list(c("preprocessed", "data"), character(0))) {
+    root <- file.path(tempdir(), paste0("depth-", sample(1e6, 1)))
+    d <- do.call(file.path, as.list(c(root, "046", "registered", "summary", sub)))
+    dir.create(d, recursive = TRUE)
+    readr::write_csv(tibble::tibble(img_name = "cycle2", original_rTRE = 50,
+                                    rigid_rTRE = 10, non_rigid_rTRE = 3, n_matches = 99L),
+                     file.path(d, "046_summary.csv"))
+    expect_equal(basename(.qc_patient_dirs(root)), "046")
+    expect_equal(nrow(read_valis_summary(root)), 1)
+    expect_equal(nrow(valis_error_long(read_valis_summary(root))), 3)
+  }
+})
+
+test_that("a symlinked patient directory is still a patient directory", {
+  # Assembling data/mirage/ by symlinking individual patient directories out of one or
+  # more run outdirs is a normal way to work off-repo. dir_ls(type = "directory") sees a
+  # symlink's OWN type ("symlink") and skipped every one of them.
+  src <- qc_fixture(list(`046` = "cycle2"))
+  root <- file.path(tempdir(), paste0("symlinked-", sample(1e6, 1)))
+  dir.create(root, recursive = TRUE)
+  skip_if_not(file.symlink(file.path(src, "046"), file.path(root, "046")),
+              "filesystem does not support symlinks")
+  expect_equal(basename(.qc_patient_dirs(root)), "046")
+  expect_equal(nrow(read_seg_qc(root)), 4)                 # four stages, one slide
+  expect_true("01_valis_error_by_stage" %in% names(build_run_qc_figs(root)))
+})
+
+test_that("the intrinsic-vs-overlap view joins across the patient-prefix spelling", {
+  # TILED_SOLVE names its artifact <patient_id>_<channels>_tre.json while seg_qc carries
+  # the native image stem, which need not repeat the patient id. Joining on the raw
+  # `moving` string dropped every row, and an empty join removes §4 silently.
+  root <- file.path(tempdir(), paste0("token-", sample(1e6, 1)))
+  d <- file.path(root, "046", "qc", "registration")
+  dir.create(d, recursive = TRUE)
+  stages <- c("rigid", "micro")
+  tiles  <- data.frame(ix = 0:1, iy = 0L, cx = c(0, 512), cy = 0, tre_rigid = c(1, 2))
+  for (mv in c("cycle2", "cycle3")) {
+    jsonlite::write_json(list(
+      patient_id = "046", moving = paste0(mv, ".ome.tiff"), stage_order = stages,
+      matching = list(pair_fraction = 0.7),
+      stages = stats::setNames(lapply(c(.5, .8), function(x) list(
+        n_pairs = 100L, dice_matched = x, displacement_um_p50 = 2,
+        displacement_um_p90 = 4)), stages)),
+      file.path(d, paste0(mv, "_seg_qc.json")), auto_unbox = TRUE)
+    jsonlite::write_json(list(
+      coarse_tre_px = 4.2, n_inliers = 800L, n_tiles = 2L, mesh_refined = TRUE,
+      moving = mv, rigid_tre_px = list(mean = 2, p50 = 2, p90 = 3, max = 3),
+      residual_after_px = list(mean = .6, p50 = .6, p90 = .9, max = .9), tiles = tiles),
+      file.path(d, paste0("046_", mv, "_tre.json")), auto_unbox = TRUE)  # prefixed
+  }
+
+  sq <- read_seg_qc(root); st <- read_stare_tre(root)
+  expect_equal(nrow(dplyr::inner_join(sq, st, by = c("patient_id", "moving"))), 0)
+  expect_setequal(sq$slide_token, st$slide_token)
+  expect_true("04_intrinsic_vs_overlap" %in% names(build_run_qc_figs(root)))
+})
+
 test_that("STARE TRE and its per-tile spatial map are read when the tiled path ran", {
   root <- qc_fixture(tiled = TRUE)
   st <- read_stare_tre(root)
@@ -158,11 +227,14 @@ test_that("a patient is detected from ANY artifact subset it produced", {
   # detection on one location would render an empty page for the others.
   root <- file.path(tempdir(), paste0("subset-", sample(1e6, 1)))
 
-  # (a) VALIS summaries only — no qc/ directory at all
-  dir.create(file.path(root, "046", "registered", "summary"), recursive = TRUE)
+  # (a) VALIS summaries only — no qc/ directory at all. Published at their real depth,
+  # so `registered/summary/` holds a DIRECTORY and no files: detection has to recurse
+  # or this patient disappears entirely and the page claims the run produced no QC.
+  vdir <- file.path(root, "046", "registered", "summary", "preprocessed", "data")
+  dir.create(vdir, recursive = TRUE)
   readr::write_csv(tibble::tibble(img_name = "cycle2", original_rTRE = 50,
                                   rigid_rTRE = 10, non_rigid_rTRE = 3, n_matches = 99L),
-                   file.path(root, "046", "registered", "summary", "046_summary.csv"))
+                   file.path(vdir, "046_summary.csv"))
   # (b) phenotyping only — no registration QC at all
   dir.create(file.path(root, "052", "phenotyping"), recursive = TRUE)
   jsonlite::write_json(list(chosen_alpha = .04, alpha_target = .05, crc_ran = TRUE,

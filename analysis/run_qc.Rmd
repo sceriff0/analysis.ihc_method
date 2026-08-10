@@ -45,7 +45,7 @@ takes its cells from, so a run already copied in needs nothing further.
 | artifact | what it is |
 |---|---|
 | `qc/registration/*_seg_qc.json` | staged **segmentation-overlap** QC (`reg_qc = 2`): matched-nucleus Dice, per-pair IoU and centroid residual, per moving slide per stage |
-| `registered/summary/*.csv` | **VALIS's own** error, written during `register()` — rTRE / D / `n_matches` |
+| `registered/summary/**/*.csv` | **VALIS's own** error, written during `register()` — rTRE / D / `n_matches`. Nextflow preserves `REGISTER`'s `preprocessed/data/` producer subdirectory on publish, so these sit two levels down; the reader recurses |
 | `qc/registration/*_tre.json` | **STARE's own** TRE, when the tiled path ran — plus a per-tile spatial map |
 | `phenotyping/phenotype_qc.json` | conformal calibration: the risk budget used, degraded markers |
 | `phenotyping/constraint_audit.csv` | observed vs asserted co-expression rate per panel constraint |

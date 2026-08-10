@@ -15,9 +15,13 @@
 #                                    Per (moving slide, stage): matched-nucleus Dice,
 #                                    per-pair IoU, centroid residual in px and um,
 #                                    and the delta against the rigid anchor.
-#   registered/summary/*.csv         VALIS's OWN error, written during register().
+#   registered/summary/**/*.csv      VALIS's OWN error, written during register().
 #                                    Columns are whatever VALIS declared (rTRE / D /
-#                                    n_matches variants) — read generically.
+#                                    n_matches variants) — read generically. Note the
+#                                    RECURSION: Nextflow preserves REGISTER's
+#                                    `preprocessed/data/` producer subdirectory, so
+#                                    these actually sit two levels down. See
+#                                    .qc_files_in() for why that is not cosmetic.
 #   qc/registration/*_tre.json       STARE's own TRE, when the tiled path ran.
 #                                    coarse/rigid/post-refinement percentiles PLUS a
 #                                    per-tile spatial map VALIS cannot give.
@@ -73,28 +77,73 @@ QC_ARTIFACTS <- c(seg_qc = "qc/registration",
                   valis  = "registered/summary",
                   pheno  = "phenotyping")
 
+# SEARCH THE ARTIFACT DIRECTORIES RECURSIVELY, NOT ONE LEVEL DEEP.
+# Nextflow's publishDir PRESERVES the producer subdirectory: a process that writes into
+# a named subdirectory of its task dir and publishes with a `pattern:` naming that
+# subdirectory gets the subdirectory carried into the published path. mirage's
+# lib/Layout.groovy states this and names the deepest case — REGISTER declares its VALIS
+# error tables as `path("preprocessed/data/*.csv")` (modules/local/register.nf) and
+# publishes that pattern into `<pid>/registered/summary`, so they land TWO levels down at
+#
+#     <pid>/registered/summary/preprocessed/data/<name>_summary.csv
+#
+# not in `registered/summary/` itself. A one-level `dir_ls` therefore found no VALIS
+# summaries on any real run, and — because .qc_patient_dirs() detects a patient by
+# finding FILES — a VALIS run with reg_qc < 2 and no phenotyping was not detected as a
+# patient at all: `registered/summary/` holds only a `preprocessed/` DIRECTORY, so the
+# page reported "No mirage QC found" for a run whose rTRE was sitting right there.
+# Recursing is also what keeps this robust to the next producer subdirectory, since
+# nothing stops a future emit from being deeper still.
+.qc_files_in <- function(d, glob = NULL) {
+  if (!fs::dir_exists(d)) return(character(0))
+  as.character(fs::dir_ls(d, recurse = TRUE, type = "file", glob = glob))
+}
+
 # Patient directories under `root`. A mirage outdir also carries cohort-level
 # directories (qc/, phenotyping/, size_logs/, _UNROUTED_PUBLISH/) beside the patient
 # ones; those hold no per-patient artifact and so never match.
+#
+# A SYMLINKED PATIENT DIRECTORY IS STILL A PATIENT DIRECTORY. `dir_ls(type =
+# "directory")` filters on the entry's OWN type, and a symlink's type is "symlink" —
+# so pulling one run's patients together under data/mirage/ by symlinking each of them
+# (rather than symlinking data/mirage itself) yielded zero patients and an empty page.
+# List everything and keep what resolves to a directory, which follows the link.
 .qc_patient_dirs <- function(root) {
   if (!fs::dir_exists(root)) return(character(0))
-  dirs <- as.character(fs::dir_ls(root, type = "directory"))
+  dirs <- as.character(fs::dir_ls(root))
+  dirs <- dirs[fs::dir_exists(dirs)]
   has_any <- vapply(dirs, function(d)
-    any(vapply(unique(QC_ARTIFACTS), function(sub) {
-      p <- file.path(d, sub)
-      fs::dir_exists(p) && length(fs::dir_ls(p, type = "file")) > 0
-    }, logical(1))), logical(1))
+    any(vapply(unique(QC_ARTIFACTS), function(sub)
+      length(.qc_files_in(file.path(d, sub))) > 0, logical(1))), logical(1))
   dirs[has_any]
 }
 
 .read_json <- function(path) tryCatch(jsonlite::fromJSON(path, simplifyVector = TRUE),
                                       error = function(e) NULL)
 
-# Every file matching `glob` under one patient's subdirectory.
-.qc_files <- function(dir, sub, glob) {
-  d <- file.path(dir, sub)
-  if (!fs::dir_exists(d)) return(character(0))
-  as.character(fs::dir_ls(d, glob = glob))
+# Every file matching `glob` anywhere under one patient's subdirectory.
+.qc_files <- function(dir, sub, glob) .qc_files_in(file.path(dir, sub), glob)
+
+# The join key for "the same moving slide", across artifacts that spell it differently.
+#
+# `moving` is written by three producers and they do not agree. On the VALIS path they
+# do, by a documented invariant: seg_qc names the slide from the native image
+# (mirage's seg_qc.nf resolves `meta.qc_slide` by stripping .ome.tif/.ome.tiff, and its
+# comment requires it to equal the registrar's slide_dict key), and VALIS's own summary
+# is keyed by that same name. On the TILED path they differ by exactly the patient
+# prefix: TILED_SOLVE's `_tre.json` is named `<patient_id>_<channels>_tre.json` while
+# seg_qc carries the native stem, which may or may not carry the patient id.
+#
+# So normalise rather than guess: drop any image extension and a leading `<patient>_`.
+# This is a strict WIDENING of the old exact match — anything that joined before still
+# joins — and it is what stops §4 from silently plotting nothing when the two spellings
+# differ only by that prefix.
+.slide_token <- function(x, patient_id = NULL) {
+  s <- basename(as.character(x))
+  s <- sub("\\.(ome\\.tiff?|tiff?|qptiff|svs|ndpi)$", "", s, ignore.case = TRUE)
+  if (is.null(patient_id) || !length(patient_id)) return(s)
+  pre <- paste0(as.character(patient_id), "_")   # recycled against s, one pid per row
+  ifelse(startsWith(s, pre), substring(s, nchar(pre) + 1L), s)
 }
 
 # `%||%` is defined in cell_tables.R / plot_theme.R's siblings; keep run_qc.R
@@ -108,7 +157,7 @@ if (!exists("%||%")) `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) 
 # The column set read_seg_qc() promises, so an empty run still satisfies every
 # `nrow()` and column check downstream.
 SEG_QC_EMPTY <- tibble::tibble(
-  patient_id = character(), moving = character(),
+  patient_id = character(), moving = character(), slide_token = character(),
   stage = factor(levels = QC_STAGE_LEVELS),
   n_pairs = numeric(), pair_fraction = numeric(), iou_mean = numeric(),
   iou_p50 = numeric(), dice_matched = numeric(), disp_um_p50 = numeric(),
@@ -121,12 +170,14 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
       d <- .read_json(f)
       if (is.null(d) || is.null(d$stages)) return(tibble::tibble())
       stages <- d$stage_order %||% names(d$stages)
+      mv     <- d$moving %||% fs::path_ext_remove(fs::path_file(f))
       purrr::map_dfr(stages, function(st) {
         s  <- d$stages[[st]]
         dv <- (d$delta_vs_anchor %||% list())[[st]] %||% list()
         tibble::tibble(
           patient_id       = slide_key(d$patient_id %||% fs::path_file(dir)),
-          moving           = d$moving %||% fs::path_ext_remove(fs::path_file(f)),
+          moving           = mv,
+          slide_token      = .slide_token(mv, fs::path_file(dir)),
           stage            = st,
           n_pairs          = as.numeric(s$n_pairs %||% NA),
           pair_fraction    = as.numeric((d$matching %||% list())$pair_fraction %||% NA),
@@ -162,6 +213,10 @@ read_valis_summary <- function(root = RUN_QC_ROOT) {
       nm <- fs::path_file(f)
       dplyr::mutate(d,
         patient_id  = slide_key(fs::path_file(dir)),
+        # The RAW directory name, before slide_key() normalises it: it is the
+        # `meta.patient_id` mirage prefixes slide names with, so it is what
+        # .slide_token() has to strip. slide_key("EPM - 052") is "052", which is not.
+        patient_dir = fs::path_file(dir),
         summary_csv = nm,
         stage_scope = if (grepl("premicro", nm)) "pre-micro" else "post-micro",
         .before = 1)
@@ -184,8 +239,9 @@ valis_error_long <- function(valis) {
   if (!length(cols)) return(tibble::tibble())
   id <- intersect(c("img_name", "name", "filename"), names(valis))[1]
   valis |>
-    dplyr::mutate(slide = if (is.na(id)) summary_csv else .data[[id]]) |>
-    dplyr::select(patient_id, slide, stage_scope, dplyr::all_of(cols)) |>
+    dplyr::mutate(slide = if (is.na(id)) summary_csv else .data[[id]],
+                  slide_token = .slide_token(slide, patient_dir)) |>
+    dplyr::select(patient_id, slide, slide_token, stage_scope, dplyr::all_of(cols)) |>
     tidyr::pivot_longer(dplyr::all_of(cols), names_to = "stage", values_to = "error") |>
     dplyr::mutate(stage  = factor(sub("_(rTRE|D)$", "", stage), levels = VALIS_STAGE_LEVELS),
                   metric = metric) |>
@@ -200,9 +256,14 @@ read_stare_tre <- function(root = RUN_QC_ROOT) {
       d <- .read_json(f)
       if (is.null(d) || is.null(d$coarse_tre_px)) return(tibble::tibble())
       pct <- function(x, k) as.numeric((d[[x]] %||% list())[[k]] %||% NA)
+      # From the FILENAME (`<patient_id>_<channels>_tre.json`), not from the JSON's own
+      # `moving` field: TILED_SOLVE sets that to the channel set alone, which carries
+      # less than the filename does. .slide_token() then reconciles the two spellings.
+      mv <- sub("_tre$", "", fs::path_ext_remove(fs::path_file(f)))
       tibble::tibble(
         patient_id     = slide_key(fs::path_file(dir)),
-        moving         = sub("_tre$", "", fs::path_ext_remove(fs::path_file(f))),
+        moving         = mv,
+        slide_token    = .slide_token(mv, fs::path_file(dir)),
         coarse_tre_px  = as.numeric(d$coarse_tre_px),
         n_inliers      = as.numeric(d$n_inliers %||% NA),
         n_tiles        = as.numeric(d$n_tiles %||% NA),
@@ -418,18 +479,20 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
       dplyr::group_by(patient_id, moving) |>
       dplyr::slice_max(as.integer(stage), n = 1, with_ties = FALSE) |>
       dplyr::ungroup()
+    # Joined on `slide_token`, NOT on `moving`: the two sides name the same slide
+    # differently on the tiled path (see .slide_token()), and an exact join on the raw
+    # spelling drops every row — silently, since an empty join just removes the figure.
     intrinsic <- if (nrow(st))
-      dplyr::transmute(st, patient_id, moving,
+      dplyr::transmute(st, patient_id, slide_token,
                        intrinsic = dplyr::coalesce(after_p50, rigid_p50),
                        what = "STARE TRE (px)")
     else if (nrow(vl))
       vl |>
         dplyr::filter(stage == dplyr::last(levels(droplevels(stage)))) |>
-        dplyr::transmute(patient_id, moving = slide, intrinsic = error,
-                         what = metric)
+        dplyr::transmute(patient_id, slide_token, intrinsic = error, what = metric)
     else NULL
     if (!is.null(intrinsic) && nrow(intrinsic)) {
-      ag <- dplyr::inner_join(final, intrinsic, by = c("patient_id", "moving")) |>
+      ag <- dplyr::inner_join(final, intrinsic, by = c("patient_id", "slide_token")) |>
         dplyr::filter(is.finite(intrinsic), is.finite(dice_matched))
       if (nrow(ag) > 1)
         figs[["04_intrinsic_vs_overlap"]] <-

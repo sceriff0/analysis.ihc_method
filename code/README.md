@@ -72,9 +72,23 @@ Two different questions, two different trees, and they must not be conflated:
 | `benchmark_plots.R`, `registration_accuracy_plots.R` | `data/benchmark/` — mirage's `benchmarks/` sweep | cost, scaling and accuracy on **synthetic** images with a known injected offset |
 | `run_qc.R` | `data/mirage/<patient>/` — an ordinary pipeline run | how well **the study samples** were registered and phenotyped |
 
+`data/mirage` must **be** the mirage `--outdir`, i.e. contain the per-patient
+directories directly — symlink the run rather than copying a subtree.
+
 `run_qc.R` deliberately does not source `load_data.R` or `mirage_cells.R`: the QC
 page reads the run's QC artifacts, not its cells, so it renders from a pipeline run
 alone with no `counts.RData`, no clinical table and no FlowPath gating.
+
+**Search the artifact directories recursively.** Nextflow's `publishDir` preserves a
+process's producer subdirectory, so `REGISTER`'s VALIS summaries — declared as
+`path("preprocessed/data/*.csv")` — land at
+`<patient>/registered/summary/preprocessed/data/*.csv`, not in `registered/summary/`
+itself. A one-level listing finds them on a hand-flattened tree and never on a real
+run. It also breaks *patient detection*, which keys on finding files: that directory
+holds only a directory, so a VALIS run with `reg_qc < 2` and no phenotyping used to
+render "No mirage QC found" with its rTRE sitting right there. Join moving slides on
+`slide_token`, not on `moving`: the tiled path names the artifact
+`<patient_id>_<channels>_tre.json` while `seg_qc` carries the native image stem.
 
 Its one rule: **VALIS rTRE and STARE TRE are intrinsic** — each method scoring itself
 on the features it registered on — so neither is evidence on its own, and they are
