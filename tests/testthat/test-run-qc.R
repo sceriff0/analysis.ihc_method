@@ -151,3 +151,35 @@ test_that("every figure actually renders", {
     expect_no_error(ggplot2::ggsave(file.path(tempdir(), paste0(nm, ".png")),
                                     figs[[nm]], width = 6, height = 4, dpi = 50))
 })
+
+test_that("a patient is detected from ANY artifact subset it produced", {
+  # Runs differ in what they emit: reg_qc < 2 produces no *_seg_qc.json, the VALIS
+  # path produces no *_tre.json, a registration-only run has no phenotyping. Keying
+  # detection on one location would render an empty page for the others.
+  root <- file.path(tempdir(), paste0("subset-", sample(1e6, 1)))
+
+  # (a) VALIS summaries only — no qc/ directory at all
+  dir.create(file.path(root, "046", "registered", "summary"), recursive = TRUE)
+  readr::write_csv(tibble::tibble(img_name = "cycle2", original_rTRE = 50,
+                                  rigid_rTRE = 10, non_rigid_rTRE = 3, n_matches = 99L),
+                   file.path(root, "046", "registered", "summary", "046_summary.csv"))
+  # (b) phenotyping only — no registration QC at all
+  dir.create(file.path(root, "052", "phenotyping"), recursive = TRUE)
+  jsonlite::write_json(list(chosen_alpha = .04, alpha_target = .05, crc_ran = TRUE,
+                            reporting_mode = FALSE, degraded_markers = character(0),
+                            n_cells = 10L, density_radius = 30, n_bins = 4L),
+                       file.path(root, "052", "phenotyping", "phenotype_qc.json"),
+                       auto_unbox = TRUE)
+  # (c) cohort-level directories, one of them non-empty — must never be a patient
+  dir.create(file.path(root, "size_logs"), recursive = TRUE)
+  dir.create(file.path(root, "qc"), recursive = TRUE)
+  writeLines("<html>", file.path(root, "qc", "report.html"))
+
+  expect_setequal(basename(.qc_patient_dirs(root)), c("046", "052"))
+  expect_equal(nrow(read_valis_summary(root)), 1)
+  expect_equal(nrow(read_phenotype_qc(root)), 1)
+  # and the page still builds the section each subset supports
+  figs <- build_run_qc_figs(root)
+  expect_true("01_valis_error_by_stage" %in% names(figs))
+  expect_true("05_phenotype_alpha" %in% names(figs))
+})

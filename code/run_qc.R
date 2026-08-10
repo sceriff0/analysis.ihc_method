@@ -63,14 +63,28 @@ QC_STAGE_LEVELS     <- c("native", "rigid", "non_rigid", "micro")   # warp_seg_q
 VALIS_STAGE_LEVELS  <- c("original", "rigid", "non_rigid")          # VALIS rTRE stages
 
 # --- helpers ----------------------------------------------------------------
-# Patient directories under `root`, keyed by the directory name. A mirage outdir
-# also carries cohort-level dirs (qc/, phenotyping/, size_logs/), so a patient is one
-# with a qc/ or phenotyping/ subdirectory of its own.
+# Where each artifact sits inside a patient directory. Also the definition of "is a
+# patient": a directory carrying ANY of them. Detecting on one of them only (say a
+# qc/ subdirectory) hides a run that produced a different subset — a VALIS run with
+# reg_qc < 2 and no phenotyping has registered/summary/ and nothing else, and would
+# have rendered an empty page rather than its rTRE.
+QC_ARTIFACTS <- c(seg_qc = "qc/registration",
+                  stare  = "qc/registration",
+                  valis  = "registered/summary",
+                  pheno  = "phenotyping")
+
+# Patient directories under `root`. A mirage outdir also carries cohort-level
+# directories (qc/, phenotyping/, size_logs/, _UNROUTED_PUBLISH/) beside the patient
+# ones; those hold no per-patient artifact and so never match.
 .qc_patient_dirs <- function(root) {
   if (!fs::dir_exists(root)) return(character(0))
   dirs <- as.character(fs::dir_ls(root, type = "directory"))
-  dirs[fs::dir_exists(file.path(dirs, "qc")) |
-       fs::file_exists(file.path(dirs, "phenotyping", "phenotype_qc.json"))]
+  has_any <- vapply(dirs, function(d)
+    any(vapply(unique(QC_ARTIFACTS), function(sub) {
+      p <- file.path(d, sub)
+      fs::dir_exists(p) && length(fs::dir_ls(p, type = "file")) > 0
+    }, logical(1))), logical(1))
+  dirs[has_any]
 }
 
 .read_json <- function(path) tryCatch(jsonlite::fromJSON(path, simplifyVector = TRUE),
