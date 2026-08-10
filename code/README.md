@@ -9,16 +9,21 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `load_data.R` | the raw loaders (`dds`, `clinical_data`, `neoplastic_data`, `counts_data`, `ihc_data`) |
 | `cell_tables.R` | the **single-cell export schema** — one vocabulary over three upstream formats |
 | `validation_helpers.R` | the derived quantities (region ratios, composition, marker/lineage fractions, invasive margin, agreement stats) |
-| `membership.R` | **which cells are inside a tumour annotation** — `membership_data(mode)`, the one knob the three `clinical_data` pages turn |
+| `mirage_cells.R` | the mirage cell source — `phenotypes.csv` + `morphology.csv` joined per patient |
+| `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob the four `clinical_data` pages turn |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
 | `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
 | `registration_accuracy_plots.R` | the registration-accuracy figures — **the only place** they are built |
 
-The dependency order is `cell_tables.R` → `validation_helpers.R` → `membership.R`;
-sourcing `validation_helpers.R` pulls in the first and `plot_theme.R`, so an analysis
-that sources it is loaded and styled with nothing further to call.
+The dependency order is `cell_tables.R` → `validation_helpers.R` → `membership.R`
+(→ `mirage_cells.R`); sourcing `validation_helpers.R` pulls in the first and
+`plot_theme.R`, so an analysis that sources it is loaded and styled with nothing
+further to call. `cell_tables.R` is the bottom of the stack and stays base-R +
+`tibble`, so it can be sourced and tested on its own. `sf` is a **lazy** dependency
+of `validation_helpers.R`: only the six geojson functions require it, so the
+flag-membership reports source and run on a machine without it.
 
 ## Reading a cell table
 
@@ -41,6 +46,30 @@ coordinates are already in pixels is not rescaled a second time. `read_cell_csv(
 applies `normalise_cell_flags()`, which forces the boolean columns to real logicals so
 two exports of the same cohort can be bound without a type clash. The file header
 documents all three schemas.
+
+## The two phenotype vocabularies
+
+FlowPath and mirage name the **same taxonomy** differently — FlowPath's gate tree
+writes `PANCK+Tumor`, `T helper`, `CD8+ T reg`; mirage's `panel.yaml` writes
+`PANCK_Tumor`, `T_helper`, `CD8_Treg`. An unmapped label does not error: it joins to
+`lineage = NA` and quietly empties the composition panels. So `phenotype_lineage`
+(in `cell_tables.R`) lists both spellings and is joined on `pheno_join_key()`, which
+strips punctuation and aliases the two names that genuinely differ (`NK_cell`,
+`Activated_NK`). Use `cell_lineage(phenotype_clean)`, never a direct join.
+
+Two differences are real rather than cosmetic:
+
+- **`Myeloid` / `Macrophage_M2`** are mirage-only leaves; FlowPath's tree dead-ends
+  at plain `Immune` on that branch, so both fold into `Immune_other`.
+- **mirage never writes `Unknown`.** It emits four reserved outcomes —
+  `Unclassified`, `Ambiguous`, `Conflict`, `Artefact` — for cells its constraint
+  solver could not commit. `is_unresolved_phenotype()` covers all of them plus
+  FlowPath's `Unknown`; matching only `"Unknown"` would keep mirage's unresolved
+  cells in the QC-filtered denominators and drop FlowPath's, which is exactly the
+  asymmetry that makes the two tools look different when they are not.
+
+`tests/testthat/test-cell-tables.R` asserts every phenotype `panel.yaml` can emit is
+mapped — if mirage adds a leaf, that test fails rather than the panels going quiet.
 
 ## Figure style
 

@@ -22,12 +22,28 @@
 #   renv::install(c("sf", "jsonlite")); renv::snapshot()
 # =============================================================================
 
-suppressPackageStartupMessages({
-  library(tidyverse)
-  library(here)
-  library(fs)
-  library(sf)
-})
+# Declared package by package rather than via the tidyverse metapackage, so this
+# file can be sourced (and unit-tested) without attaching the whole of it. The Rmds
+# still library(tidyverse) in their own setup, so nothing changes for an analysis.
+.need <- c("dplyr", "tidyr", "readr", "stringr", "purrr", "tibble", "ggplot2",
+           "here", "fs")
+.missing <- .need[!vapply(.need, requireNamespace, logical(1), quietly = TRUE)]
+if (length(.missing))
+  stop("validation_helpers.R needs: ", paste(.missing, collapse = ", "),
+       "\n  renv::install(c(", paste(sprintf('"%s"', .missing), collapse = ", "), "))",
+       call. = FALSE)
+suppressPackageStartupMessages(lapply(.need, library, character.only = TRUE))
+
+# sf is a LAZY requirement, checked by the geometry functions that use it (every
+# call below is sf::-namespaced, so the namespace suffices — no attach). Only the
+# polygon paths need it: the flag-membership reports read a precomputed in/out
+# column and no geojson at all, yet could not previously source on a machine
+# without sf installed, for a dependency they never call.
+.require_sf <- function(what) {
+  if (!requireNamespace("sf", quietly = TRUE))
+    stop(what, " needs the sf package (geojson polygons).",
+         "\n  renv::install(\"sf\")", call. = FALSE)
+}
 
 # --- House plot style -------------------------------------------------------
 # One definition for the whole project, in code/plot_theme.R: it supplies the
@@ -119,25 +135,10 @@ asin_sqrt <- function(p) {
 }
 
 # --- Phenotype / cell-type vocabulary ---------------------------------------
-# `phenotype_clean` (the parenthetical label in `phenotype`) is the cell type.
-# Collapse the 12 observed labels into lineages that have a bulk-RNA counterpart.
-# NOTE: there is no macrophage/B-cell phenotype in this panel, so those deconv
-# cell types have no phenotype-level IHC match (see marker fractions instead).
-phenotype_lineage <- tibble::tribble(
-  ~phenotype_clean,            ~lineage,
-  "PANCK+Tumor",               "Tumor",
-  "VIM+Tumor",                 "Tumor",
-  "T helper",                  "CD4T",
-  "T cytotoxic",               "CD8T",
-  "Activated T cytotoxic",     "CD8T",
-  "CD8+ T reg",                "Treg",
-  "CD4+ Treg",                 "Treg",
-  "Natural Killer",            "NK",
-  "Activated Natural Killer",  "NK",
-  "Immune",                    "Immune_other",
-  "Stroma",                    "Stroma",
-  "Unknown",                   "Unknown"
-)
+# The label -> lineage table and cell_lineage() live in code/cell_tables.R, with the
+# rest of the cross-tool vocabulary: reconciling FlowPath's and mirage's names is a
+# reading concern, not an analysis one, and keeping it there lets it be tested
+# without sf. What stays here is the analysis choice made on top of it.
 
 # Lineages with a clean deconvolution counterpart, used for the method comparison.
 comparable_lineages <- c("CD8T", "CD4T", "Treg", "NK")
@@ -183,6 +184,7 @@ ihc_markers <- marker_gene_map$marker
 }
 
 read_polygon_geojson <- function(path) {
+  .require_sf("read_polygon_geojson()")
   j <- jsonlite::fromJSON(path, simplifyVector = FALSE)
   feats <- if (identical(j$type, "FeatureCollection")) j$features
            else if (identical(j$type, "Feature"))       list(j)
@@ -215,6 +217,7 @@ read_polygon_geojson <- function(path) {
 # NA and the patient_ids filter below silently drops them.
 load_annotations <- function(dir = here::here("data", "annotation"),
                              patient_ids = NULL) {
+  .require_sf("load_annotations()")
   files <- fs::dir_ls(dir, glob = "*.geojson")
   if (length(files) == 0) stop(sprintf("no geojson files found in %s", dir))
 
@@ -260,18 +263,19 @@ region_ratios <- function(cells) {
   # GZMB+ NK = cytotoxic/activated NK (lineage NK AND granzyme-B positive).
   is_cd3   <- if (n_inside) marker_pos(cells, "CD3")  else logical(0)
   is_gzmb  <- if (n_inside) marker_pos(cells, "GZMB") else logical(0)
-  lin      <- if (n_inside)
-    dplyr::left_join(tibble::tibble(phenotype_clean = cells$phenotype_clean),
-                     phenotype_lineage, by = "phenotype_clean")$lineage else character(0)
-  is_nk    <- if (n_inside) lin == "NK" else logical(0)
-  # "Clean" cell set = cells inside the region that FlowPath did NOT flag as an
-  # Outlier and that carry a real phenotype (drop the "Unknown" label). The
-  # `Outlier` column is the raw FlowPath boolean (is_pos() accepts TRUE/"true"/
-  # "1"/"yes"/"+"); if an export lacks the column, no cell is treated as an
-  # outlier (degrades to "all cells inside", matching marker_pos()'s convention).
+  lin      <- if (n_inside) cell_lineage(cells$phenotype_clean) else character(0)
+  is_nk    <- if (n_inside) lin %in% "NK" else logical(0)
+  # "Clean" cell set = cells inside the region the exporter did NOT flag as an
+  # Outlier and that carry a resolved phenotype. is_unresolved_phenotype() covers
+  # FlowPath's "Unknown" AND mirage's four reserved outcomes (Unclassified /
+  # Ambiguous / Conflict / Artefact); matching only "Unknown" would keep mirage's
+  # unresolved cells in the clean denominator and drop FlowPath's, which is exactly
+  # the asymmetry that makes the two tools look different when they are not.
+  # An export with no `Outlier` column has no outliers (same convention as
+  # marker_pos(): absent means "not measured", which cannot exclude a cell).
   is_out     <- if (n_inside && "Outlier" %in% names(cells)) is_pos(cells$Outlier)
                 else rep(FALSE, n_inside)
-  is_unknown <- if (n_inside) tidyr::replace_na(cells$phenotype_clean == "Unknown", FALSE)
+  is_unknown <- if (n_inside) is_unresolved_phenotype(cells$phenotype_clean)
                 else logical(0)
   keep_clean <- if (n_inside) !is_out & !is_unknown else logical(0)
   n_tumor  <- sum(is_tumor, na.rm = TRUE)
@@ -353,6 +357,7 @@ region_composition <- function(region_metrics,
 # heuristic is what produced the wrong pixel/micron scale before.) Returns one
 # metrics row per polygon (per_annotation) or one over the dissolved union.
 .annotation_metrics_sf <- function(cells_p, polys_p, scope, um_per_px) {
+  .require_sf("geojson membership")
   pts <- sf::st_as_sf(cell_centroids_px(cells_p, um_per_px),
                       coords = c("x", "y"), crs = sf::st_crs(polys_p))
   # The geojson polygon gives the region AREA, so region_ratios_area() adds area_mm2
@@ -420,6 +425,7 @@ ihc_annotation_metrics <- function(ihc_data, annots,
 # and the tumour fraction inside under each method. A large flag-vs-sf gap on a slide
 # means the fixed um_per_px is wrong FOR THAT slide (sf catching the wrong cells).
 annotation_membership_qc <- function(dir, annots, um_per_px = 0.325) {
+  .require_sf("annotation_membership_qc()")
   files  <- fs::dir_ls(dir, glob = "*.csv")
   annots <- dplyr::mutate(annots, .pid = slide_key(patient_id))
 
@@ -509,7 +515,7 @@ ihc_marker_long <- function(ihc_data, markers = ihc_markers) {
 ihc_lineage_fraction <- function(ihc_data) {
   ihc_data |>
     dplyr::mutate(patient_id = slide_key(patient_id)) |>
-    dplyr::left_join(phenotype_lineage, by = "phenotype_clean") |>
+    dplyr::mutate(lineage = cell_lineage(phenotype_clean)) |>
     dplyr::count(patient_id, lineage, name = "n") |>
     dplyr::group_by(patient_id) |>
     dplyr::mutate(frac = n / sum(n)) |>
@@ -595,6 +601,7 @@ ihc_periphery_metrics <- function(ihc_data, annots,
                                   scope = c("union", "per_annotation"),
                                   thresholds_um = c(100, 250, 500),
                                   um_per_px = 0.325) {
+  .require_sf("ihc_periphery_metrics()")
   scope    <- match.arg(scope)
   ihc_data <- dplyr::mutate(ihc_data, .pid = slide_key(patient_id))
   annots   <- dplyr::mutate(annots,   .pid = slide_key(patient_id))

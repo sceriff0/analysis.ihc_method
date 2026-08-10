@@ -16,10 +16,19 @@
 #               (Out_of_annotation is FALSE)                  <patient>_a<k>.csv
 #   "flag_old"  same, with per_annotation/old/ layered      ... + per_annotation/old/
 #               over the top-level exports
+#   "mirage"    the same geometric rule as "geojson",       data/mirage/<patient>/
+#               applied to cells MIRAGE phenotyped            (+ data/annotation/*.geojson)
+#               itself rather than FlowPath
 #
-# Only "geojson" reads a polygon, so only "geojson" knows an annotation's AREA:
-# the flag modes return NA for area_mm2 and every dens_*_per_mm2 column, and their
-# density panels are empty by construction rather than by accident.
+# "geojson" and "mirage" differ only in who called the phenotypes, so the diff
+# between those two reports isolates the phenotyping method — the same way the diff
+# between "flag" and "flag_old" isolates the re-exported annotations.
+#
+# mirage has no out-of-annotation flag of its own, so "mirage" has no fallback: a
+# patient with cells but no geojson contributes nothing rather than being counted
+# whole-slide. Only the polygon modes know an annotation's AREA, so the flag modes
+# return NA for area_mm2 and every dens_*_per_mm2 column — their density panels are
+# empty by construction rather than by accident.
 #
 # THREE CELL SOURCES feed the flag modes, in one long table keyed by
 # (patient_id, annotation):
@@ -35,7 +44,7 @@
 #
 # Depends on validation_helpers.R (slide_key, region_ratios_area,
 # ihc_annotation_metrics) and, through it, on cell_tables.R for every column read
-# off an export — no FlowPath-specific column name appears in this file.
+# off an export — no export-specific column name appears in this file.
 # =============================================================================
 suppressPackageStartupMessages({
   library(dplyr)
@@ -44,6 +53,8 @@ suppressPackageStartupMessages({
   library(stringr)
   library(purrr)
 })
+
+source(here::here("code", "mirage_cells.R"))   # the "mirage" mode's cell source
 
 PER_ANNOT_DIR     <- here::here("data", "flowpath", "per_annotation")
 PER_ANNOT_OLD_DIR <- here::here("data", "flowpath", "per_annotation", "old")
@@ -275,23 +286,27 @@ flag_cells_inventory <- function(ann_cells) {
 # a flag-mode fallback patient with a single scored annotation be labelled with
 # that annotation, so it reaches the per-annotation panels (see
 # load_flag_fallback_cells()).
-MEMBERSHIP_MODES <- c("geojson", "flag", "flag_old")
+MEMBERSHIP_MODES <- c("geojson", "flag", "flag_old", "mirage")
 
 membership_data <- function(mode = MEMBERSHIP_MODES, ihc_data,
                             neoplastic_data = NULL, annots = NULL,
                             um_per_px = 0.325) {
   mode <- match.arg(mode)
 
-  if (mode == "geojson") {
-    if (is.null(annots)) stop("membership_data(\"geojson\") needs `annots`")
+  # -- the two polygon modes: same geometry, different phenotyping tool ---------
+  if (mode %in% c("geojson", "mirage")) {
+    if (is.null(annots)) stop("membership_data(\"", mode, "\") needs `annots`")
+    cells <- if (mode == "mirage") load_mirage_cells() else ihc_data
+    if (nrow(cells) == 0)
+      warning("membership_data(\"", mode, "\"): no cells loaded — every panel will be empty")
     return(list(
       mode           = mode,
-      cells          = ihc_data,
-      per_annotation = ihc_annotation_metrics(ihc_data, annots, scope = "per_annotation",
+      cells          = cells,
+      per_annotation = ihc_annotation_metrics(cells, annots, scope = "per_annotation",
                                               um_per_px = um_per_px),
-      union          = ihc_annotation_metrics(ihc_data, annots, scope = "union",
+      union          = ihc_annotation_metrics(cells, annots, scope = "union",
                                               um_per_px = um_per_px),
-      inventory      = NULL,
+      inventory      = if (mode == "mirage") mirage_cells_inventory(cells) else NULL,
       has_area       = TRUE
     ))
   }

@@ -1,0 +1,157 @@
+---
+title: "clinical_data (mirage phenotyping)"
+author: "sceriff0"
+date: "2026-08-10"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+  library(sf)
+})
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 6,
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+
+# Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
+# helpers. load_data.R prints colnames() on load; silence it. validation_helpers.R
+# pulls in cell_tables.R (export-schema adapter) and plot_theme.R (house figure style).
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
+source(here("code", "validation_helpers.R"))
+source(here("code", "membership.R"))           # membership_data(): the one variant knob
+source(here("code", "aggregation_compare.R"))  # annotation-aggregation sensitivity grid
+source(here("code", "pdf_export.R"))           # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "clinical_data_mirage"
+```
+
+## Starting data and notation
+
+This is the **mirage phenotyping** variant. It is the same analysis as
+[`clinical_data`](clinical_data.html) with the same polygons and the same
+statistics — the only thing that changes is **who called the phenotypes**.
+`clinical_data` uses the FlowPath gate tree drawn interactively in QuPath; this page
+uses mirage's own constrained phenotyping (`bin/phenotype_cells.py`, driven by
+`panel.yaml`), which runs inside the pipeline with no human in the loop. The diff
+between the two pages is therefore attributable to the phenotyping method alone,
+just as the diff between the two flag pages isolates the re-exported annotations.
+
+Every value below is derived from three inputs:
+
+- `mem$cells` — mirage single cells, one row per cell, assembled by
+  `load_mirage_cells()` from **two** per-patient tables joined on the segmentation
+  `label`:
+    - `data/mirage/<patient>/phenotyping/phenotypes.csv` — the `phenotype` call plus
+      the per-marker `sign:<M>` / `state:<M>` columns and the `pheno_score:<TYPE>`
+      posteriors.
+    - `data/mirage/<patient>/cell_properties/morphology.csv` — `label`, the centroid
+      (`x`/`y`, in **pixels**, renamed `x_px`/`y_px` on load) and the shape
+      descriptors.
+    - optionally `quantification/merged_quant.csv` for the raw intensities, whose
+      columns are named for the measurement (`"CD3: Cytoplasm: Median"`).
+
+  `<patient>` is the directory name — nothing inside the files identifies the
+  patient — normalised through `slide_key()`.
+- `neoplastic_data` — pathologist tumour-content percentage per annotation,
+  `ANNOTATION_1..3`.
+- `clinical_data` — the clinical CRF (`HOT score`, `Immuno-phenotype`, blood counts,
+  `RESPONSE`, `OS`/`PFS`).
+
+Membership (which cells count as "inside the tumour annotation"):
+
+```
+cell is INSIDE  = its centroid falls in the pathologist geojson polygon
+                  (sf point-in-polygon), the same rule and the same polygons
+                  clinical_data.Rmd uses
+per annotation  = inside one polygon (ANNOTATION_k)
+union           = inside the dissolved union of the patient's polygons
+
+NO FALLBACK: a patient with mirage cells but no geojson contributes nothing.
+```
+
+**There is no fallback here, by design.** The flag variants can fall back to the
+exporter's `Out_of_annotation` column when a polygon is missing; mirage emits no
+such flag, so the only honest alternative would be to count the whole slide as
+"inside", which would silently inflate that patient's denominators. Those patients
+are listed below instead.
+
+Because a polygon *is* read, this variant has an annotation **area**, so
+`area_mm2` and the `dens_*_per_mm2` densities carry real values — they are
+comparable with `clinical_data` and absent from the two flag pages.
+
+**Coordinates are already pixels.** mirage's morphology centroids are regionprops
+coordinates on the SEGMENT mask, i.e. the registered reference frame the QuPath
+geojson is drawn in. `cell_centroids_px()` passes them through untouched, where a
+FlowPath micron export is divided by 0.325. Applying both conversions would put
+every cell outside its annotation, so an implausibly low in-annotation count is the
+symptom to look for — see [annotation membership QC](annotation_membership_qc.html).
+
+**The two tools name the same taxonomy differently.** FlowPath's tree writes
+`PANCK+Tumor`, `T helper`, `CD8+ T reg`; mirage's panel writes `PANCK_Tumor`,
+`T_helper`, `CD8_Treg`. `phenotype_lineage` is joined on a punctuation-free key
+(`pheno_join_key()`), so both collapse to the same lineages and the two pages are
+directly comparable. Two differences are real rather than cosmetic, and are worth
+holding in mind when reading any composition panel:
+
+- mirage has **`Myeloid`** and **`Macrophage_M2`** leaves that FlowPath's tree does
+  not; both fold into `Immune_other`, where FlowPath would have called the same
+  cells plain `Immune`.
+- mirage never writes `Unknown`. It emits four reserved outcomes —
+  `Unclassified`, `Ambiguous`, `Conflict`, `Artefact` — for cells its constraint
+  solver could not commit. All four count as unresolved, exactly as FlowPath's
+  `Unknown` does, so the QC-filtered ("clean") denominators mean the same thing on
+  both pages. The resolved percentage per patient is in the inventory below; a low
+  one is the headline caveat for every panel that follows.
+
+## Membership
+
+```{r annotations}
+# Pathologist geojson polygons, then the membership frames the whole report runs on.
+# mode = "mirage": mirage's own phenotyped cells, geometric membership, no fallback.
+annots <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
+mem    <- membership_data("mirage", ihc_data, neoplastic_data, annots = annots)
+inv    <- mem$inventory
+
+neo_ids      <- slide_key(neoplastic_data$SAMPLE)
+mirage_ids   <- sort(unique(inv$patient_id))
+have_geojson <- unique(slide_key(annots$patient_id))
+no_polygon   <- setdiff(mirage_ids, have_geojson)   # cells, but nothing to place them in
+no_cells     <- setdiff(neo_ids, mirage_ids)        # scored, but mirage produced nothing
+
+cat("mirage patients loaded:", length(mirage_ids),
+    "[", paste(mirage_ids, collapse = ", "), "]\n")
+cat("patients with a pathologist score AND mirage cells:",
+    length(intersect(neo_ids, mirage_ids)), "\n")
+if (length(no_polygon))
+  cat("!! mirage cells but NO geojson (absent from every metric, no fallback exists):",
+      paste(no_polygon, collapse = ", "), "\n")
+if (length(no_cells))
+  cat("pathologist patients with NO mirage output:",
+      paste(sort(no_cells), collapse = ", "), "\n")
+
+knitr::kable(inv, caption = paste(
+  "mirage cell inventory. n_resolved / pct_resolved exclude the four reserved",
+  "outcomes (Unclassified, Ambiguous, Conflict, Artefact) — those cells stay in",
+  "every denominator but carry no cell type, so a low pct_resolved dilutes each",
+  "composition fraction. n_phenotypes counts the distinct resolved labels."))
+```
+
+```{r variant-hooks, include=FALSE}
+# Everything past this point is shared with the other three clinical_data reports.
+# These are the only values the shared body reads out of this one.
+IMMUNE_HEADING   <- "whole-slide mirage immune readout vs clinical table"
+IMMUNE_PROSE     <- "These use every mirage-phenotyped cell of every patient (whole slide, no annotation boundary) — the mirage analogue of the geojson report's whole-slide readout."
+MEMBERSHIP_NOTES <- c(
+  "Phenotypes are **mirage's own** (`bin/phenotype_cells.py` + `panel.yaml`), not FlowPath's gate tree. Membership, polygons, statistics and figures are identical to [`clinical_data`](clinical_data.html), so the difference between the two pages is the phenotyping method.",
+  "Membership is **sf point-in-polygon** on the pathologist geojson, with **no fallback**: mirage carries no out-of-annotation flag, so a patient with no polygon is absent from every metric rather than counted whole-slide. Check the list above before concluding a patient is missing for a biological reason.",
+  "Centroids are read as **pixels** (mirage's regionprops frame), not rescaled from microns. `area_mm2` and the `dens_*_per_mm2` columns carry real values here, as on the geojson page.",
+  "mirage's `Myeloid` / `Macrophage_M2` leaves have no FlowPath counterpart and fold into `Immune_other`; its four unresolved outcomes (Unclassified, Ambiguous, Conflict, Artefact) all count as unresolved, matching FlowPath's `Unknown`.")
+```
+
+```{r body, child = "_clinical_data_body.Rmd"}
+```

@@ -57,11 +57,116 @@ clean_phenotype <- function(x) {
   ifelse(is.na(x) | out == "", NA_character_, out)
 }
 
+# Punctuation-free key for a phenotype label. The two phenotyping tools name the
+# SAME taxonomy differently — FlowPath's gate tree writes "PANCK+Tumor", "T helper",
+# "CD8+ T reg"; mirage's panel writes "PANCK_Tumor", "T_helper", "CD8_Treg" — and an
+# unmapped label does not error, it joins to lineage NA and quietly empties the
+# composition panels. Keying the lineage table on this collapses the punctuation;
+# the handful of genuinely different NAMES are aliased below.
+pheno_key <- function(x) gsub("[^a-z0-9]", "", tolower(as.character(x)))
+
+# Names that differ by more than punctuation, mirage -> the project's label.
+PHENO_ALIASES <- c(
+  nkcell       = "naturalkiller",
+  activatednk  = "activatednaturalkiller"
+)
+
+# The key to join a phenotype label on, aliases applied.
+pheno_join_key <- function(x) {
+  k <- pheno_key(x)
+  hit <- k %in% names(PHENO_ALIASES)
+  k[hit] <- unname(PHENO_ALIASES[k[hit]])
+  k
+}
+
+# Labels meaning "this cell was not resolved to a type". FlowPath writes "Unknown";
+# mirage emits four reserved outcomes that every compiled panel can produce
+# (bin/utils/phenotyping/palette.py RESERVED) and never a bare "Unknown". They all
+# have to count as unresolved, or the QC-filtered ("clean") denominators silently
+# keep unclassified cells on one tool and drop them on the other.
+UNRESOLVED_PHENOTYPES <- c("unknown", "unclassified", "ambiguous", "conflict",
+                           "artefact", "artifact", "")
+
+is_unresolved_phenotype <- function(x) {
+  is.na(x) | pheno_key(x) %in% UNRESOLVED_PHENOTYPES
+}
+
 # `phenotype_clean` for a cell table, computed if the loader has not already.
 cell_phenotype <- function(cells) {
   if ("phenotype_clean" %in% names(cells)) return(cells$phenotype_clean)
   if ("phenotype" %in% names(cells))       return(clean_phenotype(cells$phenotype))
   rep(NA_character_, nrow(cells))
+}
+
+# --- Phenotype -> lineage ----------------------------------------------------
+# The cell type collapsed into lineages that have a bulk-RNA counterpart.
+#
+# Joined on pheno_join_key() (cell_tables.R), NOT on the label, because the two
+# phenotyping tools name the same taxonomy differently: FlowPath's gate tree writes
+# "PANCK+Tumor" / "T helper" / "CD8+ T reg", mirage's panel writes "PANCK_Tumor" /
+# "T_helper" / "CD8_Treg". The key strips punctuation and aliases the two names that
+# genuinely differ (NK_cell, Activated_NK). Both spellings are listed below anyway,
+# so the table also reads as documentation of what each tool emits.
+#
+# NOTE: no B-cell phenotype exists in either panel, so that deconvolution cell type
+# has no phenotype-level IHC match (see marker fractions instead). Myeloid /
+# Macrophage_M2 are mirage-only — FlowPath's tree dead-ends at plain "Immune" on
+# that branch, so they fold into Immune_other to keep the two comparable.
+phenotype_lineage_labels <- tibble::tribble(
+  ~phenotype_clean,            ~lineage,
+  # -- FlowPath gate-tree labels --
+  "PANCK+Tumor",               "Tumor",
+  "VIM+Tumor",                 "Tumor",
+  "T helper",                  "CD4T",
+  "T cytotoxic",               "CD8T",
+  "Activated T cytotoxic",     "CD8T",
+  "CD8+ T reg",                "Treg",
+  "CD4+ Treg",                 "Treg",
+  "Natural Killer",            "NK",
+  "Activated Natural Killer",  "NK",
+  "Immune",                    "Immune_other",
+  "Stroma",                    "Stroma",
+  "Unknown",                   "Unknown",
+  # -- mirage panel.yaml labels (punctuation aside, the same taxonomy) --
+  "PANCK_Tumor",               "Tumor",
+  "VIM_Tumor",                 "Tumor",
+  "T_helper",                  "CD4T",
+  "T_cytotoxic",               "CD8T",
+  "Activated_T_cytotoxic",     "CD8T",
+  "CD8_Treg",                  "Treg",
+  "CD4_Treg",                  "Treg",
+  "NK_cell",                   "NK",
+  "Activated_NK",              "NK",
+  "Myeloid",                   "Immune_other",
+  "Macrophage_M2",             "Immune_other",
+  # -- mirage's reserved non-phenotype outcomes (palette.py RESERVED) --
+  "Unclassified",              "Unknown",
+  "Ambiguous",                 "Unknown",
+  "Conflict",                  "Unknown",
+  "Artefact",                  "Unknown"
+)
+
+# The join table: one row per KEY. A duplicate key with a CONFLICTING lineage is a
+# contradiction in the vocabulary above, so fail loudly at source time rather than
+# letting the join silently fan each affected cell out into extra rows. (Base R
+# throughout: this file is the bottom of the dependency stack and stays sourceable
+# without dplyr.)
+phenotype_lineage <- local({
+  key <- pheno_join_key(phenotype_lineage_labels$phenotype_clean)
+  tab <- unique(data.frame(.key = key, lineage = phenotype_lineage_labels$lineage,
+                           stringsAsFactors = FALSE))
+  dup <- unique(tab$.key[duplicated(tab$.key)])
+  if (length(dup))
+    stop("phenotype_lineage: key mapped to two lineages — ",
+         paste(dup, collapse = ", "), call. = FALSE)
+  tab
+})
+
+# Lineage per cell, for any cell table from either tool. NA only for a label
+# neither vocabulary knows — check for those before reading a composition panel.
+cell_lineage <- function(phenotype_clean) {
+  phenotype_lineage$lineage[match(pheno_join_key(phenotype_clean),
+                                  phenotype_lineage$.key)]
 }
 
 # --- Membership -------------------------------------------------------------
@@ -168,7 +273,7 @@ marker_matrix <- function(cells, markers) {
 # NA_real_ for a marker the export does not carry, so a partial panel yields empty
 # panels rather than an error.
 .marker_col <- function(cells, cand) {
-  hit <- intersect(cand, names(cells))[1]
+  hit <- intersect(cand[!is.na(cand)], names(cells))[1]
   if (is.na(hit)) NULL else as.numeric(cells[[hit]])
 }
 
@@ -176,8 +281,19 @@ marker_zscore <- function(cells, marker) {
   .marker_col(cells, paste0(marker, c("_zscore", "_z"))) %||% rep(NA_real_, nrow(cells))
 }
 
+# mirage's merged_quant.csv names its intensity columns for the measurement, not the
+# marker: "CD3: Cytoplasm: Median". One marker can appear under several compartments,
+# so take the first in file order — that is the order compile_panel wrote them, i.e.
+# the panel's own preference — and expose the resolved name for the caller to report.
+marker_measurement_col <- function(cells, marker) {
+  hit <- grep(paste0("^", marker, ":\\s"), names(cells), value = TRUE)
+  if (length(hit)) hit[1] else NA_character_
+}
+
 marker_value <- function(cells, marker) {
-  .marker_col(cells, c(paste0(marker, "_raw"), marker)) %||% rep(NA_real_, nrow(cells))
+  .marker_col(cells, c(paste0(marker, "_raw"), marker,
+                       marker_measurement_col(cells, marker))) %||%
+    rep(NA_real_, nrow(cells))
 }
 
 # Default-on-empty. Same definition in aggregation_compare.R, cell_tables.R and

@@ -13,10 +13,11 @@ spatial single-cell IHC, bulk RNA-seq, cell-type deconvolution, clinical data,
 and the image-registration / segmentation benchmarks that validate the pipeline.
 
 The single-cell inputs come from the sibling repos: cells are segmented and
-quantified by **mirage** (`../mirage`) and gated in QuPath by **FlowPath**
-(`../qupath-extension-flowpath`); the benchmark tables come from mirage's
-`benchmarks/` sweep. `code/cell_tables.R` reconciles the three export schemas those
-tools produce, so every analysis here reads one vocabulary — see `code/README.md`.
+quantified by **mirage** (`../mirage`), which also phenotypes them, and gated
+independently in QuPath by **FlowPath** (`../qupath-extension-flowpath`); the
+benchmark tables come from mirage's `benchmarks/` sweep. `code/cell_tables.R`
+reconciles the export schemas and the two phenotype vocabularies those tools
+produce, so every analysis here reads one vocabulary — see `code/README.md`.
 
 Each analysis below is a standalone page. Start with the **Overview**, then dive
 into whichever thread you need. Pages marked _(in progress)_ are authored but not
@@ -47,18 +48,33 @@ how IHC markers are quality-controlled, and how the imaging pipeline is benchmar
 
 ## Molecular & clinical analyses
 
-**Three clinical_data pages, one analysis.** They differ only in how a cell is
-assigned to a tumour annotation. The rule is chosen in each page's setup
-(`membership_data(mode, ...)` in `code/membership.R`); everything downstream is the
-same document, `analysis/_clinical_data_body.Rmd`, so any difference between the
-three pages is attributable to the membership rule alone.
+**Four clinical_data pages, one analysis.** They differ only in where the cells
+come from and how each is assigned to a tumour annotation. Both are chosen in the
+page's setup by `membership_data(mode, ...)` (`code/membership.R`); everything
+downstream is the same document, `analysis/_clinical_data_body.Rmd`, so any
+difference between the pages is attributable to that one choice.
 
-- [Clinical data](clinical_data.html) — **geojson** membership: a cell is inside
-  when its centroid falls in the pathologist polygon (sf point-in-polygon). The
-  reference of the three, and the only one that knows an annotation's area, so the
-  only one with cell densities.
+|                | cells from | membership |
+|---|---|---|
+| `clinical_data` | FlowPath | pathologist polygon |
+| `clinical_data_mirage` | **mirage** | pathologist polygon |
+| `clinical_data_per_annotation` | FlowPath | exporter flag |
+| `..._per_annotation_old` | FlowPath | exporter flag, `old/` overlaid |
+
+Read the first two against each other to isolate the **phenotyping method**, and
+the last two against each other to isolate the **re-exported annotations**.
+
+- [Clinical data](clinical_data.html) — **geojson** membership over the FlowPath
+  cells: a cell is inside when its centroid falls in the pathologist polygon (sf
+  point-in-polygon). The reference page of the four.
+- [Clinical data — mirage phenotyping](clinical_data_mirage.html) — the same
+  polygons, the same statistics, but the phenotypes are **mirage's own**
+  (`bin/phenotype_cells.py` + `panel.yaml`, no human in the loop) rather than the
+  FlowPath gate tree. Reads `data/mirage/<patient>/`. mirage has no
+  out-of-annotation flag, so there is no fallback: a patient without a polygon is
+  absent rather than counted whole-slide.
 - [Clinical data — per-annotation flag](clinical_data_per_annotation.html) —
-  **flag** membership: the exporter's precomputed `Out_of_annotation`, from the
+  **flag** membership over the FlowPath cells: the precomputed `Out_of_annotation`, from the
   per-annotation exports, falling back to the whole-slide csv for patients with no
   per-annotation file. Ignores `per_annotation/old/`.
 - [Clinical data — per-annotation flag, `old/` overlay](clinical_data_per_annotation_old.html)

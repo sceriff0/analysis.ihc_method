@@ -144,3 +144,49 @@ test_that("marker value and z-score resolve per dialect", {
   expect_true(all(is.na(marker_value(mirage_phenotypes, "CD3"))))
   expect_true(all(is.na(marker_zscore(mirage_phenotypes, "CD3"))))
 })
+
+# ── the mirage / FlowPath phenotype vocabulary ───────────────────────────────
+# The two tools name the SAME taxonomy differently. An unmapped label does not
+# error, it joins to lineage NA and quietly empties the composition panels, so
+# this is the table that has to stay in sync with mirage's panel.yaml.
+
+test_that("both vocabularies collapse to the same lineages", {
+  flowpath_labels <- c("PANCK+Tumor", "VIM+Tumor", "T helper", "T cytotoxic",
+                       "Activated T cytotoxic", "CD8+ T reg", "CD4+ Treg",
+                       "Natural Killer", "Activated Natural Killer", "Immune", "Stroma")
+  mirage_labels   <- c("PANCK_Tumor", "VIM_Tumor", "T_helper", "T_cytotoxic",
+                       "Activated_T_cytotoxic", "CD8_Treg", "CD4_Treg",
+                       "NK_cell", "Activated_NK", "Immune", "Stroma")
+  expect_equal(cell_lineage(flowpath_labels), cell_lineage(mirage_labels))
+  expect_false(any(is.na(cell_lineage(flowpath_labels))))
+})
+
+test_that("every phenotype mirage's panel can emit is mapped", {
+  # mirage/panel.yaml `phenotypes:` plus palette.py RESERVED. If mirage adds a leaf,
+  # this fails and the lineage table needs the new name.
+  panel <- c("Immune", "Activated_T_cytotoxic", "CD8_Treg", "T_cytotoxic", "CD4_Treg",
+             "T_helper", "Activated_NK", "NK_cell", "Myeloid", "Macrophage_M2",
+             "Stroma", "PANCK_Tumor", "VIM_Tumor")
+  reserved <- c("Ambiguous", "Conflict", "Artefact", "Unclassified")
+  expect_false(any(is.na(cell_lineage(panel))))
+  expect_equal(unname(cell_lineage(reserved)), rep("Unknown", 4))
+  # mirage-only leaves fold onto the branch FlowPath dead-ends at
+  expect_equal(unname(cell_lineage(c("Myeloid", "Macrophage_M2"))),
+               c("Immune_other", "Immune_other"))
+})
+
+test_that("unresolved covers both tools' spellings", {
+  expect_true(all(is_unresolved_phenotype(
+    c("Unknown", "Unclassified", "Ambiguous", "Conflict", "Artefact", NA, ""))))
+  expect_false(any(is_unresolved_phenotype(c("T_helper", "PANCK+Tumor", "Stroma"))))
+})
+
+test_that("mirage's measurement-named intensity columns resolve", {
+  q <- tibble::tibble(label = 1:2, `CD3: Cytoplasm: Median` = c(10, 2),
+                      `PANCK: Cytoplasm: Median` = c(1, 9))
+  expect_equal(marker_measurement_col(q, "CD3"), "CD3: Cytoplasm: Median")
+  expect_equal(marker_value(q, "CD3"), c(10, 2))
+  expect_true(all(is.na(marker_value(q, "FOXP3"))))
+  # must not match a marker that merely shares a prefix
+  expect_true(is.na(marker_measurement_col(q, "CD")))
+})

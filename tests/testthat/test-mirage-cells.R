@@ -1,0 +1,96 @@
+# The mirage cell source: phenotypes.csv + morphology.csv joined on `label`, one
+# directory per patient. These tests build a synthetic results tree rather than
+# needing a pipeline run — no off-repo data.
+source(here::here("code", "cell_tables.R"))
+source(here::here("code", "validation_helpers.R"))
+source(here::here("code", "mirage_cells.R"))
+
+mirage_tree <- function(patients = list(`046` = 6), quant = TRUE, morphology = TRUE) {
+  root <- file.path(tempdir(), paste0("mirage-", as.integer(Sys.time()), "-", sample(1e6, 1)))
+  for (pid in names(patients)) {
+    n <- patients[[pid]]
+    d <- file.path(root, pid)
+    dir.create(file.path(d, "phenotyping"), recursive = TRUE, showWarnings = FALSE)
+    readr::write_csv(tibble::tibble(
+      label       = seq_len(n),
+      phenotype   = rep_len(c("PANCK_Tumor", "T_cytotoxic", "Unclassified"), n),
+      `sign:CD3`  = rep_len(c("1", "0", "·"), n),
+      `state:PD1` = rep_len(c(1L, -1L, 0L), n)), file.path(d, "phenotyping", "phenotypes.csv"))
+    if (morphology) {
+      dir.create(file.path(d, "cell_properties"), recursive = TRUE, showWarnings = FALSE)
+      readr::write_csv(tibble::tibble(
+        label = seq_len(n), y = seq_len(n) * 10, x = seq_len(n) * 20,
+        area = 100, eccentricity = .5, perimeter = 40, convex_area = 110,
+        axis_major_length = 12, axis_minor_length = 8, solidity = .9),
+        file.path(d, "cell_properties", "morphology.csv"))
+    }
+    if (quant) {
+      dir.create(file.path(d, "quantification"), recursive = TRUE, showWarnings = FALSE)
+      readr::write_csv(tibble::tibble(
+        label = seq_len(n), `CD3: Cytoplasm: Median` = seq_len(n) * 1.5),
+        file.path(d, "quantification", "merged_quant.csv"))
+    }
+  }
+  root
+}
+
+test_that("phenotypes and morphology are joined on label, per patient directory", {
+  cells <- load_mirage_cells(mirage_tree(list(`046` = 6, `052` = 3)))
+  expect_equal(nrow(cells), 9)
+  expect_setequal(unique(cells$patient_id), c("046", "052"))
+  expect_true(all(c("phenotype", "phenotype_clean", "x_px", "y_px", "area") %in% names(cells)))
+})
+
+test_that("the patient id comes from the directory and is slide_key normalised", {
+  # nothing inside mirage's files identifies the patient
+  cells <- load_mirage_cells(mirage_tree(list(`EPM - 052` = 4)))
+  expect_equal(unique(cells$patient_id), "052")
+})
+
+test_that("morphology's x/y become x_px/y_px and are NOT rescaled", {
+  cells <- load_mirage_cells(mirage_tree(list(`046` = 3)))
+  # mirage centroids are already pixels; applying the micron conversion as well
+  # would put every cell outside its annotation
+  expect_equal(cell_centroids_px(cells, um_per_px = 0.325)$x, c(20, 40, 60))
+  expect_equal(cell_centroids_px(cells, um_per_px = 0.325)$y, c(10, 20, 30))
+  expect_false(any(c("x", "y") %in% names(cells)))
+})
+
+test_that("a patient with no morphology is skipped, not silently placed", {
+  # without centroids there is no way to decide membership, and mirage has no
+  # out-of-annotation flag to fall back on
+  expect_warning(cells <- load_mirage_cells(
+    mirage_tree(list(`046` = 3), morphology = FALSE)), "no cell_properties/morphology.csv")
+  expect_equal(nrow(cells), 0)
+})
+
+test_that("merged_quant is optional and supplies intensities when present", {
+  with_q <- load_mirage_cells(mirage_tree(list(`046` = 3)))
+  expect_equal(marker_value(with_q, "CD3"), c(1.5, 3.0, 4.5))
+  no_q <- load_mirage_cells(mirage_tree(list(`046` = 3), quant = FALSE))
+  expect_equal(nrow(no_q), 3)
+  expect_true(all(is.na(marker_value(no_q, "CD3"))))
+  expect_equal(marker_pos(no_q, "CD3"), c(TRUE, FALSE, FALSE))   # signs still work
+})
+
+test_that("a missing mirage directory warns and yields no cells", {
+  expect_warning(cells <- load_mirage_cells(file.path(tempdir(), "no-such-mirage-dir")),
+                 "directory not found")
+  expect_equal(nrow(cells), 0)
+})
+
+test_that("the inventory reports the unresolved share", {
+  inv <- mirage_cells_inventory(load_mirage_cells(mirage_tree(list(`046` = 6))))
+  expect_equal(inv$n_cells, 6)
+  expect_equal(inv$n_resolved, 4)          # 2 of the 6 are "Unclassified"
+  expect_equal(inv$n_phenotypes, 2)        # PANCK_Tumor, T_cytotoxic
+})
+
+test_that("mirage cells flow through the shared metric helpers", {
+  cells <- load_mirage_cells(mirage_tree(list(`046` = 6)))
+  r <- region_ratios(cells)
+  expect_equal(r$n_inside, 6)
+  expect_equal(r$n_inside_clean, 4)        # the unresolved cells leave the clean set
+  expect_equal(r$n_tumor_inside, 2)        # PANCK_Tumor matched despite the _ spelling
+  expect_false(any(is.na(cell_lineage(cells$phenotype_clean))))
+})
