@@ -21,10 +21,12 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 # Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the
-# shared validation helpers. test.R prints colnames() on load; silence it.
-invisible(capture.output(suppressMessages(source(here("code", "test.R")))))
+# shared validation helpers. load_data.R prints colnames() on load; silence it.
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "periphery"
 ```
 
 ## Starting data and notation
@@ -374,8 +376,7 @@ if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
 - Small cohort; Spearman with reported `n` throughout.
 
 ```{r export-pdfs, include=FALSE}
-# Copy every plot from this analysis (each rendered as a PDF via the
-# dev = c("png", "pdf") chunk option) into output/figures/periphery/. Runs last so
-# that all figures from the chunks above already exist on disk.
-export_pdf_figures("periphery")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

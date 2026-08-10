@@ -12,6 +12,12 @@ This site collects the reproducible analyses behind the IHC method study —
 spatial single-cell IHC, bulk RNA-seq, cell-type deconvolution, clinical data,
 and the image-registration / segmentation benchmarks that validate the pipeline.
 
+The single-cell inputs come from the sibling repos: cells are segmented and
+quantified by **mirage** (`../mirage`) and gated in QuPath by **FlowPath**
+(`../qupath-extension-flowpath`); the benchmark tables come from mirage's
+`benchmarks/` sweep. `code/cell_tables.R` reconciles the three export schemas those
+tools produce, so every analysis here reads one vocabulary — see `code/README.md`.
+
 Each analysis below is a standalone page. Start with the **Overview**, then dive
 into whichever thread you need. Pages marked _(in progress)_ are authored but not
 yet knit to HTML, so their links may not resolve until the next site build.
@@ -31,32 +37,40 @@ how IHC markers are quality-controlled, and how the imaging pipeline is benchmar
 - [IHC marker QC](ihc_qc.html) _(in progress)_ — per-marker distribution and
   bimodality checks on `ihc_data`, with no external reference.
 - [Registration accuracy](registration_accuracy.html) — landmark-free accuracy of
-  the image registration on the real patient slides: VALIS feature rTRE per stage,
-  an independent segmentation-overlap (Dice / µm displacement) cross-check, and an
-  explicit agreement view of the two.
+  the image registration: VALIS feature rTRE per stage, an independent
+  segmentation-overlap (Dice / µm displacement) cross-check, accuracy vs cost, and
+  an explicit agreement view of the two estimates. **All** registration-accuracy
+  figures live here.
 - [Pipeline benchmarks](benchmarks.html) — Mirage image-processing benchmark:
-  resource scaling, registration cost/accuracy, and segmentation-method
+  resource scaling, I/O volume, whole-pipeline cost and segmentation-method
   comparison from the SLURM sweep.
 
 ## Molecular & clinical analyses
 
-- [Clinical data](clinical_data.html) — integration of the clinical table with
-  the imaging and molecular inputs; defines tumour-annotation membership via the
-  pathologist geojson (sf point-in-polygon).
-- [Clinical data — per-annotation flag](clinical_data_per_annotation.html) — the
-  same analysis with membership taken from the FlowPath `Out_of_annotation` flag in
-  the per-annotation exports, falling back to the whole-slide csv for patients with
-  no per-annotation file. Ignores `per_annotation/old/`.
+**Three clinical_data pages, one analysis.** They differ only in how a cell is
+assigned to a tumour annotation. The rule is chosen in each page's setup
+(`membership_data(mode, ...)` in `code/membership.R`); everything downstream is the
+same document, `analysis/_clinical_data_body.Rmd`, so any difference between the
+three pages is attributable to the membership rule alone.
+
+- [Clinical data](clinical_data.html) — **geojson** membership: a cell is inside
+  when its centroid falls in the pathologist polygon (sf point-in-polygon). The
+  reference of the three, and the only one that knows an annotation's area, so the
+  only one with cell densities.
+- [Clinical data — per-annotation flag](clinical_data_per_annotation.html) —
+  **flag** membership: the exporter's precomputed `Out_of_annotation`, from the
+  per-annotation exports, falling back to the whole-slide csv for patients with no
+  per-annotation file. Ignores `per_annotation/old/`.
 - [Clinical data — per-annotation flag, `old/` overlay](clinical_data_per_annotation_old.html)
-  — identical to the above except that `per_annotation/old/` overrides the
-  top-level file for the annotations it re-exports, so the diff between the two
-  isolates the effect of those re-exports.
+  — the same, except `per_annotation/old/` overrides the top-level file for the
+  annotations it re-exports, so the diff against the page above isolates the effect
+  of those re-exports.
 - [Bulk RNA-seq](bulkRna.html) — DESeq2-based differential expression over the
   bulk RNA inputs.
 - [Deconvolution](deconvolution.html) — cell-type deconvolution (immunedeconv),
   bridging bulk RNA (CRF-id) and IHC (patient) id spaces via the clinical table.
 - [Marker exclusivity](exclusivity.html) _(in progress)_ — per-patient marker
-  co-expression / exclusivity from the whole-slide `ihc_data`.
+  co-expression / lineage leakage from the whole-slide `ihc_data`.
 - [Tumour border / invasive margin](periphery.html) _(in progress)_ —
   immune composition in the invasive-margin buffer around tumour annotations.
 

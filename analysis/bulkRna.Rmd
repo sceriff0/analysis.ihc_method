@@ -1,5 +1,5 @@
 ---
-title: "bulkRna"
+title: "Bulk RNA-seq differential expression"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -18,9 +18,11 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 6,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-invisible(capture.output(suppressMessages(source(here("code", "test.R")))))
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "bulkRna"
 ```
 
 ## Starting data and notation
@@ -39,7 +41,7 @@ Notation and mappings used throughout:
 
 ```
 cells of a patient p = all of p's cells in `ihc_data`
-marker-positive cell (marker <marker>) = is_pos(<marker>_sign) is TRUE
+marker-positive cell (marker <marker>) = marker_pos(cell, <marker>) is TRUE
   (is_pos accepts +, pos, positive, yes, true, 1)
 crf2slide = crf_to_slide_map(clinical_data): a named lookup from
             norm_id(`ID CRF PRESERVE`) (CRF space) to slide_key(`ID PATIENT`) (slide space)
@@ -118,9 +120,13 @@ each marker, returns the whole-slide positive fraction (mean of `is_pos` over
 non-NA sign values):
 
 ```
-<marker>_posfrac(p) = (cells of p positive for <marker>) / (cells of p with a non-NA <marker>_sign)
+<marker>_posfrac(p) = (cells of p positive for <marker>) / (all cells of p)
 where:
-  positive = is_pos(<marker>_sign): one of +, pos, positive, yes, true, 1
+  positive = marker_pos(cell, marker) — TRUE only for an explicitly positive sign.
+             A cell no gate evaluated for this marker (blank / "·" sign, or a marker
+             the panel lacks) counts in the denominator as not-positive, so a
+             sparsely-gated marker reads LOW rather than dropping out. Check
+             marker_gated() before reading a near-zero posfrac as biology.
 ```
 
 These `_posfrac` columns are reshaped long to `patient_id`, `marker`, and
@@ -227,8 +233,7 @@ if (nrow(paired_z) > 0) {
 - Correlations are cross-patient and small-n; every row carries its `n`.
 
 ```{r export-pdfs, include=FALSE}
-# Copy every plot from this analysis (each rendered as a PDF via the
-# dev = c("png", "pdf") chunk option) into output/figures/bulkRna/. Runs last so
-# that all figures from the chunks above already exist on disk.
-export_pdf_figures("bulkRna")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

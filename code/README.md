@@ -1,6 +1,46 @@
 # Code
 
-Save command-line scripts and shared R code here.
+Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
+
+## What is where
+
+| file | owns |
+|---|---|
+| `load_data.R` | the raw loaders (`dds`, `clinical_data`, `neoplastic_data`, `counts_data`, `ihc_data`) |
+| `cell_tables.R` | the **single-cell export schema** — one vocabulary over three upstream formats |
+| `validation_helpers.R` | the derived quantities (region ratios, composition, marker/lineage fractions, invasive margin, agreement stats) |
+| `membership.R` | **which cells are inside a tumour annotation** — `membership_data(mode)`, the one knob the three `clinical_data` pages turn |
+| `aggregation_compare.R` | the annotation-aggregation sensitivity grid |
+| `plot_theme.R` | the house figure style (see below) |
+| `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
+| `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
+| `registration_accuracy_plots.R` | the registration-accuracy figures — **the only place** they are built |
+
+The dependency order is `cell_tables.R` → `validation_helpers.R` → `membership.R`;
+sourcing `validation_helpers.R` pulls in the first and `plot_theme.R`, so an analysis
+that sources it is loaded and styled with nothing further to call.
+
+## Reading a cell table
+
+Three upstream tools export "one row per cell" and spell the same four facts three
+different ways: FlowPath's `PhenotypeCsvExporter`, mirage's `bin/phenotype_cells.py`,
+and mirage's `bin/join_flowpath.py --out-table`. `cell_tables.R` is where that is
+reconciled, and **no analysis should name an export's column directly**:
+
+| instead of | use |
+|---|---|
+| `str_extract(phenotype, "(?<=\\().*?(?=\\))")` | `clean_phenotype()` / `cell_phenotype(cells)` |
+| `cells$Out_of_annotation` | `cell_outside(cells)`, `has_outside_flag(cells)` |
+| `cells$CD3_sign` | `marker_pos(cells, "CD3")` |
+| `cells$centroid_x / 0.325` | `cell_centroids_px(cells, um_per_px)` |
+| `"cell_id"` for a dedup | `cell_key_cols(cells)` |
+
+Each accessor probes the columns it finds, so a marker the export never gated
+contributes no cells rather than aborting the report — and a mirage table whose
+coordinates are already in pixels is not rescaled a second time. `read_cell_csv()`
+applies `normalise_cell_flags()`, which forces the boolean columns to real logicals so
+two exports of the same cohort can be bound without a type clash. The file header
+documents all three schemas.
 
 ## Figure style
 

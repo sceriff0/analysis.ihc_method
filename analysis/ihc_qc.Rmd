@@ -1,5 +1,5 @@
 ---
-title: "ihc_qc"
+title: "IHC marker QC"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -20,11 +20,11 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 6,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-invisible(capture.output(suppressMessages(source(here("code", "test.R")))))
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
-# House figure style (theme + palettes + geom defaults) is applied by
-# code/plot_theme.R, which validation_helpers.R sources — nothing to set here.
+
+SLUG <- "ihc_qc"
 CAP <- "ihc_method internal QC · FlowPath single-cell IHC"
 ```
 
@@ -33,20 +33,27 @@ CAP <- "ihc_method internal QC · FlowPath single-cell IHC"
 Every value below is derived from a single input, with **no external reference**:
 
 - `ihc_data` — FlowPath single cells, deduplicated to **one copy per patient**
-  (whole slide). Each cell carries `phenotype_clean` (the parenthetical label in
-  `phenotype`) and, for each marker, the triple `<marker>_raw`,
-  `<marker>_zscore`, `<marker>_sign`.
+  (whole slide). Each cell carries a `phenotype` label and, for each marker, a
+  value / z-score / sign triple — under whichever of the three export spellings the
+  file uses (`code/cell_tables.R`).
 
 Notation used throughout. `ihc_marker_long(ihc_data)` reshapes the whole set of
 imaged cells to **one row per (cell, marker) pair**, over the markers in
-`ihc_markers` (= `marker_gene_map$marker`, excluding `wrongL1CAM`/DAPI). Each row
-carries the raw value, the z-score, the sign string, and a positive flag:
+`ihc_markers` (= `marker_gene_map$marker`, excluding `wrongL1CAM`/DAPI):
 
 ```
-pos(cell, marker) = is_pos(<marker>_sign)
-                  = TRUE when the lower-cased, trimmed sign is one of
-                    +, pos, positive, yes, true, 1
+raw    = marker_value(cell, marker)     the intensity the export carries
+zscore = marker_zscore(cell, marker)
+sign   = marker_sign(cell, marker)      verbatim, for display
+gated  = marker_gated(cell, marker)     FALSE = a gate never evaluated this marker
+                                        on this cell — NOT the same as negative
+pos    = marker_pos(cell, marker)       TRUE only for an explicitly positive sign
 ```
+
+`gated` is the distinction the sign string alone hides: FlowPath leaves an ungated
+column blank and mirage writes `·`, both of which are "never measured", not
+"negative". Panels that would otherwise count an unmeasured cell as a negative one
+filter on `gated` first.
 
 `phenotype_clean` is the cell type. All patient ids are mapped to the shared slide
 space by `slide_key()`. The report restricts to **typed** cells: the cell type is
@@ -207,12 +214,13 @@ knitr::kable(channel_qc, digits = 3,
              caption = "Per-channel bimodality and sign-vs-zscore separability")
 ```
 
-Density of the z-scores per marker (finite z-score and non-`NA` sign only), split
-by the positive call (`sign +` / `sign -`); facets are free-scaled.
+Density of the z-scores per marker, over cells with a finite z-score that a gate
+actually evaluated (`gated`), split by the positive call (`sign +` / `sign -`);
+facets are free-scaled.
 
 ```{r channel-qc-plot, fig.height=8}
 ihc_marker_long(ihc_data) |>
-  filter(!is.na(zscore), !is.na(sign)) |>
+  filter(!is.na(zscore), gated) |>
   mutate(call = if_else(pos, "sign +", "sign -")) |>
   ggplot(aes(zscore, fill = call)) +
     geom_density(alpha = 0.55, colour = NA) +
@@ -266,15 +274,14 @@ ggplot(morph, aes(reorder(phenotype_clean, value, FUN = median), value,
 - `mean` reductions carry `na.rm = TRUE`; `neg_max`/`pos_min` return non-finite
   (`±Inf`) when a marker has no negative (resp. positive) cell, which drives
   `separable = FALSE` via the `is.finite` guards.
-- `separable = FALSE` means `_sign` is not a pure threshold on `_zscore` (the
+- `separable = FALSE` means the sign call is not a pure threshold on the z-score (the
   `_sign+` and `_sign−` z-score ranges overlap — likely thresholded on `_raw`);
   its `cutoff` is then `NA`.
 - `likely_bimodal` uses an inclusive-or of BC > 0.555 and dip-p < 0.05; if
   `diptest` is absent the dip-p term is `NA` and only BC decides.
 
 ```{r export-pdfs, include=FALSE}
-# Copy every plot from this analysis (each rendered as a PDF via the
-# dev = c("png", "pdf") chunk option) into output/figures/ihc_qc/. Runs last so
-# that all figures from the chunks above already exist on disk.
-export_pdf_figures("ihc_qc")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

@@ -1,5 +1,5 @@
 ---
-title: "benchmarks"
+title: "Pipeline benchmarks — resource, cost, segmentation"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -8,8 +8,8 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-# renv: tidyverse + scales + here (in the lockfile). Figure logic is vendored from
-# the mirage benchmarking branch (code/benchmark_plots.R).
+# renv: tidyverse + scales + here (in the lockfile). Figure logic is a vendored fork
+# of mirage's benchmarks/analysis/plots.R — see code/benchmark_plots.R.
 suppressPackageStartupMessages({
   library(tidyverse)
   library(here)
@@ -18,6 +18,8 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
+SLUG <- "benchmarks"
+
 bench_dir  <- here("data", "benchmark")
 have_bench <- file.exists(file.path(bench_dir, "measurements.csv"))
 ```
@@ -25,10 +27,15 @@ have_bench <- file.exists(file.path(bench_dir, "measurements.csv"))
 ## Starting data and notation
 
 Mirage image-processing **pipeline benchmark** — resource scaling (memory, runtime,
-**I/O**), registration cost/accuracy, and segmentation-method comparison from the
-SLURM sweep. Every figure is built by sourcing `code/benchmark_plots.R` (vendored
-from mirage `benchmarks/analysis/plots.R`) and rendered **inline from the sweep
-CSVs** — no PNGs on disk.
+**I/O**), whole-pipeline cost, and segmentation-method comparison from the SLURM
+sweep. Every figure is built by sourcing `code/benchmark_plots.R` (a vendored fork of
+mirage `benchmarks/analysis/plots.R`) and rendered **inline from the sweep CSVs** —
+no PNGs on disk.
+
+**Registration accuracy is not on this page.** The accuracy figures read the same
+`param_matrix.csv` columns as the [registration accuracy](registration_accuracy.html)
+page, from the same directory, so they are rendered there once rather than on both
+pages. This page is resource, cost and segmentation.
 
 **Where the numbers come from.** One real source image is rescaled across a size
 axis and a channel axis; the Mirage pipeline is run once per sweep cell (and per
@@ -52,26 +59,27 @@ varied off baseline. Size-scaling figures keep only the runs whose `varied_axis`
 is a size axis, `size_axes = {baseline, scaling_grid, registration_grid,
 distributed_grid, target_px, n_channels}`.
 
-!!! warning "Two caveats that change how these figures read"
-    **The sweep images are synthetic.** Extra channels and the moving registration
-    panels are *synthesized* from channel 0 (duplicate + intensity jitter + a fixed
-    pixel shift), so figures that touch channels or registration *accuracy* on sweep
-    cells reflect a known synthetic offset, **not** biological registration
-    difficulty. Treat the accuracy figures (11, 17) as relative cost-vs-error and
-    method-agreement views on synthetic offsets. Landmark-free accuracy on the
-    **real** patient slides is reported separately on the
-    [registration accuracy](registration_accuracy.html) page.
+!!! warning "The sweep images are synthetic"
+    Extra channels and the moving registration panels are *synthesized* from
+    channel 0 (duplicate + intensity jitter + a fixed pixel shift), so any figure
+    that touches channels or registration reflects a known synthetic offset, **not**
+    biological difficulty. Read the channel figure (08) as the cost of *more channel
+    bytes*, not of independent biological channels.
 
 **Axes are linear throughout** (no log-log): the power-law scaling figures fit the
 exponent in log space but draw the fitted curve on linear axes, with the exponent
 `β` and `R²` shown in each facet strip.
 
-**Optional CSVs** (a figure needing an absent file is skipped): `resource_stats.csv`,
-`param_matrix.csv`, `registration_accuracy.csv`, `registration_valis_rtre.csv`,
-`run_cost.csv`, `segmentation_agreement.csv`, `runs_master.csv`. Accuracy columns
-(`reg_displacement_um_p50`, `reg_dice_matched`, `valis_non_rigid_D`/`_rTRE`,
-`instance_f1`, `cell_count_ratio`, `peak_rss_gb_mean`/`_std`) are **precomputed
-upstream** by mirage `make_tables.py` and only read here.
+**`data/benchmark/` is a merge of two mirage output sets.** `measurements.csv` (the
+only required file), `resource_stats.csv` and `run_cost.csv` come from
+`python -m benchmarks.analysis.make_figures`, which writes `benchmarks/analysis/`;
+`param_matrix.csv`, `runs_master.csv` and `segmentation_agreement.csv` come from
+`python benchmarks/analysis/make_tables.py`, which writes `benchmarks/paper_data/`.
+Copy both sets into `data/benchmark/`. Every file except `measurements.csv` is
+optional — a figure needing an absent file or column is silently skipped.
+
+Derived columns (`n_cells`, `instance_f1`, `cell_count_ratio`,
+`peak_rss_gb_mean`/`_std`) are **precomputed upstream** and only read here.
 
 ```{r run-benchmark}
 bench_figs <- list()
@@ -134,11 +142,6 @@ fig_notes <- c(
   "09b_stardist_tile_grid" = paste(
     "StarDist only: mean `peak_rss_gb` per `(seg_n_tiles_x, seg_n_tiles_y)` tile grid —",
     "how tiling trades memory."),
-  "11_accuracy_vs_cost" = paste(
-    "Accuracy vs cost (lower-left is better). `reg_displacement_um_p50` (matched-nucleus",
-    "centroid residual, µm) from `param_matrix.csv` vs `cpu_hours`, one point per config.",
-    "For the real-slide, landmark-free accuracy detail see the",
-    "[registration accuracy](registration_accuracy.html) page."),
   "12_segmentation_cell_counts" = paste(
     "Cells detected per method: raw `n_cells` (max mask label) from `param_matrix.csv`, with",
     "`seg_method` falling back to `runs_master.csv` when a stripped `param_matrix.csv` lacks it,",
@@ -156,13 +159,7 @@ fig_notes <- c(
   "14_bottleneck_by_size" = paste(
     "Which stage dominates, from `run_cost.csv`: count of runs per `(target_px, bottleneck_stage)`",
     "drawn as a filled bar, so each bar is the **share** of runs whose slowest single process is",
-    "that stage — the bottleneck shifts with image size."),
-  "17_valis_vs_overlap_agreement" = paste(
-    "Agreement of two independent registration-accuracy estimates from `param_matrix.csv`:",
-    "VALIS's own feature error (`valis_non_rigid_rTRE`/`_D`, x) vs the DAPI-overlap",
-    "`reg_dice_matched` (y), one point per run. They are computed by different methods, so a",
-    "clear trend means they corroborate each other. (Replaces the retired classic-vs-distributed",
-    "error-by-path view — mirage now has a single registration path.)")
+    "that stage — the bottleneck shifts with image size.")
 )
 ```
 
@@ -188,13 +185,14 @@ if (length(bench_figs)) {
 
 ## Notes
 
-- **Accuracy metrics are read, not recomputed.** `reg_displacement_um_p50` /
-  `reg_dice_matched` (registration residual and matched-nucleus Dice),
-  `valis_non_rigid_D`/`_rTRE` (VALIS's own feature error),
-  `instance_f1`/`cell_count_ratio` (segmentation agreement), and the replicate
-  mean/sd all arrive precomputed in their CSVs. The reductions `benchmark_plots.R`
-  performs itself are the log-space OLS (β, R²) and grouped means/shares (by
-  process, image size, or channel count).
+- **Quality metrics are read, not recomputed.** `instance_f1` / `cell_count_ratio`
+  (segmentation agreement) and the replicate mean/sd arrive precomputed in their
+  CSVs. The reductions `benchmark_plots.R` performs itself are the log-space OLS
+  (β, R²) and grouped means/shares (by process, image size, or channel count).
+- **Registration accuracy lives on its own page.** `reg_displacement_um_p50`,
+  `reg_dice_matched` and `valis_non_rigid_D`/`_rTRE` are read by
+  `code/registration_accuracy_plots.R` and rendered on
+  [registration accuracy](registration_accuracy.html), not here.
 - **Reductions are means over replicates** unless noted; SLURM isolates per-process
   resources, so `peak_rss_gb` is one process's peak, not a whole-run aggregate.
   I/O (`read_gb`/`write_gb`) is transferred **volume**, not throughput.
@@ -202,8 +200,7 @@ if (length(bench_figs)) {
   the rendered set depends on which sweep outputs were dropped into `data/benchmark/`.
 
 ```{r export-pdfs, include=FALSE}
-# Copy every plot from this analysis (each rendered as a PDF via the
-# dev = c("png", "pdf") chunk option) into output/figures/benchmarks/. Runs last so
-# that all figures from the chunks above already exist on disk.
-export_pdf_figures("benchmarks")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

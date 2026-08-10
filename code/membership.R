@@ -1,32 +1,42 @@
-# ============================================================================
-# per_annotation_flag.R — flag-based per-annotation IHC metrics
-# ============================================================================
-# Builds the driver frames that the clinical_data per-annotation Rmds consume
-# (ann_cells, ihc_tumor_per_ann, ihc_tumor_union) from the FlowPath exports under
-#   data/flowpath/per_annotation/<patient>_a<k>.csv        (one file per annotation)
-#   data/flowpath/per_annotation/old/<patient>_a<k>.csv    (superseding re-exports)
-#   data/flowpath/<patient>.csv                            (whole-slide fallback)
-# Membership is ALWAYS the precomputed FlowPath flag (inside = Out_of_annotation is
-# falsey), NEVER sf point-in-polygon — so no geojson is read here and every
-# area_mm2 / dens_*_per_mm2 column comes back NA (region_ratios_area(..., 0, ...)).
+# =============================================================================
+# membership.R  —  which cells count as "inside the tumour annotation"
 #
-# THREE CELL SOURCES, one long table
+# ONE question, three answers, one interface. Every clinical_data report picks a
+# mode and gets the same three frames back, so the report body never branches on
+# how membership was decided:
+#
+#   mode        inside a cell is ...                       cells come from
+#   ----------  ----------------------------------------   -------------------------
+#   "geojson"   its centroid falls in the pathologist       data/flowpath/<patient>.csv
+#               polygon (sf point-in-polygon, cells         (+ data/annotation/*.geojson)
+#               mapped to the pixel frame). Falls back
+#               to the exporter flag for a patient with
+#               no geojson.
+#   "flag"      the exporter already said so                data/flowpath/per_annotation/
+#               (Out_of_annotation is FALSE)                  <patient>_a<k>.csv
+#   "flag_old"  same, with per_annotation/old/ layered      ... + per_annotation/old/
+#               over the top-level exports
+#
+# Only "geojson" reads a polygon, so only "geojson" knows an annotation's AREA:
+# the flag modes return NA for area_mm2 and every dens_*_per_mm2 column, and their
+# density panels are empty by construction rather than by accident.
+#
+# THREE CELL SOURCES feed the flag modes, in one long table keyed by
+# (patient_id, annotation):
 #   per-annotation  annotation = "ANNOTATION_<k>", source = "flag"
 #   old/ overlay    same, but REPLACES the top-level file for the same
 #                   (patient, annotation) when an overlay dir is passed
 #   whole-slide     patients with NO per-annotation csv at all; the slide's single
-#                   Out_of_annotation flag is one region: annotation = "csv",
-#                   source = "csv" — mirroring ihc_annotation_metrics()'s fallback
-#                   convention in validation_helpers.R so the two analyses line up.
-# Because the fallback rows live in the SAME cells table, the metric functions below
-# pick them up with no branching. Note that annotation "csv" never joins to the
-# pathologist's ANNOTATION_k, so fallback patients enter the UNION concordance but
-# not the per-annotation one — same behaviour as clinical_data.Rmd.
+#                   flag is one region: annotation = "csv", source = "csv" —
+#                   mirroring ihc_annotation_metrics()'s fallback convention so the
+#                   geojson and flag reports line up row for row.
+# Because the fallback rows live in the SAME cells table, the metric functions
+# below pick them up with no branching.
 #
-# Depends on validation_helpers.R (slide_key, .is_outside, region_ratios_area) —
-# source THAT first. The returned frames match the schema of ihc_annotation_metrics()
-# so the whole downstream analysis works unchanged.
-# ============================================================================
+# Depends on validation_helpers.R (slide_key, region_ratios_area,
+# ihc_annotation_metrics) and, through it, on cell_tables.R for every column read
+# off an export — no FlowPath-specific column name appears in this file.
+# =============================================================================
 suppressPackageStartupMessages({
   library(dplyr)
   library(fs)
@@ -43,35 +53,30 @@ FLOWPATH_DIR      <- here::here("data", "flowpath")
 # are only read when passed explicitly) into one long cells table keyed by
 # (patient_id, annotation). patient_id = slide_key of the stem before "_a" (shared
 # numeric slide space); annotation = "ANNOTATION_<k>" to line up with
-# neoplastic_data's ANNOTATION_1..3 after pivot. phenotype_clean is the parenthetical
-# label in `phenotype` (same extraction as test.R's process_patient). `file_origin`
-# records which directory the rows came from, for the provenance table in the Rmd.
+# neoplastic_data's ANNOTATION_1..3 after pivot. `file_origin` records which
+# directory the rows came from, for the provenance table in the report.
 .read_per_annotation_dir <- function(dir, origin) {
   if (!fs::dir_exists(dir)) {
-    warning("per_annotation: directory not found, skipping: ", dir)
+    warning("membership: directory not found, skipping: ", dir)
     return(tibble::tibble())
   }
-  files <- fs::dir_ls(dir, glob = "*.csv")            # non-recursive
-  purrr::map_dfr(as.character(files), function(path) {
-    stem <- fs::path_ext_remove(fs::path_file(path))  # "046_a1"
-    m    <- stringr::str_match(stem, "^(.*)_a(\\d+)$") # [ , patient, k ]
+  purrr::map_dfr(as.character(fs::dir_ls(dir, glob = "*.csv")), function(path) {
+    stem <- fs::path_ext_remove(fs::path_file(path))     # "046_a1"
+    m    <- stringr::str_match(stem, "^(.*)_a(\\d+)$")    # [ , patient, k ]
     if (is.na(m[1, 1])) {
-      warning("per_annotation: skipping ", path, " — name is not <patient>_a<k>.csv")
+      warning("membership: skipping ", path, " — name is not <patient>_a<k>.csv")
       return(tibble::tibble())
     }
-    cells <- readr::read_csv(path, show_col_types = FALSE)
-    if (!all(c("Out_of_annotation", "phenotype") %in% names(cells))) {
-      warning("per_annotation: skipping ", path, " — missing Out_of_annotation / phenotype")
+    cells <- read_cell_csv(path, patient_id = slide_key(m[1, 2]))
+    if (nrow(cells) == 0) return(cells)
+    if (!has_outside_flag(cells)) {
+      warning("membership: skipping ", path, " — no out-of-annotation flag")
       return(tibble::tibble())
     }
-    cells |>
-      dplyr::mutate(
-        patient_id         = slide_key(m[1, 2]),
-        annotation         = paste0("ANNOTATION_", as.integer(m[1, 3])),
-        phenotype_clean    = stringr::str_extract(phenotype, "(?<=\\().*?(?=\\))"),
-        file_origin        = origin,
-        .membership_source = "flag"
-      )
+    dplyr::mutate(cells,
+                  annotation         = paste0("ANNOTATION_", as.integer(m[1, 3])),
+                  file_origin        = origin,
+                  .membership_source = "flag")
   })
 }
 
@@ -128,11 +133,14 @@ load_per_annotation_cells <- function(dir = PER_ANNOT_DIR, overlay = NULL) {
 # skipped so a patient is never counted twice.
 load_flag_fallback_cells <- function(ihc_data, have_ids = character(),
                                      neoplastic_data = NULL) {
-  if (!"Out_of_annotation" %in% names(ihc_data)) {
-    warning("fallback: ihc_data has no Out_of_annotation column — no fallback patients")
+  if (!has_outside_flag(ihc_data)) {
+    warning("fallback: the whole-slide export carries no out-of-annotation flag ",
+            "(expected one of: ", paste(OUTSIDE_COL, collapse = ", "),
+            ") — no fallback patients")
     return(tibble::tibble())
   }
   out <- ihc_data |>
+    normalise_cell_flags() |>
     dplyr::mutate(patient_id = slide_key(patient_id)) |>
     dplyr::filter(!patient_id %in% have_ids)
   if (nrow(out) == 0) return(tibble::tibble())
@@ -172,21 +180,12 @@ build_flag_cells <- function(ihc_data, dir = PER_ANNOT_DIR, overlay = NULL,
   dplyr::bind_rows(ann, fb)
 }
 
-# inside = the FlowPath flag says the cell is NOT out of the annotation.
-.flag_inside <- function(cells) !.is_outside(cells$Out_of_annotation)
-
 # Provenance label for a metrics row: "flag" for per-annotation cells, "csv" for the
 # whole-slide fallback. Collapsed with "+" on the (by construction impossible) mix so
 # a mistake shows up in the table instead of being silently hidden.
 .membership_label <- function(cells) {
   if (!".membership_source" %in% names(cells)) return("flag")
   paste(sort(unique(cells$.membership_source)), collapse = "+")
-}
-
-# Cell identity for union-dedup: cell_id if the export carries it, else the centroid.
-.cell_key_cols <- function(cells) {
-  if ("cell_id" %in% names(cells)) "cell_id"
-  else intersect(c("centroid_x", "centroid_y"), names(cells))
 }
 
 # PER-ANNOTATION metrics: one row per (patient_id, annotation). Inside cells only,
@@ -198,7 +197,7 @@ ihc_flag_metrics_per_annotation <- function(ann_cells, um_per_px = 0.325) {
     dplyr::group_by(patient_id, annotation) |>
     dplyr::group_split() |>
     purrr::map_dfr(function(cells) {
-      region_ratios_area(cells[.flag_inside(cells), , drop = FALSE], 0, um_per_px) |>
+      region_ratios_area(cells[!cell_outside(cells), , drop = FALSE], 0, um_per_px) |>
         dplyr::mutate(patient_id = cells$patient_id[1],
                       annotation = cells$annotation[1],
                       source     = .membership_label(cells), .before = 1)
@@ -210,12 +209,12 @@ ihc_flag_metrics_per_annotation <- function(ann_cells, um_per_px = 0.325) {
 # counts once), then the same area-free ratios. Same schema as scope = "union". For a
 # fallback patient the "union" is just its single whole-slide region.
 ihc_flag_metrics_union <- function(ann_cells, um_per_px = 0.325) {
-  key_cols <- .cell_key_cols(ann_cells)
+  key_cols <- cell_key_cols(ann_cells)
   ann_cells |>
     dplyr::group_by(patient_id) |>
     dplyr::group_split() |>
     purrr::map_dfr(function(cells) {
-      inside <- cells[.flag_inside(cells), , drop = FALSE]
+      inside <- cells[!cell_outside(cells), , drop = FALSE]
       if (length(key_cols))
         inside <- dplyr::distinct(inside, dplyr::across(dplyr::all_of(key_cols)),
                                   .keep_all = TRUE)
@@ -230,8 +229,8 @@ ihc_flag_metrics_union <- function(ann_cells, um_per_px = 0.325) {
 # in-annotation analogue of whole-slide ihc_data for ihc_lineage_fraction() /
 # ihc_marker_fraction() in the biological-validity section.
 union_inside_cells <- function(ann_cells) {
-  key_cols <- .cell_key_cols(ann_cells)
-  inside <- ann_cells[.flag_inside(ann_cells), , drop = FALSE]
+  key_cols <- cell_key_cols(ann_cells)
+  inside <- ann_cells[!cell_outside(ann_cells), , drop = FALSE]
   if (length(key_cols))
     inside <- inside |>
       dplyr::group_by(patient_id) |>
@@ -246,9 +245,68 @@ union_inside_cells <- function(ann_cells) {
 # superseded.
 flag_cells_inventory <- function(ann_cells) {
   ann_cells |>
+    dplyr::mutate(.inside = !cell_outside(ann_cells)) |>
     dplyr::group_by(patient_id, annotation, file_origin, membership = .membership_source) |>
     dplyr::summarise(n_cells  = dplyr::n(),
-                     n_inside = sum(!.is_outside(Out_of_annotation)),
+                     n_inside = sum(.inside),
                      .groups  = "drop") |>
     dplyr::arrange(patient_id, annotation)
+}
+
+# =============================================================================
+# The one entry point the reports use
+# =============================================================================
+# Everything above is mode-specific plumbing. `membership_data()` picks a mode and
+# returns the SAME shape either way, so clinical_data's shared body never asks how
+# membership was decided:
+#
+#   $mode        the mode string, echoed back
+#   $cells       the per-patient cell set for the whole-cohort immune readout —
+#                every imaged cell under "geojson" (the original whole-slide
+#                readout), the deduped in-annotation union under the flag modes
+#   $per_annotation  metrics, one row per (patient_id, annotation)
+#   $union           metrics, one row per patient
+#   $inventory   provenance table (flag modes) or NULL (geojson: provenance is the
+#                `source` column of the metrics frames)
+#   $has_area    TRUE only when a polygon was read, i.e. when the dens_*_per_mm2
+#                columns carry values rather than NA
+#
+# `annots` is required for "geojson" and ignored otherwise. `neoplastic_data` lets
+# a flag-mode fallback patient with a single scored annotation be labelled with
+# that annotation, so it reaches the per-annotation panels (see
+# load_flag_fallback_cells()).
+MEMBERSHIP_MODES <- c("geojson", "flag", "flag_old")
+
+membership_data <- function(mode = MEMBERSHIP_MODES, ihc_data,
+                            neoplastic_data = NULL, annots = NULL,
+                            um_per_px = 0.325) {
+  mode <- match.arg(mode)
+
+  if (mode == "geojson") {
+    if (is.null(annots)) stop("membership_data(\"geojson\") needs `annots`")
+    return(list(
+      mode           = mode,
+      cells          = ihc_data,
+      per_annotation = ihc_annotation_metrics(ihc_data, annots, scope = "per_annotation",
+                                              um_per_px = um_per_px),
+      union          = ihc_annotation_metrics(ihc_data, annots, scope = "union",
+                                              um_per_px = um_per_px),
+      inventory      = NULL,
+      has_area       = TRUE
+    ))
+  }
+
+  ann_cells <- build_flag_cells(
+    ihc_data,
+    overlay         = if (mode == "flag_old") PER_ANNOT_OLD_DIR else NULL,
+    neoplastic_data = neoplastic_data
+  )
+  list(
+    mode           = mode,
+    cells          = union_inside_cells(ann_cells),
+    per_annotation = ihc_flag_metrics_per_annotation(ann_cells, um_per_px),
+    union          = ihc_flag_metrics_union(ann_cells, um_per_px),
+    inventory      = flag_cells_inventory(ann_cells),
+    has_area       = FALSE
+  )
 }

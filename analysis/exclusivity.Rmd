@@ -1,5 +1,5 @@
 ---
-title: "exclusivity"
+title: "Marker exclusivity and lineage leakage"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -17,11 +17,11 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 6,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-invisible(capture.output(suppressMessages(source(here("code", "test.R")))))
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
-# House figure style (theme + palettes + geom defaults) is applied by
-# code/plot_theme.R, which validation_helpers.R sources — nothing to set here.
+
+SLUG <- "exclusivity"
 CAP <- "ihc_method internal QC · lineage leakage & exclusivity"
 ```
 
@@ -36,7 +36,8 @@ mapped to slide space by `slide_key()` (strip non-digits, apply the typo fix
 Cell labels:
 
 ```
-marker+ cell = <marker>_sign is "+"  (is_pos accepts +, pos, positive, yes, true, 1)
+marker+ cell = marker_pos(cell, marker) — the marker's sign column, whichever of
+               <marker>_sign / sign:<marker> / <marker>_positive the export carries
 tumour-phenotype cell = phenotype_clean contains "Tumor"
                         (phenotype_clean = the text inside the parentheses of `phenotype`)
 immune-phenotype cell = phenotype_clean is one of the literal immune labels below
@@ -62,8 +63,8 @@ n_cells(p) = all cells of p
 where:
   tumour-phenotype cell = phenotype_clean contains "Tumor"
   immune-phenotype cell = phenotype_clean is one of the literal immune labels
-  CD45+  = CD45_sign is "+"
-  PANCK+ = PANCK_sign is "+"
+  CD45+  = marker_pos(cell, "CD45")
+  PANCK+ = marker_pos(cell, "PANCK")
 ```
 
 Each ratio is `NA` when its patient has no cell in the corresponding phenotype set
@@ -77,8 +78,8 @@ excl <- ihc_data |>
   mutate(patient_id  = slide_key(patient_id),
          is_tumor_ph = str_detect(replace_na(phenotype_clean, ""), "Tumor"),
          is_immune_ph = phenotype_clean %in% immune_ph,
-         panck_pos = is_pos(PANCK_sign),
-         cd45_pos  = is_pos(CD45_sign))
+         panck_pos = marker_pos(ihc_data, "PANCK"),
+         cd45_pos  = marker_pos(ihc_data, "CD45"))
 
 spill <- excl |>
   group_by(patient_id) |>
@@ -129,7 +130,7 @@ pct_dp_all  = n_both / (all cohort cells)
 p(b | a)    = n_both / n_a       (share of a+ cells that are also b+)
 p(a | b)    = n_both / n_b       (share of b+ cells that are also a+)
 where:
-  marker+ cell = <marker>_sign is "+"
+  marker+ cell = marker_pos(cell, marker)
 ```
 
 The two conditionals are set to `NA` when their denominator (`n_a` or `n_b`) is 0.
@@ -137,11 +138,12 @@ The two conditionals are set to `NA` when their denominator (`n_a` or `n_b`) is 
 positive counts.
 
 ```{r exclusivity-pairs}
-# Per-cell marker positivity matrix (one logical column per marker).
-sign_pos <- ihc_data |>
-  transmute(patient_id = slide_key(patient_id),
-            across(all_of(paste0(ihc_markers, "_sign")), is_pos, .names = "{.col}")) |>
-  rename_with(~ sub("_sign$", "", .x), ends_with("_sign"))
+# Per-cell marker positivity matrix: one logical column per marker, named for the
+# marker rather than for whichever sign column the export used. A marker the panel
+# does not carry comes back all-FALSE, so its pairs report 0% co-positivity instead
+# of aborting the chunk.
+sign_pos <- marker_matrix(ihc_data, ihc_markers) |>
+  mutate(patient_id = slide_key(ihc_data$patient_id), .before = 1)
 
 # Literature-backed mutually-exclusive lineage marker pairs (+ known exception).
 exclusivity_pairs <- tibble::tribble(
@@ -247,8 +249,7 @@ phenotype) and CD8/FOXP3 (the `CD8+ T reg` phenotype).
   list, not the `phenotype_lineage` collapse.
 
 ```{r export-pdfs, include=FALSE}
-# Copy every plot from this analysis (each rendered as a PDF via the
-# dev = c("png", "pdf") chunk option) into output/figures/exclusivity/. Runs last so
-# that all figures from the chunks above already exist on disk.
-export_pdf_figures("exclusivity")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

@@ -9,6 +9,10 @@ navbar:
     href: periphery.html
   - text: Membership QC
     href: annotation_membership_qc.html
+  - text: Registration accuracy
+    href: registration_accuracy.html
+  - text: Benchmarks
+    href: benchmarks.html
   - text: About
     href: about.html
   - text: License

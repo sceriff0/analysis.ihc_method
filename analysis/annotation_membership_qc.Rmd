@@ -18,12 +18,14 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 8, fig.height = 5,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-# Loaders (gives neoplastic_data + the helpers). test.R prints colnames(); silence it.
+# Loaders (gives neoplastic_data + the helpers). load_data.R prints colnames(); silence it.
 # validation_helpers.R also sources code/plot_theme.R, which applies the house
 # figure style (theme + palettes + geom defaults) for every plot below.
-invisible(capture.output(suppressMessages(source(here("code", "test.R")))))
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "annotation_membership_qc"
 ```
 
 ## Starting data and notation
@@ -57,7 +59,7 @@ slide** — sf is landing on the wrong cells.
 ## Compute agreement
 
 ```{r qc}
-# per-annotation flag csvs (only some patients have these); matches test.R's path style.
+# per-annotation flag csvs (only some patients have these); same path style as load_data.R.
 PER_ANNOT_DIR <- here("data", "flowpath", "per_annotation")
 
 annots <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
@@ -128,7 +130,8 @@ if (nrow(qc) && sum(is.finite(qc$tumor_frac_flag) & is.finite(qc$tumor_frac_sf))
 - This compares *membership*, not the pathologist — that concordance is in
   `clinical_data.Rmd`.
 
-```{r export-figures, include=FALSE}
-# Copy every PDF knitr emitted for this analysis into output/figures/<slug>/.
-export_pdf_figures("annotation_membership_qc")
+```{r export-pdfs, include=FALSE}
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

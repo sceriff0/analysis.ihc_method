@@ -1,5 +1,5 @@
 ---
-title: "deconvolution"
+title: "Cell-type deconvolution vs IHC"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -27,9 +27,11 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = 9, fig.height = 6,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-invisible(capture.output(suppressMessages(source(here("code", "test.R")))))
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "deconvolution"
 ```
 
 ## Starting data and notation
@@ -475,8 +477,7 @@ if (!is.null(agr) && nrow(agr) > 0) {
   installed versions before trusting their output.
 
 ```{r export-pdfs, include=FALSE}
-# Copy every plot from this analysis (each rendered as a PDF via the
-# dev = c("png", "pdf") chunk option) into output/figures/deconvolution/. Runs last so
-# that all figures from the chunks above already exist on disk.
-export_pdf_figures("deconvolution")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

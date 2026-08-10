@@ -1,18 +1,32 @@
 # ============================================================================
-# benchmark_plots.R  —  Mirage benchmark figures (vendored)
+# benchmark_plots.R  —  Mirage benchmark figures (vendored fork)
 # ============================================================================
-# Faithful copy of ../mirage (benchmarking branch) benchmarks/analysis/plots.R,
-# adapted for this project's benchmarks.Rmd with only two changes:
+# Upstream: ../mirage `benchmarks/analysis/plots.R` on branch bench/reconcile-main
+# (the branch that carries benchmarks/ — main does not). This is a FORK, not a
+# mirror: re-vendoring means merging, not copying. Deliberate differences:
 #   1. default `adir` reads from data/benchmark/  (drop the sweep CSVs there)
 #   2. save_fig collects each ggplot into the in-memory `bench_figs` list (no
-#      files on disk); benchmarks.Rmd sources this file and renders them inline.
-# Everything else is mirage's logic. Re-vendor from mirage when their plots evolve.
+#      files on disk); benchmarks.Rmd sources this file and renders them inline
+#   3. the house style comes from code/plot_theme.R, so these figures cannot
+#      drift away from the validation figures
+#   4. upstream figs 03/03b/10/15/16 are dropped — they compare the classic and
+#      distributed registration paths, and mirage now has a single path
+#   5. upstream figs 11 and 17 are dropped here and rendered by
+#      code/registration_accuracy_plots.R (§4, §5) instead: same CSV, same
+#      columns, one owner. Do not re-add them when merging upstream.
 #
-#   measurements.csv  one row per (run x PROCESS): peak_rss_gb, peak_vmem_gb,
-#                     realtime_s, duration_s, cpus, input_gb + every swept param.
-#   param_matrix.csv / registration_accuracy.csv / registration_valis_rtre.csv /
-#   run_cost.csv / segmentation_agreement.csv / runs_master.csv /
-#   resource_stats.csv  (all optional)
+# INPUT CSVs — data/benchmark/ is a merge of TWO mirage output sets:
+#   from `python -m benchmarks.analysis.make_figures` (writes benchmarks/analysis/)
+#     measurements.csv    REQUIRED. One row per (run x PROCESS): peak_rss_gb,
+#                         peak_vmem_gb, realtime_s, duration_s, cpus, input_gb,
+#                         read_gb, write_gb + every swept param.
+#     resource_stats.csv  per (process, config): n_reps + mean/std/cv
+#     run_cost.csv        per run: cpu_hours, gpu_hours, wall_clock_s, bottleneck_stage
+#   from `python benchmarks/analysis/make_tables.py` (writes benchmarks/paper_data/)
+#     runs_master.csv, param_matrix.csv, segmentation_agreement.csv
+#     (+ registration_accuracy.csv / registration_valis_rtre.csv / scaling_fits.csv /
+#      segmentation_eval.csv, which the registration_accuracy page reads)
+# Only measurements.csv is required; a figure whose CSV or column is absent is skipped.
 # ============================================================================
 .need <- c("ggplot2", "dplyr", "readr", "tidyr", "stringr", "forcats", "purrr", "scales")
 .missing <- .need[!vapply(.need, requireNamespace, logical(1), quietly = TRUE)]
@@ -238,27 +252,14 @@ read_opt <- function(name) {
   if (nrow(d) == 0) NULL else d
 }
 
-# ── 11. REGISTRATION ACCURACY vs COST (the Pareto view) ──
-# Current mirage emits the headline registration residual pre-joined to cost in
-# param_matrix.csv (reg_displacement_um_p50, physical µm). The old quality.csv/
-# reg_tre_median_px is retired upstream.
-pm  <- read_opt("param_matrix.csv")
+# ── 11 / 17. REGISTRATION ACCURACY — deliberately NOT built here ──
+# Both accuracy views (residual-vs-cost, and VALIS feature error vs DAPI-overlap Dice)
+# read the same param_matrix.csv columns as registration_accuracy_plots.R §4 and §5,
+# from the same data/benchmark/ directory — rendering them on both pages would put the
+# identical figure under two numbers. This page owns resource, cost and segmentation;
+# registration accuracy is the registration_accuracy page's subject.
+pm   <- read_opt("param_matrix.csv")
 cost <- read_opt("run_cost.csv")
-if (!is.null(pm) && all(c("reg_displacement_um_p50", "cpu_hours") %in% names(pm))) {
-  ac <- pm %>% filter(is.finite(reg_displacement_um_p50), is.finite(cpu_hours))
-  if (nrow(ac) > 0) {
-    p11 <- ac %>%
-      ggplot(aes(cpu_hours, reg_displacement_um_p50)) +
-      geom_point(aes(colour = if ("memory_mode" %in% names(ac)) memory_mode else NULL),
-                 size = 3, alpha = .8) +
-      { if ("memory_mode" %in% names(ac))
-          scale_colour_manual(values = oi, name = "memory_mode", na.translate = FALSE) } +
-      labs(title = "Registration accuracy vs cost",
-           subtitle = "Lower-left is better: less residual for fewer CPU-hours. Each point is a config.",
-           x = "registration CPU-hours", y = "residual displacement, median (µm)")
-    save_fig(p11, "11_accuracy_vs_cost", 8, 5)
-  }
-}
 
 # ── 12. SEGMENTATION cell counts by method ──
 # n_cells and seg_method both live in param_matrix.csv now (make_tables carries seg_method through);
@@ -334,24 +335,6 @@ if (!is.null(cost) && all(c("bottleneck_stage", "target_px") %in% names(cost))) 
            subtitle = "Share of runs whose slowest single process is each stage — the bottleneck shifts with size.",
            x = "image size (px)", y = "share of runs")
     save_fig(p14, "14_bottleneck_by_size", 8, 5)
-  }
-}
-
-# ── 17. VALIS vs SEGMENTATION-OVERLAP agreement (two independent accuracy estimates) ──
-# Single registration path now, so the classic/separated/tiled comparison is retired. Instead show
-# that VALIS's own feature error and the DAPI-overlap Dice agree per run — both live in param_matrix.
-if (!is.null(pm) && "reg_dice_matched" %in% names(pm)) {
-  valis_col <- intersect(c("valis_non_rigid_rTRE", "valis_non_rigid_D"), names(pm))[1]
-  if (!is.na(valis_col)) {
-    ag <- pm %>% filter(is.finite(.data[[valis_col]]), is.finite(reg_dice_matched))
-    if (nrow(ag) > 1) {
-      p17 <- ggplot(ag, aes(.data[[valis_col]], reg_dice_matched)) +
-        geom_point(size = 3, alpha = .8, colour = oi[1]) +
-        labs(title = "Registration accuracy: VALIS vs segmentation-overlap",
-             subtitle = "Independent estimates per run — VALIS feature error (x) vs matched-nucleus Dice (y). They should track.",
-             x = valis_col, y = "matched-nucleus Dice (reg_dice_matched)")
-      save_fig(p17, "17_valis_vs_overlap_agreement", 8, 5)
-    }
   }
 }
 

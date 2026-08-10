@@ -25,6 +25,11 @@ STAGE_LEVELS_OVERLAP <- c("native", "rigid", "non_rigid", "micro")     # warp_se
   if (nrow(d) == 0) NULL else d
 }
 
+# Default-on-empty. Same definition in aggregation_compare.R, cell_tables.R and
+# registration_accuracy_plots.R: these files are sourced in different orders by
+# different reports, so a variant that only tested is.null() would silently take
+# over and let a zero-length result through where a default was intended. (base R's
+# %||% is the is.null-only form, which this deliberately widens.)
 `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
 
 build_reg_figs <- function(dir = here::here("data", "benchmark")) {

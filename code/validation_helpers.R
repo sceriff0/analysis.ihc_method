@@ -1,18 +1,22 @@
 # =============================================================================
-# validation_helpers.R  —  shared logic for the three IHC-validation reports
-#   (clinical_data.Rmd, deconvolution.Rmd, bulkRna.Rmd).
+# validation_helpers.R  —  shared logic for the IHC-validation reports
+#   (clinical_data.Rmd, deconvolution.Rmd, bulkRna.Rmd, periphery.Rmd, ihc_qc.Rmd,
+#    exclusivity.Rmd, annotation_membership_qc.Rmd).
 #
-# The FlowPath single-cell IHC table is the "measurement under test". These
-# helpers derive the quantities each report validates against an independent
-# reference (pathologist / bulk-RNA deconvolution / bulk-RNA marker genes).
+# The single-cell IHC table is the "measurement under test". These helpers derive
+# the quantities each report validates against an independent reference
+# (pathologist / bulk-RNA deconvolution / bulk-RNA marker genes).
 #
-# "Inside the annotation" is decided PRIMARY by sf point-in-polygon on the raw
-# pathologist geojson; the FlowPath `Out_of_annotation` flag is used only as a
-# fallback for patients with no geojson. Cell centroids (microns) are mapped into
-# the geojson pixel frame by the fixed conversion centroid / 0.325 (0.325 um/px) —
-# the same mapping used by the invasive-margin (periphery) metrics.
-# FlowPath exports one csv per patient (<patient>.csv); the loader keys patient_id
-# off the filename stem.
+# This file owns the DERIVED QUANTITIES (region ratios, composition, marker and
+# lineage fractions, invasive-margin metrics, agreement statistics). It does not
+# own the cell-table schema: every column read off an export goes through
+# code/cell_tables.R, so a FlowPath csv, a mirage `*_phenotypes.csv` and a mirage
+# join_flowpath cohort table all work here unchanged.
+#
+# Geometric membership: sf point-in-polygon on the raw pathologist geojson, cells
+# mapped into the geojson pixel frame by cell_centroids_px() (fixed 0.325 um/px for
+# a micron export). The exporter's own out-of-annotation flag is the fallback for
+# patients with no geojson. code/membership.R builds on both.
 #
 # renv: needs sf, jsonlite (+ tidyverse, here, fs already in the lockfile).
 #   renv::install(c("sf", "jsonlite")); renv::snapshot()
@@ -32,6 +36,14 @@ suppressPackageStartupMessages({
 # it here means every analysis that loads these helpers is styled automatically;
 # nothing below needs to call theme_set().
 source(here::here("code", "plot_theme.R"))
+
+# --- Cell-table schema adapter ----------------------------------------------
+# Every column the analyses read off a single-cell export goes through
+# code/cell_tables.R: clean_phenotype(), cell_outside()/is_outside(), is_pos()/
+# marker_pos(), cell_centroids_px(), cell_key_cols(). That file, not this one,
+# is where the FlowPath / mirage-phenotypes / mirage-cohort spellings are
+# reconciled — see its header for the three schemas.
+source(here::here("code", "cell_tables.R"))
 
 # --- ID handling ------------------------------------------------------------
 # All datasets share one patient/slide ID but differ in punctuation (clinical
@@ -93,22 +105,6 @@ crf_to_slide_map <- function(clinical_data,
   crf   <- norm_id(clinical_data[[crf_col]])
   keep  <- !is.na(slide) & !is.na(crf) & slide != "" & crf != ""
   stats::setNames(slide[keep], crf[keep])
-}
-
-# TRUE where a FlowPath `<marker>_sign` column marks a positive cell. The
-# FlowPath export uses "+"; the alternatives guard against encoding drift.
-is_pos <- function(x) {
-  if (is.logical(x)) return(x %in% TRUE)
-  tolower(trimws(as.character(x))) %in% c("+", "pos", "positive", "yes", "true", "1")
-}
-
-# is_pos() for a `<marker>_sign` column that may be absent from a given cell table
-# (returns all-FALSE rather than erroring, so marker-gated populations degrade to
-# n = 0 on any export that lacks the channel).
-marker_pos <- function(cells, marker) {
-  col <- paste0(marker, "_sign")
-  if (!col %in% names(cells)) return(rep(FALSE, nrow(cells)))
-  is_pos(cells[[col]])
 }
 
 # Arcsine square-root ("angular") transform for proportions, the classic variance-
@@ -259,7 +255,7 @@ region_lineages <- c("CD8T", "CD4T", "Treg", "NK", "Immune_other", "Stroma")
 region_ratios <- function(cells) {
   n_inside <- nrow(cells)
   is_tumor <- if (n_inside) stringr::str_detect(tidyr::replace_na(cells$phenotype_clean, ""), "Tumor") else logical(0)
-  is_cd45  <- if (n_inside) is_pos(cells$CD45_sign) else logical(0)
+  is_cd45  <- if (n_inside) marker_pos(cells, "CD45") else logical(0)
   # Marker-gated (not phenotype-gated) subsets: CD3+CD45+ = marker-defined T cells;
   # GZMB+ NK = cytotoxic/activated NK (lineage NK AND granzyme-B positive).
   is_cd3   <- if (n_inside) marker_pos(cells, "CD3")  else logical(0)
@@ -350,20 +346,15 @@ region_composition <- function(region_metrics,
     )
 }
 
-# TRUE where a FlowPath `Out_of_annotation` value marks a cell OUTSIDE the region.
-.is_outside <- function(x) tolower(trimws(as.character(x))) %in% c("true", "1", "yes", "t")
-
 # sf point-in-polygon membership for ONE patient's cells against its polygons.
-# Cells (FlowPath centroids) are in MICRONS and the geojson is in PIXELS, so the
-# centroids are mapped in by the FIXED conversion centroid / um_per_px (0.325):
-# x_px = centroid_x / 0.325. (No per-patient scale search — that heuristic is what
-# produced the wrong pixel/micron scale before.) Returns one metrics row per
-# polygon (per_annotation) or one over the dissolved union; source = "sf".
+# The geojson is in PIXELS; cell_centroids_px() puts the cells in that frame by the
+# FIXED conversion centroid / um_per_px (0.325) for a micron export, or passes a
+# mirage x_px/y_px export straight through. (No per-patient scale search — that
+# heuristic is what produced the wrong pixel/micron scale before.) Returns one
+# metrics row per polygon (per_annotation) or one over the dissolved union.
 .annotation_metrics_sf <- function(cells_p, polys_p, scope, um_per_px) {
-  crs <- sf::st_crs(polys_p)
-  pts <- sf::st_as_sf(data.frame(x = cells_p$centroid_x / um_per_px,
-                                 y = cells_p$centroid_y / um_per_px),
-                      coords = c("x", "y"), crs = crs)
+  pts <- sf::st_as_sf(cell_centroids_px(cells_p, um_per_px),
+                      coords = c("x", "y"), crs = sf::st_crs(polys_p))
   # The geojson polygon gives the region AREA, so region_ratios_area() adds area_mm2
   # and cell DENSITIES (cells / mm^2, incl. tumour density) inside the annotation.
   if (scope == "union") {
@@ -399,17 +390,18 @@ ihc_annotation_metrics <- function(ihc_data, annots,
   ann_ids  <- unique(annots$.pid)
 
   purrr::map_dfr(unique(ihc_data$.pid), function(pid) {
-    cells_p <- dplyr::filter(ihc_data, .pid == pid,
-                             is.finite(centroid_x), is.finite(centroid_y))
+    cells_p <- dplyr::filter(ihc_data, .pid == pid)
+    xy      <- cell_centroids_px(cells_p, um_per_px)
+    cells_p <- cells_p[is.finite(xy$x) & is.finite(xy$y), , drop = FALSE]
     if (nrow(cells_p) == 0) return(tibble::tibble())
 
     if (pid %in% ann_ids) {
       polys_p <- dplyr::filter(annots, .pid == pid)
       .annotation_metrics_sf(cells_p, polys_p, scope, um_per_px) |>
         dplyr::mutate(patient_id = pid, .before = 1)
-    } else if (use_csv_fallback && "Out_of_annotation" %in% names(cells_p)) {
+    } else if (use_csv_fallback && has_outside_flag(cells_p)) {
       # no polygon -> no area, so area_mm2 / densities come back NA (schema matches sf).
-      inside <- !.is_outside(cells_p$Out_of_annotation)
+      inside <- !cell_outside(cells_p)
       region_ratios_area(cells_p[inside, , drop = FALSE], 0, um_per_px) |>
         dplyr::mutate(patient_id = pid, annotation = "csv", source = "csv", .before = 1)
     } else {
@@ -440,23 +432,19 @@ annotation_membership_qc <- function(dir, annots, um_per_px = 0.325) {
     pid  <- slide_key(m[, 2]); ann <- paste0("ANNOTATION_", m[, 3])
 
     cells <- tibble::as_tibble(data.table::fread(path))
-    if (!all(c("centroid_x", "centroid_y", "Out_of_annotation") %in% names(cells)))
+    if (!has_centroids(cells) || !has_outside_flag(cells))
       return(tibble::tibble(patient_id = pid, annotation = ann,
-                            note = "csv missing centroid / Out_of_annotation"))
+                            note = "csv missing centroid / out-of-annotation flag"))
     poly <- dplyr::filter(annots, .pid == pid, annotation == ann)
     if (nrow(poly) == 0)
       return(tibble::tibble(patient_id = pid, annotation = ann,
                             n_cells = nrow(cells), note = "no matching geojson"))
 
-    crs   <- sf::st_crs(poly)
-    pts   <- sf::st_as_sf(data.frame(x = cells$centroid_x / um_per_px,
-                                     y = cells$centroid_y / um_per_px),
-                          coords = c("x", "y"), crs = crs)
+    pts     <- sf::st_as_sf(cell_centroids_px(cells, um_per_px),
+                            coords = c("x", "y"), crs = sf::st_crs(poly))
     sf_in   <- lengths(sf::st_within(pts, sf::st_geometry(poly))) > 0
-    flag_in <- !.is_outside(cells$Out_of_annotation)
-    is_tum  <- if ("phenotype" %in% names(cells))
-      stringr::str_detect(tidyr::replace_na(cells$phenotype, ""), "Tumor")
-    else rep(NA, nrow(cells))
+    flag_in <- !cell_outside(cells)
+    is_tum  <- stringr::str_detect(tidyr::replace_na(cell_phenotype(cells), ""), "Tumor")
 
     n_union <- sum(sf_in | flag_in)
     frac    <- function(sel) if (sum(sel) > 0) sum(is_tum & sel) / sum(sel) else NA_real_
@@ -476,41 +464,44 @@ annotation_membership_qc <- function(dir, annots, um_per_px = 0.325) {
 }
 
 # --- Whole-slide IHC quantities (for the RNA comparisons) -------------------
-# Per-patient fraction of cells positive for each marker (`<marker>_sign == "+"`)
-# plus the mean z-score as a sensitivity readout. Whole slide (bulk RNA has no
-# annotation boundary). Returns wide: patient_id + <marker>_posfrac + <marker>_z.
+# Per-patient fraction of cells positive for each marker, plus the mean z-score as a
+# sensitivity readout. Whole slide (bulk RNA has no annotation boundary). Returns
+# wide: patient_id + <marker>_posfrac + <marker>_z. A marker the export never gated
+# comes back 0 (no positive cells) with an NA z-score, so a partial panel narrows the
+# comparison instead of aborting it.
 ihc_marker_fraction <- function(ihc_data, markers = ihc_markers) {
-  sign_cols <- paste0(markers, "_sign")
-  z_cols    <- paste0(markers, "_zscore")
-  ihc_data |>
-    dplyr::mutate(patient_id = slide_key(patient_id)) |>
+  wide <- tibble::tibble(patient_id = slide_key(ihc_data$patient_id))
+  for (m in markers) {
+    wide[[paste0(m, "_posfrac")]] <- marker_pos(ihc_data, m)
+    wide[[paste0(m, "_z")]]       <- marker_zscore(ihc_data, m)
+  }
+  # An all-NA column (a marker with no z-score in this export) must come back NA,
+  # not the NaN that mean(na.rm = TRUE) returns on an empty vector.
+  wide |>
     dplyr::group_by(patient_id) |>
-    dplyr::summarise(
-      dplyr::across(dplyr::all_of(sign_cols), ~ mean(is_pos(.x), na.rm = TRUE),
-                    .names = "{.col}"),
-      dplyr::across(dplyr::any_of(z_cols),   ~ mean(.x, na.rm = TRUE),
-                    .names = "{.col}"),
-      .groups = "drop"
-    ) |>
-    dplyr::rename_with(~ sub("_sign$",   "_posfrac", .x), dplyr::ends_with("_sign")) |>
-    dplyr::rename_with(~ sub("_zscore$", "_z",       .x), dplyr::ends_with("_zscore"))
+    dplyr::summarise(dplyr::across(dplyr::everything(),
+                                   ~ if (all(is.na(.x))) NA_real_ else mean(.x, na.rm = TRUE)),
+                     .groups = "drop")
 }
 
-# Long form of the per-cell marker table: one row per (cell, marker) with the
-# raw / zscore / sign triple side by side. Used by the internal-QC benchmarks
-# (phenotype-marker concordance, per-channel usability). wrongL1CAM/DAPI excluded
-# via the default marker list.
+# Long form of the per-cell marker table: one row per (cell, marker) carrying the
+# value / z-score / positivity triple. Used by the internal-QC reports (phenotype-
+# marker concordance, per-channel usability). wrongL1CAM/DAPI are excluded via the
+# default marker list. Built marker by marker through the cell_tables.R accessors,
+# so the triple is found under any of the three export spellings.
 ihc_marker_long <- function(ihc_data, markers = ihc_markers) {
-  keep <- intersect(c("cell_id", "patient_id", "phenotype_clean"), names(ihc_data))
-  trip <- c(paste0(markers, "_raw"), paste0(markers, "_zscore"), paste0(markers, "_sign"))
-  ihc_data |>
-    dplyr::select(dplyr::any_of(keep), dplyr::any_of(trip)) |>
-    tidyr::pivot_longer(
-      -dplyr::any_of(keep),
-      names_to     = c("marker", ".value"),
-      names_pattern = "(.*)_(raw|zscore|sign)"
-    ) |>
-    dplyr::mutate(patient_id = slide_key(patient_id), pos = is_pos(sign))
+  keep <- intersect(c("cell_id", "label", "patient_id", "phenotype_clean"),
+                    names(ihc_data))
+  base <- dplyr::mutate(ihc_data[keep], patient_id = slide_key(patient_id))
+  purrr::map_dfr(markers, function(m) dplyr::mutate(
+    base,
+    marker = m,
+    raw    = marker_value(ihc_data, m),
+    zscore = marker_zscore(ihc_data, m),
+    sign   = marker_sign(ihc_data, m),    # verbatim, for display
+    gated  = marker_gated(ihc_data, m),   # FALSE = never measured, NOT negative
+    pos    = marker_pos(ihc_data, m)
+  ))
 }
 
 # Per-patient lineage composition over ALL cells (whole slide), for deconvolution
@@ -610,16 +601,14 @@ ihc_periphery_metrics <- function(ihc_data, annots,
   ann_ids  <- unique(annots$.pid)
 
   purrr::map_dfr(intersect(unique(ihc_data$.pid), ann_ids), function(pid) {
-    cells_p <- dplyr::filter(ihc_data, .pid == pid,
-                             is.finite(centroid_x), is.finite(centroid_y))
+    cells_p <- dplyr::filter(ihc_data, .pid == pid)
+    xy      <- cell_centroids_px(cells_p, um_per_px)
+    cells_p <- cells_p[is.finite(xy$x) & is.finite(xy$y), , drop = FALSE]
     if (nrow(cells_p) == 0) return(tibble::tibble())
     polys_p <- dplyr::filter(annots, .pid == pid)
-    crs     <- sf::st_crs(polys_p)
-    # Fixed µm -> pixel mapping (centroids in microns, geojson in pixels): / 0.325.
     upu     <- um_per_px    # microns per polygon (pixel) unit
-    pts     <- sf::st_as_sf(data.frame(x = cells_p$centroid_x / um_per_px,
-                                       y = cells_p$centroid_y / um_per_px),
-                            coords = c("x", "y"), crs = crs)
+    pts     <- sf::st_as_sf(cell_centroids_px(cells_p, um_per_px),
+                            coords = c("x", "y"), crs = sf::st_crs(polys_p))
 
     cores <- if (scope == "union") {
       list(union = sf::st_union(sf::st_geometry(polys_p)))

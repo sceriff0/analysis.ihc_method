@@ -12,9 +12,12 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(here)
 })
+
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
-                      dev = c("png", "pdf"))
-source(here("code", "pdf_export.R"))                     # export_pdf_figures()
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG     <- "registration_accuracy"
 reg_dir  <- here("data", "benchmark")
 have_reg <- any(file.exists(file.path(reg_dir,
   c("registration_valis_rtre.csv", "registration_accuracy.csv", "param_matrix.csv"))))
@@ -123,9 +126,18 @@ if (length(reg_figs)) {
 - **rTRE is relative, displacement is physical.** rTRE (§1) is a fraction of the
   image diagonal; `displacement_um` (§2) is in microns. Read §1 for cross-size
   comparability, §2 for an interpretable physical residual.
-- Absolute-scale registration cost on synthetic sweep offsets is covered in the
-  [pipeline benchmarks](benchmarks.html); this page uses the real patient slides.
+- **This page owns registration accuracy.** §4 and §5 read the same
+  `param_matrix.csv` columns the [pipeline benchmarks](benchmarks.html) page used to
+  duplicate as its figures 11 and 17; they are built here only, by
+  `code/registration_accuracy_plots.R`. The benchmarks page covers resource scaling,
+  whole-pipeline cost and segmentation.
+- **The sweep inputs are synthetic** where the sweep is what produced these tables:
+  the moving panels are shifted copies of channel 0, so a residual measured on a
+  sweep cell reflects a known offset. Point `data/benchmark/` at a real-slide run to
+  read these figures as biological registration difficulty.
 
 ```{r export-pdfs, include=FALSE}
-export_pdf_figures("registration_accuracy")
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
 ```

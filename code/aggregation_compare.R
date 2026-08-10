@@ -37,7 +37,12 @@ suppressPackageStartupMessages({
   library(ggplot2)
 })
 
-`%||%` <- function(a, b) if (is.null(a)) b else a
+# Default-on-empty. Same definition in aggregation_compare.R, cell_tables.R and
+# registration_accuracy_plots.R: these files are sourced in different orders by
+# different reports, so a variant that only tested is.null() would silently take
+# over and let a zero-length result through where a default was intended. (base R's
+# %||% is the is.null-only form, which this deliberately widens.)
+`%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
 
 # How each side collapses a patient's annotations. Names are the codes used in the
 # frames; values are the labels shown on axes, facets and tables.
