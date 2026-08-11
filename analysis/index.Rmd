@@ -28,6 +28,15 @@ yet knit to HTML, so their links may not resolve until the next site build.
 - [Overview](overview.html) — project scope, the datasets in play, and how the
   pieces fit together.
 
+## Building the manuscript figures
+
+- [Paper figures](paper_figures.html) — the panel assembly sheet. One panel per
+  plot at publication proportions, exported as vector PDFs to
+  `output/figures/paper_figures/` for assembly in Affinity, plus a named slot with
+  acquisition instructions for every panel that has to be a screenshot or a
+  microscope crop. Reads the all-slide export (`data/all_slide/`); knit it to see
+  which panels are ready and which are still missing their input.
+
 ## Method validation & QC
 
 The core "method" contribution: how cells are assigned to tumour annotations,
@@ -37,14 +46,23 @@ how IHC markers are quality-controlled, and how the imaging pipeline is benchmar
   sf point-in-polygon membership vs. the `Out_of_annotation` flag, compared per cell.
 - [IHC marker QC](ihc_qc.html) _(in progress)_ — per-marker distribution and
   bimodality checks on `ihc_data`, with no external reference.
-- [Run QC](run_qc.html) — **the QC of the run on the study samples**: VALIS's or
-  STARE's own registration error (including STARE's per-tile spatial map), the
-  independent DAPI-nucleus overlap cross-check, and the phenotyping calibration and
-  constraint audit. Reads `data/mirage/` and needs nothing else — the only page that
-  renders from a pipeline run alone.
+- [Run QC](run_qc.html) — **the registration QC of the run on the study samples**:
+  VALIS's or STARE's own registration error (including STARE's per-tile spatial map)
+  and the independent DAPI-nucleus overlap cross-check. Reads `data/mirage/` and needs
+  nothing else — the only page that renders from a pipeline run alone.
+
+**Three pages read registration accuracy and they are not interchangeable.**
+[Registration arms](registration_arms.html) is the one the manuscript needs.
+
+- [Registration arms](registration_arms.html) — the study slides registered **once
+  per configuration** (`memory_mode` high/low crossed with `reg_micro_reg` 0/1/2 =
+  six arms). Ranks the arms on real tissue and separates what each knob buys. Also
+  where the comparability rules live: mirage's `rigid` QC stage means affine ∘
+  micro-rigid at depth ≥ 1, so it cannot be compared across depths.
 
 The next two read mirage's `benchmarks/` **sweep**, which runs on synthetic images
-to measure cost and scaling. They say nothing about your samples; Run QC does.
+to measure cost and scaling. They say nothing about your samples; Run QC does, and
+the arm page does for the configuration choice.
 
 - [Registration accuracy](registration_accuracy.html) — sweep registration accuracy:
   VALIS feature rTRE per stage, the segmentation-overlap cross-check, accuracy vs

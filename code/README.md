@@ -10,16 +10,19 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `cell_tables.R` | the **single-cell export schema** — one vocabulary over three upstream formats |
 | `validation_helpers.R` | the derived quantities (region ratios, composition, marker/lineage fractions, invasive margin, agreement stats) |
 | `mirage_cells.R` | the mirage cell source — `phenotypes.csv` + `morphology.csv` joined per patient |
+| `all_slide.R` | the **all-slide cell source** — one CSV *and* one geojson per annotation region, nested per patient |
 | `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob the four `clinical_data` pages turn |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
 | `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
 | `registration_accuracy_plots.R` | the **sweep** registration-accuracy figures — the only place they are built |
+| `registration_arms.R` | the **arm sweep** on the real slides — one run per configuration (both registration backends), ranked, with the cross-arm comparability guard |
 | `run_qc.R` | the **run's own** QC on the study samples: readers for mirage's per-patient QC artifacts, plus `build_run_qc_figs()` |
+| `paper_figures.R` | the **manuscript panels** — re-cuts of existing quantities in the shape each figure legend asks for |
 
 The dependency order is `cell_tables.R` → `validation_helpers.R` → `membership.R`
-(→ `mirage_cells.R`); sourcing `validation_helpers.R` pulls in the first and
+(→ `mirage_cells.R`, `all_slide.R`); sourcing `validation_helpers.R` pulls in the first and
 `plot_theme.R`, so an analysis that sources it is loaded and styled with nothing
 further to call. `cell_tables.R` is the bottom of the stack and stays base-R +
 `tibble`, so it can be sourced and tested on its own. `sf` is a **lazy** dependency
@@ -48,6 +51,124 @@ applies `normalise_cell_flags()`, which forces the boolean columns to real logic
 two exports of the same cohort can be bound without a type clash. The file header
 documents all three schemas.
 
+## The all-slide layout
+
+`all_slide.R` reads the fifth cell source, and the only one where the
+pathologist's polygon and the cell export are matched **per region**:
+
+```
+data/all_slide/csv/<patient>/<patient>_<A|B|C>.csv
+data/all_slide/csv/<patient>/<patient>.csv              (no regions)
+data/all_slide/annotation/<patient>/<patient>_<A|B|C>.geojson
+```
+
+On the cluster this tree is
+`/hpcnfs/techunits/imaging/work/ATTEND/Mirage/all-slide_new`; symlink it in with
+`ln -s <that path> data/all_slide`.
+
+Three things about it differ from every other source, and all three are decisions
+rather than accidents:
+
+- **Region letters are positions, not names.** `A` → `ANNOTATION_1`, `B` →
+  `ANNOTATION_2`, and so on by alphabet index, so the regions line up with
+  `neoplastic_data`'s `ANNOTATION_1..3` columns. `C` stays region 3 whether or not
+  `B` was exported.
+- **No annotation directory means everything is inside.** That is this layout's
+  own stated convention, and it is the reason `all_slide.R` exists instead of the
+  older loaders being widened: everywhere else a missing polygon is a reason to
+  *drop* a patient, and reinterpreting it as "all in" globally would turn a data
+  problem into a silently 100 %-inside patient. Here it is deliberate and is
+  recorded in the metrics frame's `source` column as `whole_slide`.
+- **The union de-duplicates.** A patient's region files each export the same slide,
+  so pooling them naively double-counts every cell. `all_slide_union_cells()` keys
+  on `cell_key_cols()` (or the rounded centroid) before pooling.
+
+Membership inside a region prefers, in order: the region's own geojson (`sf` —
+the only source that knows the region's **area**, hence the only one that yields
+densities), then the export's `Out_of_annotation` flag (`flag`), then every row
+(`whole_slide`). Whichever was used is in the `source` column, never inferred.
+
+Reach it through `membership_data("all_slide")` like any other mode — it reads its
+own polygons, so unlike `"geojson"` it takes no `annots` argument.
+
+## VALIS's own error: three stages, two columns, two files
+
+**There is no micro column.** VALIS's `error_df` schema is `from`/`filename`,
+`rigid_D`, `non_rigid_D` — that is the whole of it. Micro-registration is not a fourth
+stage with a column of its own; it is an **update to the non-rigid field**
+(`register_micro()` re-runs `measure_error()` and overwrites `<name>_summary.csv`,
+composing the micro residual into that same field). So the micro number does not live
+in a column: **it lives in the difference between the two files.**
+
+`*_summary_premicro.csv` is a copy taken just before that overwrite, and it is written
+**only at `reg_micro_reg = 2`**. The stage axis is therefore recovered from *which file*
+a value came from, not from which column — the same reconstruction mirage's own report
+performs in `bin/generate_qc_report.py:_RECONCILE_TRE_SOURCE`:
+
+| stage | column | file |
+|---|---|---|
+| `rigid` | `rigid_D` | final — unchanged by micro |
+| `non_rigid` | `non_rigid_D` | **pre-micro** — the only file that isolates it |
+| `micro` | `non_rigid_D` | **final** — same column, other file |
+
+`valis_error_long()` does exactly this. Faceting by source file — what it used to do —
+drew two panels in which `rigid_D` was the same number twice and the one differing point
+carried the same label in both, so they looked identical because they mostly were.
+
+**A blank `micro` stage is a claim, not a gap.** With no premicro sibling the final
+`non_rigid_D` *is* the pre-micro value, so it becomes `non_rigid` and no `micro` level is
+emitted. Emitting a byte-for-byte duplicate would read as "micro bought nothing", which
+is not the same statement as "micro did not run". mirage makes the same choice on the
+segmentation-overlap side (`docs/registration_qc.md`).
+
+`original` stays in `VALIS_STAGE_LEVELS` but is normally **absent**: VALIS's per-patient
+summary has no such column. The benchmark sweep's `registration_valis_rtre.csv` does — a
+different artifact, from `make_tables.py` — so the level survives and the column is
+detected rather than named, and a build that emits one plots instead of being dropped.
+
+STARE never reaches this axis: the tiled backend writes no `registered/summary/*.csv`, so
+it has no micro stage by construction. Its intrinsic TRE is read from `*_tre.json` in
+**pixels** and plotted separately. mirage's report folds both backends into one slide dict
+by reusing the `rigid_D` / `non_rigid_D` keys; this project keeps them apart because the
+units differ and a shared axis invites a comparison that is not one.
+
+`valis_error_long()` also **passes a caller's extra grouping columns through**
+(`arm`, `backend`, `memory_mode`, `micro_reg`). It returning a narrower frame than it was
+handed is how the arm sweep's figure lost its grouping and quietly stopped being built.
+## Two registration backends, two stage vocabularies
+
+`lib/WarpBackends.groovy` in mirage declares one `reg_qc=2` stage list per
+registration method, and they are **not** the same vocabulary:
+
+| `registration_method` | stages |
+|---|---|
+| `valis` (default) | `native → rigid → non_rigid → micro` |
+| `tiled` (STARE) | `native → rigid → refined` |
+
+`QC_STAGE_LEVELS` in `run_qc.R` is the union, and it has to be: `read_seg_qc()`
+factors `stage` against it and filters out non-matches, so a VALIS-only list made
+every tiled run's `refined` rows **disappear with no error and no warning** — and the
+arm's final stage then came out as `rigid`, which reads as the backend performing far
+worse than it does.
+
+Two rules follow, both enforced in `registration_arms.R` rather than documented:
+
+- **"The last stage" is read from each run's own `stage_order`** (`stage_index`), never
+  from `QC_STAGE_LEVELS`' ordering. The two vocabularies interleave under any single
+  ordering, so a shared ordering compares one backend's stage position against the
+  other's.
+- **`arm_comparable_stages()` returns only `native` for a mixed-backend sweep.** Only
+  `native` is shared as both a spelling and a meaning; `rigid` is a shared *word* and
+  not a shared *operation* (VALIS: affine, composed with micro-rigid at
+  `reg_micro_reg ≥ 1`; STARE: the coarse global anchor before mesh refinement).
+
+What *is* comparable across backends is the metric itself: mirage's segmentation-overlap
+scorer takes `--method` and builds its warper from either a VALIS registrar pickle or a
+STARE transform manifest, so it is the same measurement either way. Each backend's
+**own** reported error is not: VALIS writes rTRE (a fraction of the image diagonal) to
+`registered/summary/*.csv`, STARE writes TRE in **pixels** to
+`qc/registration/*_tre.json`. Separate readers, separate figures, never one axis.
+
 ## Child documents
 
 The four `clinical_data` pages are thin parents over `analysis/_clinical_data_body.Rmd`.
@@ -70,7 +191,8 @@ Two different questions, two different trees, and they must not be conflated:
 | | reads | measures |
 |---|---|---|
 | `benchmark_plots.R`, `registration_accuracy_plots.R` | `data/benchmark/` — mirage's `benchmarks/` sweep | cost, scaling and accuracy on **synthetic** images with a known injected offset |
-| `run_qc.R` | `data/mirage/<patient>/` — an ordinary pipeline run | how well **the study samples** were registered and phenotyped |
+| `registration_arms.R` | `data/registration_arms/<arm>/` — one mirage run per configuration | which configuration to ship, measured on the **real** slides |
+| `run_qc.R` | `data/mirage/<patient>/` — an ordinary pipeline run | how well **the study samples** were registered |
 
 `data/mirage` must **be** the mirage `--outdir`, i.e. contain the per-patient
 directories directly — symlink the run rather than copying a subtree.
@@ -85,7 +207,7 @@ process's producer subdirectory, so `REGISTER`'s VALIS summaries — declared as
 `<patient>/registered/summary/preprocessed/data/*.csv`, not in `registered/summary/`
 itself. A one-level listing finds them on a hand-flattened tree and never on a real
 run. It also breaks *patient detection*, which keys on finding files: that directory
-holds only a directory, so a VALIS run with `reg_qc < 2` and no phenotyping used to
+holds only a directory, so a VALIS run with `reg_qc < 2` used to
 render "No mirage QC found" with its rTRE sitting right there. Join moving slides on
 `slide_token`, not on `moving`: the tiled path names the artifact
 `<patient_id>_<channels>_tre.json` while `seg_qc` carries the native image stem.
