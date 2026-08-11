@@ -25,9 +25,6 @@
 #   qc/registration/*_tre.json       STARE's own TRE, when the tiled path ran.
 #                                    coarse/rigid/post-refinement percentiles PLUS a
 #                                    per-tile spatial map VALIS cannot give.
-#   phenotyping/phenotype_qc.json    conformal calibration: the alpha actually used,
-#                                    whether CRC ran, markers that degraded.
-#   phenotyping/constraint_audit.csv observed vs nominal rate per panel constraint.
 #
 # THREE INDEPENDENT REGISTRATION-ACCURACY SIGNALS, and that is the point
 #   VALIS rTRE and STARE TRE are *intrinsic*: each method grading itself from the
@@ -63,8 +60,31 @@ source(here::here("code", "validation_helpers.R"))
 RUN_QC_ROOT <- here::here("data", "mirage")   # the same tree the cell loader reads
 
 RUN_QC_CAPTION      <- "mirage run QC · study samples · landmark-free"
-QC_STAGE_LEVELS     <- c("native", "rigid", "non_rigid", "micro")   # warp_seg_qc stages
-VALIS_STAGE_LEVELS  <- c("original", "rigid", "non_rigid")          # VALIS rTRE stages
+# warp_seg_qc stages, BOTH backends. lib/WarpBackends.groovy declares one stage list
+# per registration method and they are not the same vocabulary:
+#   valis -> native, rigid, non_rigid, micro
+#   tiled -> native, rigid, refined          (STARE: mesh refinement of the anchor)
+# Only `native` and `rigid` are shared spellings, and `rigid` does NOT mean the same
+# operation in both (VALIS: affine, composed with micro-rigid at reg_micro_reg >= 1;
+# STARE: the coarse global anchor before mesh refinement). This vector exists to stop
+# a stage being DROPPED, which is what a VALIS-only list did to every tiled run's
+# final stage — see stage_index below for how ordering is actually decided.
+QC_STAGE_LEVELS     <- c("native", "rigid", "refined", "non_rigid", "micro")
+# VALIS's OWN error, as a stage axis. THREE stages from TWO columns.
+#
+# VALIS's error_df schema is `from`/`filename`, `rigid_D`, `non_rigid_D` — that is the
+# whole of it. Micro-registration is not modelled as a fourth stage with a column of
+# its own; it is an UPDATE TO THE NON-RIGID FIELD. So the micro number does not live
+# in a column at all: it lives in the difference between the two files.
+# mirage's own report recovers the axis the same way, from the FILE rather than the
+# column (bin/generate_qc_report.py:_RECONCILE_TRE_SOURCE).
+#
+# `original` is kept in the vocabulary but is normally ABSENT: VALIS's per-patient
+# summary has no such column. The benchmark sweep's registration_valis_rtre.csv does
+# (see registration_accuracy_plots.R) — a different artifact, from make_tables.py — and
+# a build that emits one here should plot rather than be silently dropped, which is why
+# the level survives and the column is detected rather than named.
+VALIS_STAGE_LEVELS  <- c("original", "rigid", "non_rigid", "micro")
 
 # --- helpers ----------------------------------------------------------------
 # Where each artifact sits inside a patient directory. Also the definition of "is a
@@ -74,8 +94,7 @@ VALIS_STAGE_LEVELS  <- c("original", "rigid", "non_rigid")          # VALIS rTRE
 # have rendered an empty page rather than its rTRE.
 QC_ARTIFACTS <- c(seg_qc = "qc/registration",
                   stare  = "qc/registration",
-                  valis  = "registered/summary",
-                  pheno  = "phenotyping")
+                  valis  = "registered/summary")
 
 # SEARCH THE ARTIFACT DIRECTORIES RECURSIVELY, NOT ONE LEVEL DEEP.
 # Nextflow's publishDir PRESERVES the producer subdirectory: a process that writes into
@@ -159,6 +178,7 @@ if (!exists("%||%")) `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) 
 SEG_QC_EMPTY <- tibble::tibble(
   patient_id = character(), moving = character(), slide_token = character(),
   stage = factor(levels = QC_STAGE_LEVELS),
+  stage_index = integer(),
   n_pairs = numeric(), pair_fraction = numeric(), iou_mean = numeric(),
   iou_p50 = numeric(), dice_matched = numeric(), disp_um_p50 = numeric(),
   disp_um_p90 = numeric(), disp_px_p50 = numeric(),
@@ -171,7 +191,8 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
       if (is.null(d) || is.null(d$stages)) return(tibble::tibble())
       stages <- d$stage_order %||% names(d$stages)
       mv     <- d$moving %||% fs::path_ext_remove(fs::path_file(f))
-      purrr::map_dfr(stages, function(st) {
+      purrr::map_dfr(seq_along(stages), function(i) {
+        st <- stages[[i]]
         s  <- d$stages[[st]]
         dv <- (d$delta_vs_anchor %||% list())[[st]] %||% list()
         tibble::tibble(
@@ -179,6 +200,12 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
           moving           = mv,
           slide_token      = .slide_token(mv, fs::path_file(dir)),
           stage            = st,
+          # This run's OWN position for the stage, straight from its `stage_order`.
+          # "Which stage did this run end on" must not be answered by a global factor
+          # ordering: the two warp backends have different vocabularies, so any single
+          # ordering would silently rank one backend's stages against the other's.
+          # Read off the producer's own list, it is right for both by construction.
+          stage_index      = i,
           n_pairs          = as.numeric(s$n_pairs %||% NA),
           pair_fraction    = as.numeric((d$matching %||% list())$pair_fraction %||% NA),
           iou_mean         = as.numeric(s$iou_mean %||% NA),
@@ -218,15 +245,55 @@ read_valis_summary <- function(root = RUN_QC_ROOT) {
         # .slide_token() has to strip. slide_key("EPM - 052") is "052", which is not.
         patient_dir = fs::path_file(dir),
         summary_csv = nm,
-        stage_scope = if (grepl("premicro", nm)) "pre-micro" else "post-micro",
+        # A `_summary_premicro.csv` is written ONLY at reg_micro_reg = 2
+        # (bin/register.py: "below it register_micro never runs, so the summary already
+        # IS the pre-micro one"). So the plain summary is post-micro only when a
+        # premicro sibling proves micro ran; on its own it is simply the final — and
+        # calling it "post-micro" told the reader a stage happened that did not.
+        stage_scope = if (grepl("premicro", nm)) "pre-micro" else "final",
         .before = 1)
     })
   })
 }
 
-# VALIS's per-stage error in long form: detect the stage columns rather than naming
-# them, preferring the RELATIVE rTRE (a fraction of the image diagonal, comparable
-# across slide sizes) over the raw distance D.
+# VALIS's per-stage error in long form, on ONE semantic stage axis.
+#
+# WHY THERE IS NO MICRO COLUMN. VALIS's error_df carries `rigid_D` and `non_rigid_D`
+# and nothing else. Micro-registration is not a fourth stage with its own column — it
+# is an update to the non-rigid displacement field: `register_micro()` re-runs
+# `measure_error()` and OVERWRITES `<name>_summary.csv`, composing the micro residual
+# into that same field. So the micro number does not live in a column. **It lives in
+# the difference between the two files.**
+#
+# The stage axis is therefore recovered from WHICH FILE a value came from, not from
+# which column — exactly as mirage's own report does
+# (bin/generate_qc_report.py:_RECONCILE_TRE_SOURCE):
+#
+#   rigid      rigid_D      final       (unchanged by micro; read from either file)
+#   non_rigid  non_rigid_D  PRE-MICRO   (the only file that still isolates it)
+#   micro      non_rigid_D  FINAL       (same column, other file)
+#
+# and `_read_intrinsic_tre()` sorts the two files purely on the `_summary_premicro.csv`
+# filename suffix.
+#
+# This is why the old pre-/post-micro FACET looked like a duplicate: `rigid_D` is the
+# same number in both files, so one of two stages was drawn twice, and the one that did
+# differ was labelled as the same stage in both panels when the two values are two
+# different stages.
+#
+# A BLANK MICRO STAGE IS A CLAIM, NOT A GAP. With no pre-micro file (reg_micro_reg < 2,
+# the shipped default) the final summary's non_rigid_D IS the pre-micro value, so it
+# becomes `non_rigid` and NO micro stage is emitted. Emitting one anyway — a
+# byte-for-byte duplicate of non_rigid — would read as "micro bought nothing", which is
+# a different statement from "micro did not run". mirage makes the same choice on the
+# segmentation-overlap side (docs/registration_qc.md: when micro-registration is skipped
+# or raises and is caught, the QC omits the stage rather than duplicating non_rigid).
+#
+# STARE never appears here at all: the tiled backend writes no registered/summary/*.csv,
+# so it has no micro stage by construction. Its intrinsic TRE is read from *_tre.json
+# and plotted separately, in pixels (see registration_arms.R). mirage's report folds both
+# into one slide dict by reusing the rigid_D / non_rigid_D keys; this project keeps them
+# apart because the units differ and a shared axis invites a comparison that is not one.
 valis_error_long <- function(valis) {
   if (nrow(valis) == 0) return(tibble::tibble())
   cols <- grep("_rTRE$", names(valis), value = TRUE)
@@ -235,17 +302,54 @@ valis_error_long <- function(valis) {
     cols <- grep("_D$", names(valis), value = TRUE)
     metric <- "VALIS matched-feature distance (D)"
   }
-  cols <- cols[sub("_(rTRE|D)$", "", cols) %in% VALIS_STAGE_LEVELS]
+  cols <- cols[sub("_(rTRE|D)$", "", cols) %in%
+                 c("original", "rigid", "non_rigid")]   # the columns that exist
   if (!length(cols)) return(tibble::tibble())
   id <- intersect(c("img_name", "name", "filename"), names(valis))[1]
-  valis |>
+
+  # Columns a caller may have attached before handing the frame over (the arm sweep
+  # adds five). Carried through by name rather than dropped by a fixed select: this
+  # function returning a narrower frame than it was given is how an arm-aware caller
+  # loses its grouping and its figure quietly stops being built.
+  extra <- intersect(c("arm", "arm_dir", "backend", "memory_mode", "micro_reg"),
+                     names(valis))
+
+  long <- valis |>
     dplyr::mutate(slide = if (is.na(id)) summary_csv else .data[[id]],
                   slide_token = .slide_token(slide, patient_dir)) |>
-    dplyr::select(patient_id, slide, slide_token, stage_scope, dplyr::all_of(cols)) |>
-    tidyr::pivot_longer(dplyr::all_of(cols), names_to = "stage", values_to = "error") |>
-    dplyr::mutate(stage  = factor(sub("_(rTRE|D)$", "", stage), levels = VALIS_STAGE_LEVELS),
-                  metric = metric) |>
+    dplyr::select(patient_id, slide, slide_token, stage_scope,
+                  dplyr::all_of(extra), dplyr::all_of(cols)) |>
+    tidyr::pivot_longer(dplyr::all_of(cols), names_to = ".col", values_to = "error") |>
+    dplyr::mutate(.col = sub("_(rTRE|D)$", "", .col)) |>
     dplyr::filter(is.finite(error))
+  if (nrow(long) == 0) return(tibble::tibble())
+
+  # Did micro actually run for this slide? Only a pre-micro sibling proves it.
+  # Grouped by the caller's extra keys too: the same slide appears once per arm in an
+  # arm sweep, and pooling them would let one arm's pre-micro summary decide another
+  # arm's stage labels.
+  grp <- c("patient_id", "slide", extra)
+  micro_ran <- long |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
+    dplyr::summarise(has_premicro = any(stage_scope == "pre-micro"), .groups = "drop")
+
+  long |>
+    dplyr::left_join(micro_ran, by = grp) |>
+    dplyr::mutate(stage = dplyr::case_when(
+      # The invariant stages are read from the final summary only; the pre-micro copy
+      # of them is the same number and would double every box.
+      .col %in% c("original", "rigid") & stage_scope == "final" ~ .col,
+      .col %in% c("original", "rigid")                         ~ NA_character_,
+      .col == "non_rigid" & stage_scope == "pre-micro"          ~ "non_rigid",
+      # Final non_rigid: the micro stage when micro ran, otherwise the non-rigid stage.
+      .col == "non_rigid" & has_premicro                        ~ "micro",
+      .col == "non_rigid"                                       ~ "non_rigid",
+      TRUE                                                      ~ NA_character_)) |>
+    dplyr::filter(!is.na(stage)) |>
+    dplyr::mutate(stage  = factor(stage, levels = VALIS_STAGE_LEVELS),
+                  metric = metric) |>
+    dplyr::select(patient_id, slide, slide_token, dplyr::all_of(extra),
+                  stage, error, metric, source_file = stage_scope)
 }
 
 # --- 3. STARE's own TRE (tiled path only) ------------------------------------
@@ -293,53 +397,12 @@ read_stare_tiles <- function(root = RUN_QC_ROOT) {
   })
 }
 
-# --- 4. phenotyping calibration ---------------------------------------------
-# `chosen_alpha` below `alpha_target` means CRC tightened the risk budget; a marker
-# in `degraded_markers` had too little calibration data and fell back to a reporting-
-# only sign, so populations gated on it are the ones to distrust.
-read_phenotype_qc <- function(root = RUN_QC_ROOT) {
-  purrr::map_dfr(.qc_patient_dirs(root), function(dir) {
-    f <- file.path(dir, "phenotyping", "phenotype_qc.json")
-    if (!file.exists(f)) return(tibble::tibble())
-    d <- .read_json(f)
-    if (is.null(d)) return(tibble::tibble())
-    tibble::tibble(
-      patient_id     = slide_key(fs::path_file(dir)),
-      n_cells        = as.numeric(d$n_cells %||% NA),
-      chosen_alpha   = as.numeric(d$chosen_alpha %||% NA),
-      alpha_target   = as.numeric(d$alpha_target %||% NA),
-      crc_ran        = isTRUE(d$crc_ran),
-      reporting_mode = isTRUE(d$reporting_mode),
-      n_degraded     = length(d$degraded_markers %||% character(0)),
-      degraded       = paste(d$degraded_markers %||% character(0), collapse = ", "),
-      density_radius = as.numeric(d$density_radius %||% NA),
-      n_bins         = as.numeric(d$n_bins %||% NA))
-  })
-}
-
-# Observed vs nominal co-expression rate for every constraint in the panel. A
-# `verdict` other than pass means the data contradicts a biological exclusivity the
-# panel asserts — usually spillover or a mis-set gate, and a reason to distrust the
-# phenotypes that depend on those markers.
-read_constraint_audit <- function(root = RUN_QC_ROOT) {
-  purrr::map_dfr(.qc_patient_dirs(root), function(dir) {
-    f <- file.path(dir, "phenotyping", "constraint_audit.csv")
-    if (!file.exists(f)) return(tibble::tibble())
-    d <- tryCatch(readr::read_csv(f, show_col_types = FALSE, progress = FALSE),
-                  error = function(e) NULL)
-    if (is.null(d) || nrow(d) == 0) return(tibble::tibble())
-    dplyr::mutate(d, patient_id = slide_key(fs::path_file(dir)), .before = 1)
-  })
-}
-
 # Everything at once, for the report.
 run_qc_tables <- function(root = RUN_QC_ROOT) {
   list(seg_qc     = read_seg_qc(root),
        valis      = read_valis_summary(root),
        stare      = read_stare_tre(root),
-       stare_tiles= read_stare_tiles(root),
-       pheno_qc   = read_phenotype_qc(root),
-       audit      = read_constraint_audit(root))
+       stare_tiles= read_stare_tiles(root))
 }
 
 # =============================================================================
@@ -356,15 +419,34 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
   # -- §1 VALIS intrinsic error, per slide across stages -----------------------
   vl <- valis_error_long(tables$valis)
   if (nrow(vl)) {
+    # Boxplot per stage, every slide overlaid, and the median PRINTED. With a handful
+    # of slides the box is scaffolding for the eye and the points are the data — but a
+    # reader still wants the number, and reading it off a log axis is guesswork.
+    med <- vl |>
+      dplyr::group_by(stage) |>
+      dplyr::summarise(error = stats::median(error, na.rm = TRUE),
+                       n = dplyr::n(), .groups = "drop")
+    micro_ran <- "micro" %in% as.character(vl$stage)
     figs[["01_valis_error_by_stage"]] <-
-      ggplot(vl, aes(stage, error, group = interaction(patient_id, slide),
-                     colour = patient_id)) +
-      geom_line(alpha = .7) + geom_point(size = 1.8) +
+      ggplot(vl, aes(stage, error)) +
+      geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      geom_jitter(aes(colour = patient_id), width = .12, height = 0,
+                  size = 1.9, alpha = .85) +
+      geom_text(data = med, aes(label = signif(error, 3)),
+                vjust = -1.1, size = pt_text(7), colour = "grey15") +
       scale_colour_oi(name = "patient") +
-      facet_wrap(~ stage_scope) +
       lab(title = "VALIS registration error by stage",
-          subtitle = paste("VALIS grading itself from its own feature matches, one line",
-                           "per moving slide. Lower = better."),
+          subtitle = paste0(
+            "VALIS grading itself from its own feature matches; lower = better. ",
+            "Label = median. VALIS has no micro column — micro-registration updates the ",
+            "non-rigid field, so the stage axis comes from which FILE a value is in. ",
+            if (micro_ran)
+              paste("`non_rigid` is the pre-micro summary; `micro` is the same",
+                    "`non_rigid_D` column in the final one.")
+            else
+              paste("No `micro` box: this run wrote no pre-micro summary, so",
+                    "reg_micro_reg < 2 and micro-registration never ran. A blank stage",
+                    "means it did not run, not that it bought nothing.")),
           x = NULL, y = vl$metric[1])
     if ("n_matches" %in% names(tables$valis)) {
       # Label each bar with the slide VALIS named, falling back to the summary file
@@ -506,39 +588,6 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
               x = ag$what[1], y = "matched-nucleus Dice")
     }
   }
-
-  # -- §5 phenotyping calibration ----------------------------------------------
-  pq <- tables$pheno_qc
-  if (nrow(pq) && any(is.finite(pq$chosen_alpha))) {
-    figs[["05_phenotype_alpha"]] <-
-      ggplot(pq, aes(stats::reorder(patient_id, chosen_alpha), chosen_alpha,
-                     fill = crc_ran)) +
-      geom_col(width = .7) + coord_flip() +
-      geom_hline(aes(yintercept = alpha_target), linetype = "dashed", colour = REF_LINE) +
-      scale_fill_manual(values = c(`TRUE` = oi[1], `FALSE` = oi[2]),
-                        name = "CRC ran", labels = c(`TRUE` = "yes", `FALSE` = "reporting only")) +
-      lab(title = "Conformal risk budget actually used, per patient",
-          subtitle = paste("Dashed line is the requested alpha_target. Below it, CRC tightened",
-                           "the budget; 'reporting only' means calibration was too thin to",
-                           "certify a risk level at all."),
-          x = NULL, y = "chosen alpha")
-  }
-
-  # -- §5b constraint audit: does the data contradict the panel? ----------------
-  au <- tables$audit
-  if (nrow(au) && all(c("markers", "observed", "nominal") %in% names(au)))
-    figs[["05b_constraint_audit"]] <-
-      au |>
-      dplyr::filter(is.finite(observed)) |>
-      ggplot(aes(observed, stats::reorder(markers, observed), colour = patient_id)) +
-      geom_point(aes(x = nominal), shape = 124, size = 4, colour = REF_LINE) +
-      geom_point(size = 2.5, alpha = .85) +
-      scale_colour_oi(name = "patient") +
-      lab(title = "Constraint audit — observed vs asserted co-expression rate",
-          subtitle = paste("Bars mark the rate the panel asserts; points are what the slide shows.",
-                           "A point far right of its bar means spillover or a mis-set gate on",
-                           "those markers."),
-          x = "co-expression rate", y = NULL)
 
   figs
 }

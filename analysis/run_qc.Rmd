@@ -1,5 +1,5 @@
 ---
-title: "Run QC — registration and phenotyping accuracy on the study samples"
+title: "Run QC — registration accuracy on the study samples"
 author: "sceriff0"
 date: "2026-08-10"
 output: workflowr::wflow_html
@@ -45,10 +45,8 @@ takes its cells from, so a run already copied in needs nothing further.
 | artifact | what it is |
 |---|---|
 | `qc/registration/*_seg_qc.json` | staged **segmentation-overlap** QC (`reg_qc = 2`): matched-nucleus Dice, per-pair IoU and centroid residual, per moving slide per stage |
-| `registered/summary/**/*.csv` | **VALIS's own** error, written during `register()` — rTRE / D / `n_matches`. Nextflow preserves `REGISTER`'s `preprocessed/data/` producer subdirectory on publish, so these sit two levels down; the reader recurses |
+| `registered/summary/**/*.csv` | **VALIS's own** error, written during `register()` — `rigid_D` and `non_rigid_D` (two metric columns, no micro column) plus `n_matches`. Nextflow preserves `REGISTER`'s `preprocessed/data/` producer subdirectory on publish, so these sit two levels down; the reader recurses |
 | `qc/registration/*_tre.json` | **STARE's own** TRE, when the tiled path ran — plus a per-tile spatial map |
-| `phenotyping/phenotype_qc.json` | conformal calibration: the risk budget used, degraded markers |
-| `phenotyping/constraint_audit.csv` | observed vs asserted co-expression rate per panel constraint |
 
 **Three signals, and only one comparison is meaningful.** VALIS rTRE and STARE TRE
 are both **intrinsic**: each method grading itself, from the very features it
@@ -73,11 +71,48 @@ micro        + the micro residual — what the pipeline actually ships
 
 **Two traps in these files.**
 
-- `register_micro()` re-runs `measure_error()` and **overwrites** `<name>_summary.csv`,
-  so that file is *post*-micro. `<name>_summary_premicro.csv` (written only at
-  `micro_reg >= 2`) is the one that isolates the non-rigid stage. They are tagged
-  `stage_scope` and faceted apart here rather than pooled — averaging them would mix
-  a pre- and a post-micro estimate of the same slide.
+- **Two files, four stages, three columns — and the two files are not two
+  measurements of the same thing.** `register_micro()` re-runs `measure_error()` and
+  **overwrites** `<name>_summary.csv`, composing the micro residual into the same
+  displacement field. `<name>_summary_premicro.csv` is a copy taken just before that,
+  and it is written **only at `reg_micro_reg = 2`** — below that `register_micro()`
+  never runs, so the plain summary already *is* the pre-micro one.
+
+  **Why there is no micro column.** VALIS's `error_df` schema is
+  `from`/`filename`, `rigid_D`, `non_rigid_D` — that is the whole of it.
+  Micro-registration is not modelled as a fourth stage with its own column; it is an
+  **update to the non-rigid field**. So the micro number does not live in a column at
+  all: **it lives in the difference between the two files.**
+
+  The stage axis is therefore recovered from *which file* a value came from, not from
+  which column:
+
+  | stage | column | file |
+  |---|---|---|
+  | `rigid` | `rigid_D` | final — unchanged by micro, so either file gives it |
+  | `non_rigid` | `non_rigid_D` | **pre-micro** — the only file that still isolates it |
+  | `micro` | `non_rigid_D` | **final** — same column, other file |
+
+  Two columns, two files, three stages. That is exactly the reconstruction mirage's own
+  report performs (`bin/generate_qc_report.py:_RECONCILE_TRE_SOURCE`), and it sorts the
+  two files purely on the `_summary_premicro.csv` filename suffix.
+
+  It is also why reading the two files as "pre-micro" and "post-micro" *panels* looked
+  like a duplicate: `rigid_D` is the same number in both, so one of two stages was drawn
+  twice, and the one that did differ was given the same label in both panels when the two
+  values are two different stages.
+
+  **A blank micro stage is a claim, not a gap.** With no pre-micro file
+  (`reg_micro_reg < 2`, the shipped default) the final `non_rigid_D` *is* the pre-micro
+  value, so it becomes `non_rigid` and no `micro` box is drawn. Drawing one anyway — a
+  byte-for-byte duplicate of `non_rigid` — would read as *"micro bought nothing"*, which
+  is a different statement from *"micro did not run"*. mirage makes the same choice on
+  the segmentation-overlap side: when micro-registration is skipped, or raises and is
+  caught, the QC omits the stage rather than duplicating `non_rigid`.
+
+  **STARE has no micro stage at all.** The tiled backend writes no
+  `registered/summary/*.csv`, so it never reaches this axis; its intrinsic TRE comes from
+  `*_tre.json` in pixels and is plotted on its own.
 - **Pair fraction gates everything above it.** A Dice computed over 30% of the cells
   is a Dice over a thin and probably biased subset. Read §3c before quoting any
   accuracy number from §3.
@@ -90,7 +125,7 @@ found <- vapply(qc_tables, nrow, integer(1))
 if (sum(found) == 0) {
   cat("No mirage QC found under `", qc_root, "`.\n\n",
       "Copy (or symlink) a pipeline run's `--outdir` to `data/mirage/` and re-knit —\n",
-      "the per-patient `qc/`, `registered/summary/` and `phenotyping/` directories\n",
+      "the per-patient `qc/` and `registered/summary/` directories\n",
       "are what this page reads.\n", sep = "")
 } else {
   cat("artifacts found — ",
@@ -130,53 +165,16 @@ if (nrow(qc_tables$seg_qc)) {
 }
 ```
 
-## Phenotyping calibration
-
-`chosen_alpha` is the conformal risk budget the run actually certified. Below
-`alpha_target` means CRC tightened it; `crc_ran = FALSE` means calibration data was
-too thin to certify any level, and the signs are **reporting-only** — usable as a
-description, not as a controlled-risk call. Any marker in `degraded` fell back the
-same way, so populations gated on it are the ones to distrust first.
-
-```{r pheno-qc}
-if (nrow(qc_tables$pheno_qc))
-  qc_tables$pheno_qc |>
-    transmute(patient_id, n_cells,
-              chosen_alpha = round(chosen_alpha, 4), alpha_target,
-              crc_ran, reporting_mode, n_degraded, degraded) |>
-    arrange(patient_id) |>
-    knitr::kable(caption = paste(
-      "Conformal calibration per patient. reporting_mode = TRUE means no risk level",
-      "was certified for that slide."))
-```
-
-```{r audit-fails}
-# Only the constraints the data contradicts — the full audit is long and mostly passes.
-if (nrow(qc_tables$audit) && "verdict" %in% names(qc_tables$audit)) {
-  bad <- filter(qc_tables$audit, !tolower(as.character(verdict)) %in% c("pass", "ok", "true"))
-  if (nrow(bad))
-    bad |>
-      transmute(patient_id, markers, observed = round(observed, 4),
-                nominal = round(nominal, 4), verdict) |>
-      arrange(desc(observed - nominal)) |>
-      knitr::kable(caption = paste(
-        "Constraints the slide contradicts: the panel asserts these marker pairs are",
-        "mutually exclusive at `nominal`, and `observed` is what the data shows. The",
-        "usual cause is spillover or a mis-set gate, and it undermines every phenotype",
-        "that depends on those markers."))
-  else
-    cat("Every panel constraint passed on every patient.\n")
-}
-```
-
 ```{r fig-notes}
 fig_notes <- c(
   "01_valis_error_by_stage" = paste(
-    "VALIS's own error per moving slide across `original` → `rigid` → `non_rigid`,",
-    "from `registered/summary/*.csv`. rTRE is relative to the image diagonal (unitless,",
-    "comparable across slide sizes); some builds emit raw `*_D` distances instead.",
-    "**Intrinsic** — VALIS scoring its own feature matches. Facets separate the",
-    "post-micro summary from the pre-micro one; they are different measurements."),
+    "VALIS's own error across `original` → `rigid` → `non_rigid` → `micro`, one box per",
+    "stage with every slide overlaid and the **median printed**. rTRE is relative to the",
+    "image diagonal (unitless, comparable across slide sizes); some builds emit raw",
+    "`*_D` distances instead. **Intrinsic** — VALIS scoring its own feature matches.",
+    "The four stages come from three columns across two files: `non_rigid` from the",
+    "pre-micro summary, `micro` from the final one (same column, micro composed in).",
+    "A missing `micro` box means `reg_micro_reg < 2` and micro-registration never ran."),
   "01b_valis_n_matches" = paste(
     "`n_matches`: how many correspondences each rTRE above is based on. A slide with",
     "few matches has a low-confidence estimate no matter how good the number looks."),
@@ -211,18 +209,7 @@ fig_notes <- c(
     "The self-report against the independent check, one point per moving slide at the",
     "final stage: whichever intrinsic error this run has (STARE TRE, else VALIS) on x,",
     "matched-nucleus Dice on y. They should track. A slide with low intrinsic error and",
-    "low Dice is one where the method aligned its own features but not the tissue."),
-  "05_phenotype_alpha" = paste(
-    "The conformal risk budget actually used per patient (`phenotype_qc.json`), against",
-    "the requested `alpha_target` (dashed). Bars coloured by whether CRC ran: 'reporting",
-    "only' means calibration was too thin to certify a risk level, so that patient's",
-    "signs carry no guarantee."),
-  "05b_constraint_audit" = paste(
-    "Observed vs asserted co-expression rate for every panel constraint",
-    "(`constraint_audit.csv`). The tick marks the rate `panel.yaml` asserts; the point is",
-    "what the slide shows. A point well right of its tick means those markers co-occur",
-    "more than the panel allows — spillover, a mis-set gate, or a genuinely unusual",
-    "sample, and a reason to distrust phenotypes that depend on them.")
+    "low Dice is one where the method aligned its own features but not the tissue.")
 )
 ```
 

@@ -3,7 +3,7 @@
 source(here::here("code", "run_qc.R"))
 
 qc_fixture <- function(patients = list(`046` = c("cycle2", "cycle3")),
-                       tiled = FALSE, phenotyping = TRUE) {
+                       tiled = FALSE) {
   root <- file.path(tempdir(), paste0("runqc-", as.integer(Sys.time()), "-", sample(1e6, 1)))
   for (pid in names(patients)) {
     d <- file.path(root, pid)
@@ -52,18 +52,6 @@ qc_fixture <- function(patients = list(`046` = c("cycle2", "cycle3")),
           n_matches = 120L),
           file.path(sdir, paste0(pid, suffix)))
     }
-    if (phenotyping) {
-      dir.create(file.path(d, "phenotyping"), recursive = TRUE, showWarnings = FALSE)
-      jsonlite::write_json(list(
-        chosen_alpha = .038, alpha_target = .05, crc_ran = TRUE, reporting_mode = FALSE,
-        degraded_markers = c("FOXP3"), n_cells = 100000L, density_radius = 30, n_bins = 4L),
-        file.path(d, "phenotyping", "phenotype_qc.json"), auto_unbox = TRUE)
-      readr::write_csv(tibble::tibble(
-        id = 1:2, markers = c("PANCK|CD45", "CD4|CD8"), observed = c(.002, .031),
-        nominal = c(0, .01), density_corr = 0, neighbour_contact_corr = 0,
-        verdict = c("pass", "warn")),
-        file.path(d, "phenotyping", "constraint_audit.csv"))
-    }
   }
   # cohort-level directories a real outdir also carries
   dir.create(file.path(root, "qc"), showWarnings = FALSE)
@@ -97,18 +85,70 @@ test_that("cohort-level directories are not read as patients", {
   expect_setequal(unique(sq$patient_id), "046")
 })
 
-test_that("VALIS pre- and post-micro summaries are tagged, never pooled", {
-  # register_micro() overwrites <name>_summary.csv, so the plain file is post-micro
-  # and only the premicro one isolates the non-rigid stage
+test_that("the two VALIS summaries resolve to ONE stage axis, not two panels", {
+  # register_micro() re-runs measure_error() and overwrites <name>_summary.csv,
+  # composing the micro residual into the same field. Across the two files:
+  #   original / rigid  are IDENTICAL (micro cannot change them)
+  #   non_rigid         differs, and the two values are two DIFFERENT STAGES —
+  #                     pre-micro is the non-rigid stage, final is the micro stage.
+  # Faceting by source file therefore duplicated two stages and mislabelled the third,
+  # which is why the panels looked the same. mirage's own report makes exactly these
+  # assignments (bin/generate_qc_report.py:_RECONCILE_TRE_SOURCE).
   v <- read_valis_summary(qc_fixture())
-  expect_setequal(v$stage_scope, c("post-micro", "pre-micro"))
+  expect_setequal(v$stage_scope, c("final", "pre-micro"))
   long <- valis_error_long(v)
-  # the fixture has two moving slides, so one row each per scope
-  expect_equal(unique(dplyr::filter(long, stage == "non_rigid",
-                                    stage_scope == "post-micro")$error), 3)
-  expect_equal(unique(dplyr::filter(long, stage == "non_rigid",
-                                    stage_scope == "pre-micro")$error), 5)
+
+  expect_setequal(unique(as.character(long$stage)),
+                  c("original", "rigid", "non_rigid", "micro"))
+  # The invariant stages appear ONCE, from the final summary — not twice.
+  expect_equal(sum(long$stage == "rigid"), 2)          # two moving slides, one row each
+  expect_equal(unique(long$source_file[long$stage == "rigid"]), "final")
+  # The pre-micro non_rigid column is the non-rigid stage...
+  expect_equal(unique(long$error[long$stage == "non_rigid"]), 5)
+  expect_equal(unique(long$source_file[long$stage == "non_rigid"]), "pre-micro")
+  # ...and the final one is the micro stage.
+  expect_equal(unique(long$error[long$stage == "micro"]), 3)
+  expect_equal(unique(long$source_file[long$stage == "micro"]), "final")
   expect_true(grepl("rTRE", long$metric[1]))
+})
+
+test_that("a lone summary is not called post-micro, and yields no micro stage", {
+  # A `_summary_premicro.csv` is written ONLY at reg_micro_reg = 2. Below that the plain
+  # summary already IS the pre-micro one, so labelling it "post-micro" claimed a stage
+  # that never ran, and inventing an empty `micro` level would imply the same.
+  root <- file.path(tempdir(), paste0("nomicro-", sample(1e6, 1)))
+  d <- file.path(root, "046", "registered", "summary")
+  dir.create(d, recursive = TRUE)
+  readr::write_csv(tibble::tibble(img_name = "c2", original_rTRE = 50, rigid_rTRE = 10,
+                                  non_rigid_rTRE = 3, n_matches = 99L),
+                   file.path(d, "046_summary.csv"))
+  v <- read_valis_summary(root)
+  expect_equal(unique(v$stage_scope), "final")
+  expect_false("post-micro" %in% v$stage_scope)
+
+  long <- valis_error_long(v)
+  expect_setequal(unique(as.character(long$stage)), c("original", "rigid", "non_rigid"))
+  expect_false("micro" %in% as.character(long$stage))
+  # The final non_rigid becomes the NON-RIGID stage here, not the micro one.
+  expect_equal(long$error[long$stage == "non_rigid"], 3)
+})
+
+test_that("the stage figure is a boxplot carrying printed medians", {
+  figs <- build_run_qc_figs(qc_fixture())
+  p <- figs[["01_valis_error_by_stage"]]
+  expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomBoxplot"), logical(1))))
+  expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomText"), logical(1))))
+  # No facet: the pre/post split was the thing that made two near-identical panels.
+  expect_s3_class(p$facet, "FacetNull")
+})
+
+test_that("valis_error_long carries a caller's extra grouping columns through", {
+  # The arm sweep attaches `arm` and friends before handing the frame over. A fixed
+  # select() dropped them, and the arm figure then silently stopped being built.
+  v <- read_valis_summary(qc_fixture()) |> dplyr::mutate(arm = "high / micro 2")
+  long <- valis_error_long(v)
+  expect_true("arm" %in% names(long))
+  expect_equal(unique(long$arm), "high / micro 2")
 })
 
 test_that("VALIS summaries are found under their producer subdirectory, and flat", {
@@ -126,6 +166,7 @@ test_that("VALIS summaries are found under their producer subdirectory, and flat
                      file.path(d, "046_summary.csv"))
     expect_equal(basename(.qc_patient_dirs(root)), "046")
     expect_equal(nrow(read_valis_summary(root)), 1)
+    # original + rigid + non_rigid; no premicro sibling, so no micro stage.
     expect_equal(nrow(valis_error_long(read_valis_summary(root))), 3)
   }
 })
@@ -187,17 +228,6 @@ test_that("STARE TRE and its per-tile spatial map are read when the tiled path r
   expect_equal(nrow(read_stare_tre(qc_fixture(tiled = FALSE))), 0)
 })
 
-test_that("phenotyping calibration and the constraint audit are read per patient", {
-  root <- qc_fixture(list(`046` = "cycle2", `EPM - 052` = "cycle2"))
-  pq <- read_phenotype_qc(root)
-  expect_setequal(pq$patient_id, c("046", "052"))  # slide_key normalises the dir name
-  expect_true(all(pq$crc_ran))
-  expect_equal(unique(pq$n_degraded), 1)
-  au <- read_constraint_audit(root)
-  expect_equal(nrow(au), 4)
-  expect_equal(sum(au$verdict == "warn"), 2)
-})
-
 test_that("each registration path builds its own intrinsic section", {
   valis_figs <- build_run_qc_figs(qc_fixture(tiled = FALSE))
   stare_figs <- build_run_qc_figs(qc_fixture(tiled = TRUE))
@@ -223,7 +253,7 @@ test_that("every figure actually renders", {
 
 test_that("a patient is detected from ANY artifact subset it produced", {
   # Runs differ in what they emit: reg_qc < 2 produces no *_seg_qc.json, the VALIS
-  # path produces no *_tre.json, a registration-only run has no phenotyping. Keying
+  # path produces no *_tre.json. Keying
   # detection on one location would render an empty page for the others.
   root <- file.path(tempdir(), paste0("subset-", sample(1e6, 1)))
 
@@ -235,13 +265,20 @@ test_that("a patient is detected from ANY artifact subset it produced", {
   readr::write_csv(tibble::tibble(img_name = "cycle2", original_rTRE = 50,
                                   rigid_rTRE = 10, non_rigid_rTRE = 3, n_matches = 99L),
                    file.path(vdir, "046_summary.csv"))
-  # (b) phenotyping only — no registration QC at all
-  dir.create(file.path(root, "052", "phenotyping"), recursive = TRUE)
-  jsonlite::write_json(list(chosen_alpha = .04, alpha_target = .05, crc_ran = TRUE,
-                            reporting_mode = FALSE, degraded_markers = character(0),
-                            n_cells = 10L, density_radius = 30, n_bins = 4L),
-                       file.path(root, "052", "phenotyping", "phenotype_qc.json"),
-                       auto_unbox = TRUE)
+  # (b) staged seg_qc only — no VALIS summary copied in. The mirror image of (a), and
+  # a real shape: the summaries live under a producer subdirectory that is easy to miss
+  # when hand-copying a run.
+  qdir <- file.path(root, "052", "qc", "registration")
+  dir.create(qdir, recursive = TRUE)
+  jsonlite::write_json(list(
+    patient_id = "052", moving = "052_cycle2", stages_separable = TRUE,
+    stage_order = c("native", "rigid", "non_rigid"),
+    matching = list(anchor_stage = "rigid", n_pairs = 100, pair_fraction = 0.8),
+    stages = list(
+      native    = list(n_pairs = 100, dice_matched = .4, displacement_um_p50 = 20),
+      rigid     = list(n_pairs = 100, dice_matched = .8, displacement_um_p50 = 4),
+      non_rigid = list(n_pairs = 100, dice_matched = .9, displacement_um_p50 = 1.2))),
+    file.path(qdir, "052_cycle2_seg_qc.json"), auto_unbox = TRUE)
   # (c) cohort-level directories, one of them non-empty — must never be a patient
   dir.create(file.path(root, "size_logs"), recursive = TRUE)
   dir.create(file.path(root, "qc"), recursive = TRUE)
@@ -249,9 +286,72 @@ test_that("a patient is detected from ANY artifact subset it produced", {
 
   expect_setequal(basename(.qc_patient_dirs(root)), c("046", "052"))
   expect_equal(nrow(read_valis_summary(root)), 1)
-  expect_equal(nrow(read_phenotype_qc(root)), 1)
+  expect_gt(nrow(read_seg_qc(root)), 0)
   # and the page still builds the section each subset supports
   figs <- build_run_qc_figs(root)
   expect_true("01_valis_error_by_stage" %in% names(figs))
-  expect_true("05_phenotype_alpha" %in% names(figs))
+  expect_true("03_overlap_dice_by_stage" %in% names(figs))
+})
+
+test_that("a phenotyping-only directory is no longer a patient", {
+  # Conformal phenotyping QC was removed, so `phenotyping/` is not an artifact this
+  # page reads. A directory holding only it must not be detected as a patient — doing
+  # so would put an empty row in every table for a run with no registration QC at all.
+  root <- file.path(tempdir(), paste0("phenoonly-", sample(1e6, 1)))
+  dir.create(file.path(root, "052", "phenotyping"), recursive = TRUE)
+  writeLines("label,phenotype", file.path(root, "052", "phenotyping", "phenotypes.csv"))
+  expect_equal(length(.qc_patient_dirs(root)), 0)
+  expect_equal(nrow(run_qc_tables(root)$seg_qc), 0)
+})
+
+# ---- VALIS's real two-column schema -----------------------------------------
+# The fixtures above write an `original_rTRE` column to exercise the tolerance path,
+# but VALIS's actual error_df is `from`/`filename`, `rigid_D`, `non_rigid_D` and nothing
+# else (bin/generate_qc_report.py iterates exactly those two metric columns). These
+# tests pin the reconstruction against the real schema.
+
+.valis_real <- function(root, pid = "046", premicro = TRUE, nr_final = 3, nr_pre = 5) {
+  d <- file.path(root, pid, "registered", "summary", "preprocessed", "data")
+  dir.create(d, recursive = TRUE, showWarnings = FALSE)
+  for (sfx in c("_summary.csv", if (premicro) "_summary_premicro.csv"))
+    readr::write_csv(tibble::tibble(
+      filename       = c("cycle2", "cycle3"),
+      rigid_D        = c(10, 11),
+      non_rigid_D    = if (sfx == "_summary.csv") nr_final else nr_pre),
+      file.path(d, paste0(pid, sfx)))
+  root
+}
+
+test_that("two columns and two files reconstruct three stages", {
+  # Micro-registration has no column: it updates the non-rigid field, so its value
+  # lives in the DIFFERENCE BETWEEN THE FILES. rigid_D is unchanged by it.
+  long <- valis_error_long(read_valis_summary(
+    .valis_real(file.path(tempdir(), paste0("vreal-", sample(1e6, 1))))))
+
+  expect_setequal(unique(as.character(long$stage)), c("rigid", "non_rigid", "micro"))
+  expect_false("original" %in% as.character(long$stage))
+  # rigid comes from the final file and appears ONCE, not once per file.
+  expect_equal(sum(long$stage == "rigid"), 2)                    # two moving slides
+  expect_setequal(long$error[long$stage == "rigid"], c(10, 11))
+  # Same column, two files, two stages.
+  expect_equal(unique(long$error[long$stage == "non_rigid"]), 5)
+  expect_equal(unique(long$source_file[long$stage == "non_rigid"]), "pre-micro")
+  expect_equal(unique(long$error[long$stage == "micro"]), 3)
+  expect_equal(unique(long$source_file[long$stage == "micro"]), "final")
+  # `_D` columns, so the metric label must say distance, not relative rTRE.
+  expect_match(long$metric[1], "distance")
+})
+
+test_that("a blank micro stage means micro did not run, not that it gained nothing", {
+  # No premicro file => reg_micro_reg < 2. The final non_rigid_D IS the pre-micro value,
+  # so it becomes `non_rigid` and NO micro stage is emitted. A duplicated non_rigid box
+  # would read as "micro bought nothing", a different claim. mirage's seg-QC side omits
+  # the stage for the same reason.
+  long <- valis_error_long(read_valis_summary(
+    .valis_real(file.path(tempdir(), paste0("vnomicro-", sample(1e6, 1))),
+                premicro = FALSE)))
+  expect_setequal(unique(as.character(long$stage)), c("rigid", "non_rigid"))
+  expect_false("micro" %in% as.character(long$stage))
+  expect_equal(unique(long$error[long$stage == "non_rigid"]), 3)   # final, not duplicated
+  expect_equal(unique(long$source_file), "final")
 })
