@@ -1,0 +1,294 @@
+---
+title: "Registration arms — choosing a configuration on the real slides"
+author: "sceriff0"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+})
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      dev = c("png", "pdf"))
+source(here("code", "pdf_export.R"))
+
+SLUG <- "registration_arms"
+
+have_arms <- dir.exists(here("data", "registration_arms"))
+if (have_arms) suppressMessages(source(here("code", "registration_arms.R")))
+```
+
+## Starting data and notation
+
+The study slides, registered **once per configuration**. Three pages now read
+registration accuracy and they answer different questions — this one answers
+*which configuration do we ship, and what does it buy?*
+
+| page | data | question |
+|---|---|---|
+| [Registration accuracy](registration_accuracy.html) | mirage's `benchmarks/` sweep on **synthetic** images with a known injected offset | how does cost and accuracy scale? |
+| [Run QC](run_qc.html) | **one** run on the study slides | was this cohort registered well enough to analyse? |
+| **this page** | the study slides, **N runs**, one per arm | which configuration, and what does each knob buy? |
+
+The manuscript's registration-accuracy figure needs *this* page, not the sweep:
+an arm ranking measured on real tissue rather than on a synthetic offset.
+
+### The axes
+
+**Two VALIS knobs, crossed:**
+
+- **`memory_mode`** — the VALIS accuracy preset. `low` is BRISK/RANSAC at small
+  dimensions; `high` is SuperPoint/SuperGlue at larger ones. These are **different
+  feature matchers**, not one matcher at two resolutions — worth stating plainly,
+  because a figure legend that says otherwise is describing a different experiment.
+- **`reg_micro_reg`** — micro-registration **depth**, nested, *not* a boolean:
+  `0` = none, `1` = micro-rigid only (refines `slide.M`), `2` = additionally micro
+  non-rigid (`register_micro`).
+
+Crossing them gives 2 × 3 = **six arms**, not the 2 × 2 an on/off reading would.
+
+**Plus a backend comparator, on a different axis:**
+
+- **`registration_method = tiled`** — STARE, at defaults. A *different backend*:
+  JVM-free, internally tiled, runnable on a laptop. `memory_mode` and
+  `reg_micro_reg` are **VALIS-only params**, so a tiled arm has neither and carries
+  `NA` for both. It is not a seventh cell of the preset × depth grid; it is one point
+  of comparison against the whole grid.
+
+**Why a cross-backend comparison is legitimate at all.** The segmentation-overlap
+scorer is method-agnostic — `bin/warp_seg_qc.py` takes `--method` and builds its
+warper from either a VALIS registrar pickle or a STARE transform manifest — so the
+metric is the same measurement in both cases. That is the one thing that makes
+"which backend aligns better" answerable here.
+
+**What is not comparable is the stage axis.** `lib/WarpBackends.groovy` declares one
+stage list per backend and they are different vocabularies:
+
+| backend | stages |
+|---|---|
+| `valis` | `native → rigid → non_rigid → micro` |
+| `tiled` | `native → rigid → refined` |
+
+Only `native` is shared as both a spelling and a meaning. `rigid` is shared as a
+**word** and not as an **operation**: for VALIS it is the affine transform (composed
+with micro-rigid at depth ≥ 1); for STARE it is the coarse global anchor before mesh
+refinement.
+
+**And each backend reports its own error in its own units, in its own file.** VALIS
+writes rTRE (a fraction of the image diagonal) or a raw distance to
+`registered/summary/*.csv`; STARE writes TRE in **pixels** to
+`qc/registration/*_tre.json`, with a per-tile breakdown VALIS has no equivalent of.
+Those get separate figures here, never a shared axis — a pixel TRE beside a
+diagonal-relative rTRE is a unit error dressed up as a comparison.
+
+### Where the numbers come from
+
+Every arm is a normal mirage run at `reg_qc = 2`, so each emits the staged
+segmentation-overlap QC: DAPI segmented on the **native** image, cells paired
+**once** at the rigid anchor, then those same pairs re-scored after each stage.
+Because the pairing is held fixed, a change between stages is geometry and not a
+change in which cells got compared.
+
+```
+data/registration_arms/<arm>/<patient>/qc/registration/*_seg_qc.json
+data/registration_arms/<arm>/<patient>/registered/summary/*.csv   (optional)
+data/registration_arms/arms.csv                                   (optional, preferred)
+```
+
+Every reader here is `run_qc.R`'s, called once per arm tree — the artifacts are the
+same artifacts, only the number of trees changed.
+
+```{r manifest}
+arms <- if (have_arms) arm_manifest() else tibble::tibble()
+seg  <- if (nrow(arms)) read_arms_seg_qc(arms) else tibble::tibble()
+
+if (nrow(arms)) {
+  knitr::kable(dplyr::select(arms, arm, arm_dir, backend, memory_mode, micro_reg),
+               caption = paste("The arms found, and how each was labelled.",
+                               "A `tiled` arm carries no preset and no micro depth —",
+                               "those params do not exist on that backend."))
+} else {
+  cat("**No arm runs found.** This page expects one mirage outdir per arm under",
+      "`data/registration_arms/`:\n\n```\ndata/registration_arms/valis_high_micro2/<patient>/qc/registration/*_seg_qc.json\n```\n\n",
+      "Symlink each run in, then re-knit.\n")
+}
+```
+
+> **Label the arms explicitly.** Directory names are parsed for `high`/`low` and a
+> micro depth, but a mislabelled arm does not fail — it produces a clean figure with
+> the conclusion inverted. Write `data/registration_arms/arms.csv` and the parse is
+> bypassed:
+>
+> ```
+> arm_dir,backend,memory_mode,micro_reg
+> valis_high_micro2,valis,high,2
+> valis_low_micro0,valis,low,0
+> tiled_defaults,tiled,,
+> ```
+>
+> A directory name containing `tiled` or `stare` is read as the tiled backend and is
+> *not* scanned for preset or depth — reading knobs off a run that never had them
+> would invent values.
+
+## What may be compared across arms, and what may not
+
+```{r guard, results="asis"}
+if (nrow(seg)) {
+  cat(comparable_stage_note(seg), "\n\n")
+  cat("Stages directly comparable across these arms: ",
+      paste0("`", arm_comparable_stages(seg), "`", collapse = ", "), ".\n\n", sep = "")
+}
+```
+
+Three traps are worth stating before any figure:
+
+1. **A tiled arm's final stage is `refined`, and a VALIS-only stage vocabulary drops
+   it.** `read_seg_qc()` factors the stage against the known list; anything unknown
+   becomes `NA` and is filtered out. With a VALIS-only list, every STARE `refined`
+   row vanished and the tiled arm's "final" stage came out as `rigid` — making the
+   backend look far worse than it is, with no error and no missing-data warning. The
+   stage vocabulary now covers both backends, and "the last stage" is read from each
+   run's own `stage_order` rather than from a shared ordering.
+
+2. **`rigid` is not "rigid only".** mirage defines the QC `rigid` stage as the rigid
+   transform *after* `MicroRigidRegistrar` refined it. At `reg_micro_reg = 0` that is
+   affine alone; at `≥ 1` it is affine ∘ micro-rigid. Putting `rigid` on one axis
+   across a depth-crossed sweep plots two different transforms and reads as a
+   micro-registration effect that is really a definition change. **A true rigid-only
+   baseline exists only in the depth-0 arms.**
+3. **`native` is only nearly comparable.** It is the untransformed segmentation, so
+   it looks like a clean no-registration baseline — but the pairing is established at
+   the rigid anchor, and arms with different rigid transforms pair different cells.
+   Read it as a baseline; do not difference against it.
+
+Which is why the arms are ranked on **each run's final stage** — the transform that
+arm actually ships. That stage is not constant: depths 0 and 1 emit no `micro` stage
+at all, so ranking on "the micro stage" would silently drop four of six arms.
+
+```{r stages-present}
+if (nrow(seg)) {
+  knitr::kable(
+    seg |> dplyr::count(micro_reg, stage) |>
+      tidyr::pivot_wider(names_from = stage, values_from = n, values_fill = 0),
+    caption = paste("Stages each depth actually reported. Depths 0 and 1 emit no",
+                    "`micro` stage — at depth 1 the micro-rigid refinement has",
+                    "already been folded into `rigid`."))
+}
+```
+
+## Headline: the arm ranking
+
+```{r ranking-table}
+if (nrow(seg))
+  knitr::kable(arm_ranking_table(seg), digits = 3, caption = paste(
+    "Per arm, median across slides at that arm's final transform.",
+    "Sorted by residual displacement — lower is better.",
+    "`pair_fraction` is the trust check: read it before the ranking."))
+```
+
+```{r figures, results="asis", fig.width=7.5, fig.height=4.8}
+arm_notes <- c(
+  "01_final_residual_um_by_arm" = paste(
+    "**The arm ranking.** Matched-nucleus centroid residual (median per slide) at",
+    "each arm's final transform, in microns. Physical units and no resolution floor,",
+    "so this is the number to quote. One point per slide: with a handful of slides",
+    "the points are the evidence, not the box."),
+  "02_final_dice_by_arm" = paste(
+    "**The same ranking, measured differently.** Areal Dice over the matched pairs.",
+    "It is bounded above by segmentation agreement rather than by registration, so",
+    "read the ORDER, not the absolute level. Agreement with the residual figure is",
+    "corroboration; disagreement is a reason to distrust both."),
+  "03_stage_ladder_within_arm" = paste(
+    "**What each stage bought, within an arm.** One line per moving slide, log y.",
+    "Read DOWN a panel — inside one arm `rigid` has a fixed meaning. Do not read",
+    "`rigid` ACROSS panels."),
+  "04_pair_fraction_by_arm" = paste(
+    "**Is the ranking trustworthy?** Fraction of nuclei paired at the rigid anchor.",
+    "mirage's own rule: below ~0.5 the later stages are scored on a biased subset of",
+    "cells that happened to land close. An arm that wins on residual while pairing",
+    "thinly has not won."),
+  "05_knob_effects" = paste(
+    "**Which knob moved the result.** Final-transform residual by micro-registration",
+    "depth, split by accuracy preset. The presets use different feature matchers",
+    "(BRISK/RANSAC vs SuperPoint/SuperGlue), so a preset difference is a matcher",
+    "difference."),
+  "06_delta_vs_rigid_anchor" = paste(
+    "**Did a stage make it worse?** Residual minus the rigid stage's. Above zero",
+    "means that stage degraded the alignment. mirage catches-and-continues a failed",
+    "micro-registration, so this regression is silent by design — this is where it",
+    "surfaces."),
+  "08_stare_intrinsic_tre_px" = paste(
+    "**STARE grading itself**, before and after mesh refinement. In **pixels** — this",
+    "is deliberately a separate figure from the VALIS rTRE above, because the two are",
+    "in different units and a shared axis would invite a comparison that is not one."),
+  "09_stare_tile_error_map" = paste(
+    "**What only the tiled backend can show.** Residual error per tile, so a",
+    "systematic regional failure is visible instead of averaged into a slide-level",
+    "median. VALIS reports one number per slide and has no equivalent."),
+  "07_valis_intrinsic_by_arm" = paste(
+    "**VALIS grading itself**, one panel per arm, medians printed. Independent of every",
+    "segmentation-overlap metric above — VALIS scoring its own feature correspondences —",
+    "so agreement with the ranking figures is corroboration rather than restatement.",
+    "**Three stages from two columns:** VALIS's `error_df` is `filename`, `rigid_D`,",
+    "`non_rigid_D`; micro-registration has no column of its own because it *updates the",
+    "non-rigid field*, so the micro value lives in the difference between the pre-micro",
+    "and final summaries rather than in a column.",
+    "**A missing `micro` box is the finding** — that arm wrote no pre-micro summary, so",
+    "`reg_micro_reg < 2` and micro-registration never ran. A duplicated `non_rigid` box",
+    "would instead read as 'micro bought nothing'.",
+    "Read DOWN a panel: the stage meanings differ across depths, which is why this",
+    "facets rather than sharing one axis. See [run QC](run_qc.html) for the full",
+    "column-and-file to stage mapping."))
+
+figs <- if (nrow(seg)) build_arm_figs(seg, read_arms_valis(arms), arms) else list()
+for (nm in names(figs)) {
+  cat("\n\n### ", gsub("_", " ", sub("^[0-9]+_", "", nm)), "\n\n", sep = "")
+  if (!is.na(arm_notes[nm])) cat(arm_notes[[nm]], "\n\n")
+  print(figs[[nm]])
+  cat("\n\n")
+}
+if (!length(figs)) cat("\n_No figures — see the loader note above._\n")
+```
+
+## Notes
+
+- **This is the page the manuscript's registration figure should cite**, not
+  [registration accuracy](registration_accuracy.html). That page reads the synthetic
+  sweep, whose moving panels are shifted copies of channel 0, so a residual measured
+  there reflects a known injected offset rather than real cross-acquisition
+  difficulty. The arm ranking only means what the paper wants it to mean if it was
+  measured on tissue.
+- **Two independent estimates, again.** The segmentation-overlap metrics (figures 1–4)
+  and VALIS's own error (figure 7) are computed by different methods from different
+  inputs. Their agreement is the argument; neither alone is.
+- **Dice has a ceiling below 1 under perfect registration.** Two independent
+  segmentation runs on the same nucleus in different rounds do not produce identical
+  outlines. The *delta* between stages is the registration signal; the absolute level
+  is not.
+- **A cheaper arm that pairs thinly is not cheaper.** `pair_fraction` gates every
+  other number on the page — check figure 4 before quoting figure 1.
+- **The tiled arm answers a different question from the VALIS grid.** The grid asks
+  "which configuration of this backend?"; the tiled arm asks "is the other backend
+  competitive at all?". It ran at defaults, so a poor showing is evidence about
+  STARE-at-defaults and not about STARE — it has its own knobs
+  (`reg_tiled_tile`, `reg_tiled_halo`, `reg_tiled_gate_tre`,
+  `reg_tiled_coarse_max_dim`) that this sweep never varied. Say so if the paper
+  reports it, or a reader will read a tuned-versus-untuned comparison as
+  backend-versus-backend.
+- **The tiled backend is the only one that localises its error.** If the paper needs
+  to show *where* registration is hard on a slide rather than how hard on average,
+  that figure only exists on this path.
+- **The ANHIR/ACROBAT landmark evaluation is a different benchmark.** mirage's
+  `benchmarks/registration_eval/` measures TRE against **landmark ground truth** on
+  public datasets. Nothing on this page is ground-truth-anchored: it is a
+  landmark-free internal comparison, which is the right tool for choosing between
+  arms and the wrong one for an absolute accuracy claim.
+
+```{r export-pdfs, include=FALSE}
+export_pdf_figures(SLUG)
+```

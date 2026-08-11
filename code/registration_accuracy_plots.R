@@ -170,7 +170,140 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     }
   }
 
+  # -- §6 THE PAPER'S ARM COMPARISON (Fig 4b/4c) -------------------------------
+  # §1 and §2 answer "does registration help?" by walking the STAGES of one run.
+  # This answers the different question the paper actually asks: "which CONFIG do we
+  # ship?" — one point per arm, arms being the sweep's registration configurations
+  # (accuracy preset x micro-registration on/off).
+  #
+  # THE TWO BASELINES COST NOTHING EXTRA. "No registration" and "rigid only" are not
+  # separate runs to be launched: they are the `original_*` and `rigid_*` COLUMNS
+  # every run already reports, i.e. that run's own before-and-after. They are folded
+  # in here as two pseudo-arms so the baseline and the arms are read off one axis.
+  # They are drawn from the same runs as the arms, so they are paired with them, not
+  # independent of them — which is why they are labelled and ordered apart.
+  arm_tbl <- .reg_arm_table(pm)
+  if (!is.null(arm_tbl)) {
+    base_tre <- .reg_stage_baselines(vs, c(original = "no registration", rigid = "rigid only"))
+
+    if ("tre" %in% names(arm_tbl) && any(is.finite(arm_tbl$tre))) {
+      d <- dplyr::bind_rows(
+        dplyr::transmute(dplyr::filter(arm_tbl, is.finite(tre)),
+                         arm, value = tre, kind = "configuration"),
+        if (!is.null(base_tre)) dplyr::transmute(base_tre, arm = label, value, kind = "baseline"))
+      d$arm <- stats::reorder(factor(d$arm), d$value)
+      figs[["06_tre_by_arm"]] <-
+        ggplot(d, aes(arm, value, colour = kind)) +
+        geom_boxplot(outlier.shape = NA, width = .55, colour = "grey35") +
+        geom_jitter(width = .12, height = 0, alpha = .75, size = 2) +
+        scale_colour_manual(values = c(configuration = oi[1], baseline = oi[2]), name = NULL) +
+        coord_flip() +
+        labs(title = "Registration error by configuration",
+             subtitle = paste("VALIS target registration error per arm, with the",
+                              "no-registration and rigid-only baselines. Lower = better."),
+             x = NULL, y = attr(arm_tbl, "tre_label") %||% "VALIS TRE", caption = REG_CAPTION)
+    }
+
+    if ("dice" %in% names(arm_tbl) && any(is.finite(arm_tbl$dice))) {
+      base_dice <- .reg_long_baselines(ra, "dice_matched",
+                                       c(native = "no registration", rigid = "rigid only"))
+      d <- dplyr::bind_rows(
+        dplyr::transmute(dplyr::filter(arm_tbl, is.finite(dice)),
+                         arm, value = dice, kind = "configuration"),
+        if (!is.null(base_dice)) dplyr::transmute(base_dice, arm = label, value, kind = "baseline"))
+      d$arm <- stats::reorder(factor(d$arm), d$value)
+      figs[["07_dice_by_arm"]] <-
+        ggplot(d, aes(arm, value, colour = kind)) +
+        geom_boxplot(outlier.shape = NA, width = .55, colour = "grey35") +
+        geom_jitter(width = .12, height = 0, alpha = .75, size = 2) +
+        scale_colour_manual(values = c(configuration = oi[1], baseline = oi[2]), name = NULL) +
+        coord_flip() +
+        labs(title = "DAPI-nucleus overlap Dice by configuration",
+             subtitle = paste("Segmentation-overlap Dice per arm, same arms as the TRE",
+                              "figure. Independent of VALIS's features. Higher = better."),
+             x = NULL, y = "matched-nucleus Dice", caption = REG_CAPTION)
+    }
+  }
+
   figs
+}
+
+# --- §6 helpers ---------------------------------------------------------------
+# What makes two runs DIFFERENT arms. The sweep names its knobs differently across
+# mirage versions, so the arm label is assembled from whichever of these columns
+# param_matrix.csv actually carries rather than from a hard-coded pair — a renamed
+# knob then costs a generic label, not a missing figure.
+REG_ARM_PATTERNS <- c(preset = "preset|accuracy|max_?dim|max_image_dim",
+                      micro  = "micro")
+
+# One row per arm: its label plus the two headline metrics. Returns NULL when
+# param_matrix.csv is absent or carries neither metric, so §6 skips as a unit.
+# `tre_label` rides along as an attribute because which TRE column exists (relative
+# rTRE vs raw distance D) determines what the axis is allowed to claim.
+.reg_arm_table <- function(pm) {
+  if (is.null(pm)) return(NULL)
+  tre_col  <- intersect(c("valis_non_rigid_rTRE", "valis_non_rigid_D"), names(pm))[1]
+  dice_col <- intersect("reg_dice_matched", names(pm))[1]
+  if (is.na(tre_col) && is.na(dice_col)) return(NULL)
+
+  knobs <- unlist(lapply(REG_ARM_PATTERNS, function(pat)
+    grep(pat, names(pm), value = TRUE, ignore.case = TRUE)[1]))
+  knobs <- unique(knobs[!is.na(knobs)])
+
+  if (!length(knobs)) {
+    # No knob column survived. Every run is then its own arm, labelled by run id —
+    # honest, and still the right SHAPE of figure, rather than pretending one arm.
+    id <- intersect(c("run_id", "run", "config", "name"), names(pm))[1]
+    warning("registration arms: no preset/micro column in param_matrix.csv — ",
+            "labelling each run separately. Arms will not be grouped.")
+    arm <- if (is.na(id)) paste("run", seq_len(nrow(pm))) else as.character(pm[[id]])
+  } else {
+    arm <- do.call(paste, c(lapply(knobs, function(k)
+      paste0(sub("^reg_", "", k), "=", pm[[k]])), list(sep = " · ")))
+  }
+
+  out <- tibble::tibble(
+    arm  = arm,
+    tre  = if (is.na(tre_col))  NA_real_ else suppressWarnings(as.numeric(pm[[tre_col]])),
+    dice = if (is.na(dice_col)) NA_real_ else suppressWarnings(as.numeric(pm[[dice_col]])))
+  attr(out, "tre_label") <- if (is.na(tre_col)) NULL
+    else if (grepl("rTRE$", tre_col)) "VALIS rTRE (relative)" else "VALIS matched-feature distance (D)"
+  out
+}
+
+# Turn named stage columns into labelled baseline rows. `stages` maps the column
+# stem to the label the figure should show. Returns NULL when none are present, so
+# a figure without baselines still draws its arms rather than failing.
+.reg_stage_baselines <- function(df, stages) {
+  if (is.null(df)) return(NULL)
+  rows <- lapply(names(stages), function(st) {
+    col <- grep(paste0("^", st, "_(rTRE|D)$"), names(df), value = TRUE)[1]
+    if (is.na(col)) col <- if (st %in% names(df)) st else NA_character_
+    if (is.na(col)) return(NULL)
+    v <- suppressWarnings(as.numeric(df[[col]]))
+    v <- v[is.finite(v)]
+    if (!length(v)) return(NULL)
+    tibble::tibble(label = unname(stages[[st]]), value = v)
+  })
+  rows <- Filter(Negate(is.null), rows)
+  if (!length(rows)) return(NULL)
+  dplyr::bind_rows(rows)
+}
+
+# The Dice table is LONG (one row per run x moving slide x stage) where the VALIS
+# table is WIDE (one column per stage), so its baselines are rows to filter, not
+# columns to find. Same contract as .reg_stage_baselines(): labelled values or NULL.
+.reg_long_baselines <- function(df, value_col, stages) {
+  if (is.null(df) || !all(c("stage", value_col) %in% names(df))) return(NULL)
+  rows <- lapply(names(stages), function(st) {
+    v <- suppressWarnings(as.numeric(df[[value_col]][as.character(df$stage) == st]))
+    v <- v[is.finite(v)]
+    if (!length(v)) return(NULL)
+    tibble::tibble(label = unname(stages[[st]]), value = v)
+  })
+  rows <- Filter(Negate(is.null), rows)
+  if (!length(rows)) return(NULL)
+  dplyr::bind_rows(rows)
 }
 
 # Module-level list for the Rmd (harmless on an empty data dir: returns list()).
