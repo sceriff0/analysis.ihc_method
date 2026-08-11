@@ -72,39 +72,38 @@ the arm page does for the configuration choice.
 
 ## Molecular & clinical analyses
 
-**Four clinical_data pages, one analysis.** They differ only in where the cells
-come from and how each is assigned to a tumour annotation. Both are chosen in the
-page's setup by `membership_data(mode, ...)` (`code/membership.R`); everything
-downstream is the same document, `analysis/_clinical_data_body.Rmd`, so any
-difference between the pages is attributable to that one choice.
+**Two clinical_data pages, one analysis.** They differ only in *who called the
+phenotypes*; the slides and the pathologist polygons are the same. The choice is made
+in the page's setup by `membership_data(mode, ...)` (`code/membership.R`); everything
+downstream is the same document, `analysis/_clinical_data_body.Rmd`, so any difference
+between the pages is attributable to that one choice.
 
-|                | cells from | membership |
-|---|---|---|
-| `clinical_data` | FlowPath | pathologist polygon |
-| `clinical_data_mirage` | **mirage** | pathologist polygon |
-| `clinical_data_per_annotation` | FlowPath | exporter flag |
-| `..._per_annotation_old` | FlowPath | exporter flag, `old/` overlaid |
+|                | cells from | phenotypes by | membership |
+|---|---|---|---|
+| `clinical_data` | the all-slide export | FlowPath gate tree | region-matched polygon |
+| `clinical_data_mirage` | `data/mirage/<pid>/` | **mirage's panel** | the same polygons |
 
-Read the first two against each other to isolate the **phenotyping method**, and
-the last two against each other to isolate the **re-exported annotations**.
+Read them against each other to isolate the **phenotyping method**.
 
-- [Clinical data](clinical_data.html) — **geojson** membership over the FlowPath
-  cells: a cell is inside when its centroid falls in the pathologist polygon (sf
-  point-in-polygon). The reference page of the four.
-- [Clinical data — mirage phenotyping](clinical_data_mirage.html) — the same
-  polygons, the same statistics, but the phenotypes are **mirage's own**
-  (`bin/phenotype_cells.py` + `panel.yaml`, no human in the loop) rather than the
-  FlowPath gate tree. Reads `data/mirage/<patient>/`. mirage has no
-  out-of-annotation flag, so there is no fallback: a patient without a polygon is
-  absent rather than counted whole-slide.
-- [Clinical data — per-annotation flag](clinical_data_per_annotation.html) —
-  **flag** membership over the FlowPath cells: the precomputed `Out_of_annotation`, from the
-  per-annotation exports, falling back to the whole-slide csv for patients with no
-  per-annotation file. Ignores `per_annotation/old/`.
-- [Clinical data — per-annotation flag, `old/` overlay](clinical_data_per_annotation_old.html)
-  — the same, except `per_annotation/old/` overrides the top-level file for the
-  annotations it re-exports, so the diff against the page above isolates the effect
-  of those re-exports.
+- [Clinical data](clinical_data.html) — the reference page. A cell is inside when its
+  centroid falls in **that region's own** polygon (sf point-in-polygon), because the
+  all-slide export pairs a cell csv with a geojson region by region. A patient with no
+  annotation directory is entirely inside — the layout's own convention, marked
+  `whole_slide` rather than guessed.
+- [Clinical data — mirage phenotyping](clinical_data_mirage.html) — the same polygons
+  and the same statistics, but the phenotypes are **mirage's own** (`panel.yaml`, no
+  human in the loop) rather than the FlowPath gate tree. Reads
+  `data/mirage/<patient>/`. mirage has no out-of-annotation flag and no whole-slide
+  convention, so a patient without a polygon is absent rather than counted whole.
+
+> **Two pages were removed on 2026-08-11**, `clinical_data_per_annotation` and
+> `..._per_annotation_old`. They took membership from the exporter's precomputed
+> `Out_of_annotation` column instead of from geometry, reading
+> `data/flowpath/per_annotation/<patient>_a<k>.csv` and an `old/` overlay — a layout
+> the export no longer produces, and a split that no longer exists. The current export
+> ships a polygon *per region*, so geometry is available everywhere the flag used to be
+> the only option.
+
 - [Bulk RNA-seq](bulkRna.html) — DESeq2-based differential expression over the
   bulk RNA inputs.
 - [Deconvolution](deconvolution.html) — cell-type deconvolution (immunedeconv),

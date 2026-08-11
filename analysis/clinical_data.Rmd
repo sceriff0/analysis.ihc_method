@@ -1,5 +1,5 @@
 ---
-title: "clinical_data (geojson membership)"
+title: "clinical_data (region-matched polygon membership)"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -32,18 +32,21 @@ SLUG <- "clinical_data"
 
 ## Starting data and notation
 
-This is the **geojson** variant, the reference report of the three: membership is
-decided geometrically, from the pathologist's own polygons. The companions
-[`clinical_data_per_annotation`](clinical_data_per_annotation.html) and
-[`clinical_data_per_annotation_old`](clinical_data_per_annotation_old.html) run the
-identical analysis off the exporter's precomputed flag instead, so any difference
-between the three pages is attributable to the membership rule alone.
+Membership is decided **geometrically**, from the pathologist's own polygons — and in
+this export, from the polygon belonging to the *same region* as the cell file it
+scores. Its companion [`clinical_data_mirage`](clinical_data_mirage.html) runs the
+identical analysis on cells MIRAGE phenotyped itself, over the same slides and the
+same polygons, so the difference between the two pages is attributable to the
+**phenotyping method** alone.
 
 Every value below is derived from three inputs:
 
-- `ihc_data` — single cells, **one csv per patient** (`<patient>.csv`), one row per
-  cell. Carries `phenotype`, per-marker sign columns, centroids, `patient_id`, and
-  (optionally) an out-of-annotation flag used only as a membership fallback.
+- `ihc_data` — single cells from the all-slide export,
+  `data/all_slide/csv/<patient>/<patient>_<A|B|C>.csv`: **one csv per annotation
+  region**, each covering the whole slide. `ihc_data` is the de-duplicated union of a
+  patient's region files (one row per physical cell), so cohort-level fractions are not
+  computed over an inflated denominator. Carries `phenotype`, per-marker sign columns,
+  centroids and `patient_id`.
 - `neoplastic_data` — pathologist tumour-content percentage per annotation,
   `ANNOTATION_1..3`.
 - `clinical_data` — the clinical CRF (`HOT score`, `Immuno-phenotype`, blood counts,
@@ -52,54 +55,76 @@ Every value below is derived from three inputs:
 Membership (which cells count as "inside the tumour annotation"):
 
 ```
-PRIMARY (patient HAS a geojson):
-  cell is INSIDE  = its centroid falls in the pathologist geojson polygon
-                    (sf point-in-polygon), with centroids mapped to the geojson
-                    pixel frame by  x_px = centroid_x / 0.325  (0.325 microns/pixel)
-  per annotation  = inside one polygon (ANNOTATION_k)
-  union           = inside the dissolved union of the patient's polygons
+PER REGION (patient HAS an annotation directory):
+  cell is INSIDE  = its centroid falls in THAT REGION'S polygon (sf point-in-polygon),
+                    centroids mapped to the geojson pixel frame by
+                    x_px = centroid_x / 0.325  (0.325 microns/pixel)
+  union           = inside the dissolved union of the patient's polygons, scored on
+                    the DE-DUPLICATED slide so a cell in two regions counts once
 
-FALLBACK (patient has NO geojson):
-  cell is INSIDE = the out-of-annotation flag is FALSE  (one region, labelled "csv")
+WHOLE SLIDE (patient has NO annotation directory):
+  every cell is INSIDE — the layout's own convention, not a fallback guess
 ```
 
-The `source` column on every row records which was used (`sf` or `csv`). This is the
-only variant that reads a polygon, so it is the only one with an annotation **area**
-— `area_mm2` and every `dens_*_per_mm2` column carry values here and are `NA` in the
-flag variants.
+The `source` column on every row records which applied (`sf` or `whole_slide`). Region
+`A` is `ANNOTATION_1`, `B` is `ANNOTATION_2` and so on **by alphabet position**, so the
+regions line up with `neoplastic_data`'s `ANNOTATION_1..3` columns.
+
+Because a polygon is read, `area_mm2` and every `dens_*_per_mm2` column carry real
+values — except for a whole-slide patient, which has no polygon and therefore no area.
 
 ## Membership
 
 ```{r annotations}
-# Pathologist geojson polygons, then the membership frames the whole report runs on.
-annots <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
-mem    <- membership_data("geojson", ihc_data, neoplastic_data, annots = annots)
+# "all_slide" reads BOTH its cells and its polygons — they are paired region by
+# region, so an externally supplied annotation set would not line up, and passing one
+# is an error rather than being silently ignored.
+mem <- membership_data("all_slide", ihc_data, neoplastic_data)
 
-neo_ids      <- slide_key(neoplastic_data$SAMPLE)
-ihc_ids      <- unique(slide_key(ihc_data$patient_id))
-have_geojson <- unique(slide_key(annots$patient_id))
-missing      <- setdiff(neo_ids, ihc_ids)                           # no cell csv at all
-csv_only     <- setdiff(intersect(neo_ids, ihc_ids), have_geojson)  # cells but no geojson
+neo_ids   <- slide_key(neoplastic_data$SAMPLE)
+ihc_ids   <- unique(slide_key(ihc_data$patient_id))
+have_poly <- unique(mem$per_annotation$patient_id[mem$per_annotation$source == "sf"])
+missing   <- setdiff(neo_ids, ihc_ids)                        # no cell csv at all
+whole     <- setdiff(intersect(neo_ids, ihc_ids), have_poly)  # cells but no polygon
 
 cat("patients loaded:", length(ihc_ids),
     "[", paste(sort(ihc_ids), collapse = ", "), "]\n")
 cat("patients with a pathologist score AND IHC cells:",
     length(intersect(neo_ids, ihc_ids)),
-    "| via sf geojson:", length(intersect(intersect(neo_ids, ihc_ids), have_geojson)),
-    "| via CSV fallback:", length(csv_only), "\n")
+    "| scored per region against a polygon:", length(intersect(neo_ids, have_poly)),
+    "| whole-slide (no annotation directory):", length(whole), "\n")
+if (length(whole))
+  cat("whole-slide patients (every cell counts, by the layout convention):",
+      paste(sort(whole), collapse = ", "), "\n")
 if (length(missing))
   cat("pathologist patients with NO cell csv (absent from every IHC metric):",
       paste(sort(missing), collapse = ", "), "\n")
 ```
 
+```{r export-shape}
+# WHAT THE REGION FILES CONTAIN — printed, not assumed. Either each <pid>_<L>.csv holds
+# the whole slide with Out_of_annotation computed for region L, or it holds only that
+# region's cells. The layout cannot say which, the two give different cohort-level
+# denominators, and both look plausible — so the answer is reported here on every knit.
+# `ihc_data` is de-duplicated either way, which is a no-op in the second case.
+.rep <- attr(ihc_data, "overlap_report")
+if (!is.null(.rep) && nrow(.rep)) {
+  cat("**Export shape:**", attr(.rep, "verdict"), "\n\n")
+  knitr::kable(.rep, caption = paste(
+    "Rows read per patient vs distinct cells after de-duplication.",
+    "rows_per_cell near 1 means the region files partition the slide;",
+    "near the file count means each file exports the whole slide."))
+}
+```
+
 ```{r variant-hooks, include=FALSE}
-# Everything past this point is shared with the other two clinical_data reports.
+# Everything past this point is shared with clinical_data_mirage.
 # These are the only values the shared body reads out of this one.
 IMMUNE_HEADING   <- "whole-slide IHC immune readout vs clinical table"
-IMMUNE_PROSE     <- "These use every imaged cell of every patient (`ihc_data`, whole slide, no annotation boundary)."
+IMMUNE_PROSE     <- "These use every imaged cell of every patient (`ihc_data`, the de-duplicated union of the region files, no annotation boundary)."
 MEMBERSHIP_NOTES <- c(
-  "Membership is **sf point-in-polygon** on the pathologist geojson (centroids mapped to the pixel frame by `/0.325`); the exporter's out-of-annotation flag is used only for patients with no geojson. The `source` column marks which per row.",
-  "Because a polygon is read, `area_mm2` and the `dens_*_per_mm2` columns carry real values here — the one thing the flag variants cannot report.")
+  "Membership is **sf point-in-polygon**, and each region's cells are scored against **that region's own polygon** — the export pairs them, so no cell is tested against a region it was not exported for. Centroids are mapped to the geojson pixel frame by `/0.325`.",
+  "A patient with **no annotation directory** is entirely inside: the export layout's stated convention, marked `whole_slide` in the `source` column. That is the one case with no `area_mm2`, hence no densities.")
 ```
 
 ```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}

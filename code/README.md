@@ -79,9 +79,15 @@ rather than accidents:
   *drop* a patient, and reinterpreting it as "all in" globally would turn a data
   problem into a silently 100 %-inside patient. Here it is deliberate and is
   recorded in the metrics frame's `source` column as `whole_slide`.
-- **The union de-duplicates.** A patient's region files each export the same slide,
-  so pooling them naively double-counts every cell. `all_slide_union_cells()` keys
-  on `cell_key_cols()` (or the rounded centroid) before pooling.
+- **The union de-duplicates, and the export shape is REPORTED rather than assumed.**
+  Whether a patient's region files repeat the same cells (each holding the whole slide
+  with `Out_of_annotation` computed for that region) or partition it (each holding only
+  its own region) is a property of the producer, not of the layout — and it sets every
+  cohort-level denominator while leaving every number plausible either way. The code is
+  correct under both: the per-region metrics intersect each file with its own polygon,
+  and `all_slide_union_cells()` keys on `cell_key_cols()` (or the rounded centroid)
+  before pooling. `all_slide_overlap_report()` says which shape the data on disk is, and
+  `clinical_data.Rmd` prints it on every knit.
 
 Membership inside a region prefers, in order: the region's own geojson (`sf` —
 the only source that knows the region's **area**, hence the only one that yields
@@ -89,7 +95,19 @@ densities), then the export's `Out_of_annotation` flag (`flag`), then every row
 (`whole_slide`). Whichever was used is in the `source` column, never inferred.
 
 Reach it through `membership_data("all_slide")` like any other mode — it reads its
-own polygons, so unlike `"geojson"` it takes no `annots` argument.
+own polygons, so unlike `"mirage"` it takes no `annots` argument.
+
+**Three membership modes were removed on 2026-08-11** (`geojson`, `flag`, `flag_old`)
+because their layouts are no longer produced: `geojson` wanted a whole-slide
+`data/flowpath/<patient>.csv` plus a FLAT `data/annotation/<patient>_a<k>.geojson`, and
+the flag modes wanted `data/flowpath/per_annotation/` with an `old/` overlay. Two pages
+went with them (`clinical_data_per_annotation`, `..._per_annotation_old`). What survives
+is `all_slide` + `mirage`, whose diff isolates the phenotyping method.
+
+`load_annotations()` reads **both** the nested tree and the flat legacy one, keyed by
+`.annotation_key()` — the same parser `annotation_membership_qc()` uses on the cell
+csvs, which is what guarantees a csv and the polygon it is compared against agree on
+which region they are.
 
 ## VALIS's own error: three stages, two columns, two files
 

@@ -187,3 +187,72 @@ test_that("a whole-slide patient still appears in the union frame", {
   expect_true("24086" %in% uni$patient_id)
   expect_equal(uni$source[uni$patient_id == "24086"], "whole_slide")
 })
+
+# ---- what the region files actually contain ----------------------------------
+# Whether a patient's region files repeat the same cells or partition them is a
+# property of the PRODUCER, not of the layout, and it sets every cohort-level
+# denominator. The code is correct either way; these tests pin that the report says
+# which one the data on disk is, so nobody has to assume.
+
+.region_csv <- function(path, rows) {
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  readr::write_csv(rows, path)
+}
+
+test_that("repeated cells across region files are reported as whole-slide exports", {
+  root <- file.path(tempdir(), paste0("ws-", sample(1e6, 1)))
+  rows <- tibble::tibble(cell_id = 1:50, x_px = seq(0, 490, 10), y_px = 5,
+                         phenotype = "Immune")
+  for (L in c("A", "B", "C"))
+    .region_csv(file.path(root, "csv", "046", sprintf("046_%s.csv", L)), rows)
+  dir.create(file.path(root, "annotation", "046"), recursive = TRUE)
+
+  cells <- all_slide_cells(root)
+  rep   <- all_slide_overlap_report(cells)
+  expect_equal(rep$n_rows, 150L)
+  expect_equal(rep$n_unique_cells, 50L)
+  expect_equal(rep$rows_per_cell, 3)
+  expect_match(attr(rep, "verdict"), "whole-slide exports")
+  # And the cohort cell set must be one slide's worth, not three.
+  expect_equal(nrow(all_slide_union_cells(cells)), 50)
+})
+
+test_that("disjoint region files are reported as region-restricted exports", {
+  root <- file.path(tempdir(), paste0("rr-", sample(1e6, 1)))
+  for (k in seq_along(c("A", "B"))) {
+    L <- c("A", "B")[k]
+    .region_csv(file.path(root, "csv", "046", sprintf("046_%s.csv", L)),
+                tibble::tibble(cell_id = seq_len(50) + (k - 1) * 50,
+                               x_px = seq(0, 490, 10) + (k - 1) * 1000,
+                               y_px = 5, phenotype = "Immune"))
+  }
+  dir.create(file.path(root, "annotation", "046"), recursive = TRUE)
+
+  rep <- all_slide_overlap_report(all_slide_cells(root))
+  expect_equal(rep$rows_per_cell, 1)
+  expect_match(attr(rep, "verdict"), "region-restricted")
+})
+
+test_that("a single-region patient cannot answer the question, and says so", {
+  root <- file.path(tempdir(), paste0("one-", sample(1e6, 1)))
+  .region_csv(file.path(root, "csv", "10338", "10338_A.csv"),
+              tibble::tibble(cell_id = 1:10, x_px = 1:10, y_px = 1, phenotype = "Immune"))
+  dir.create(file.path(root, "annotation", "10338"), recursive = TRUE)
+  rep <- all_slide_overlap_report(all_slide_cells(root))
+  expect_match(attr(rep, "verdict"), "cannot tell")
+})
+
+test_that("a mixed cohort is flagged rather than averaged into one verdict", {
+  root <- file.path(tempdir(), paste0("mix-", sample(1e6, 1)))
+  rows <- tibble::tibble(cell_id = 1:40, x_px = seq(0, 390, 10), y_px = 5,
+                         phenotype = "Immune")
+  for (L in c("A", "B"))                                   # 046: repeats
+    .region_csv(file.path(root, "csv", "046", sprintf("046_%s.csv", L)), rows)
+  for (k in 1:2)                                           # 052: disjoint
+    .region_csv(file.path(root, "csv", "052", sprintf("052_%s.csv", c("A","B")[k])),
+                dplyr::mutate(rows, cell_id = cell_id + (k - 1) * 40,
+                              x_px = x_px + (k - 1) * 1000))
+  for (p in c("046", "052")) dir.create(file.path(root, "annotation", p), recursive = TRUE)
+
+  expect_match(attr(all_slide_overlap_report(all_slide_cells(root)), "verdict"), "MIXED")
+})

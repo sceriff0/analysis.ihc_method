@@ -16,12 +16,13 @@ directory. tests/testthat/test-child-documents.R enforces this.
 
 It is pulled in with a `child` chunk by
 
-  clinical_data.Rmd                        membership: geojson polygons
-  clinical_data_per_annotation.Rmd         membership: the exporter flag
-  clinical_data_per_annotation_old.Rmd     membership: the flag, old/ overlaid
+  clinical_data.Rmd         cells: the all-slide export, phenotypes: FlowPath
+  clinical_data_mirage.Rmd  cells: data/mirage/, phenotypes: mirage's panel
 
-The three reports differ ONLY in how a cell is assigned to a tumour annotation, so
-everything downstream of that decision lives here once. The parent must define:
+The two reports differ ONLY in who called the phenotypes — same slides, same
+polygons, same membership rule — so everything downstream of that lives here once.
+(Two flag-membership parents were removed on 2026-08-11 along with their layout.)
+The parent must define:
 
   mem              membership_data() result — $per_annotation, $union, $cells, $has_area
   SLUG             output/figures/<SLUG>/ for the PDF export
@@ -42,8 +43,7 @@ Chunk labels here must not collide with the parent's (setup, annotations).
 if (length(.absent))
   stop("_clinical_data_body.Rmd is a child document, not a page: its parent supplies ",
        paste(.absent, collapse = ", "), ". Build one of clinical_data.Rmd, ",
-       "clinical_data_mirage.Rmd, clinical_data_per_annotation.Rmd or ",
-       "clinical_data_per_annotation_old.Rmd — the leading underscore is what keeps ",
+       "or clinical_data_mirage.Rmd — the leading underscore is what keeps ",
        "workflowr from building this file on its own.", call. = FALSE)
 rm(.absent)
 ```

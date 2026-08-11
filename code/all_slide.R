@@ -69,50 +69,14 @@ all_slide_region <- function(letter) {
 }
 
 # --- Annotations -------------------------------------------------------------
-# Every polygon under <root>/annotation/, as an sf frame with the same three
-# columns load_annotations() returns, so anything that already consumes `annots`
-# consumes these. Returns an EMPTY frame (not an error) when the directory is
-# absent: a cohort can legitimately be all-whole-slide, and that must not stop the
-# report at the loader.
+# Delegates to load_annotations(), which reads this nested layout and the flat legacy
+# one both. Kept as a named function because the arm/metrics code reads better saying
+# "this tree's annotations" than repeating the path — but the parsing lives in
+# validation_helpers.R so the dependency stays one-directional (all_slide depends on
+# validation_helpers, never the reverse) and there is ONE place that knows how a
+# geojson filename maps to an ANNOTATION_<k>.
 all_slide_annotations <- function(root = ALL_SLIDE_DIR, patient_ids = NULL) {
-  ann_root <- file.path(root, "annotation")
-  if (!dir.exists(ann_root)) {
-    message("all_slide: no annotation/ under ", root, " — every patient is whole-slide")
-    return(NULL)
-  }
-  .require_sf("all_slide_annotations()")
-
-  files <- fs::dir_ls(ann_root, glob = "*.geojson", recurse = TRUE, type = "file")
-  if (length(files) == 0) {
-    message("all_slide: annotation/ exists but holds no geojson — every patient is whole-slide")
-    return(NULL)
-  }
-
-  rows <- purrr::map(as.character(files), function(path) {
-    parts <- .all_slide_parts(fs::path_ext_remove(fs::path_file(path)))
-    # The directory name is the patient of record; the filename stem only has to
-    # agree with it. Trusting the stem alone would mis-key a file someone renamed.
-    pid   <- fs::path_file(fs::path_dir(path))
-    if (!is.na(parts$patient) && norm_id(parts$patient) != norm_id(pid))
-      warning("all_slide: ", path, " sits under patient ", pid,
-              " but its name says ", parts$patient, " — using the directory")
-    # A lone bare <patient>.geojson is that patient's only region, i.e. region 1.
-    ann <- if (is.na(parts$letter)) "ANNOTATION_1" else all_slide_region(parts$letter)
-    geom <- tryCatch(read_polygon_geojson(path), error = function(e) {
-      warning("all_slide: unreadable polygon, skipping ", path, " — ", conditionMessage(e))
-      NULL
-    })
-    if (is.null(geom)) return(NULL)
-    sf::st_sf(patient_id = slide_key(pid), annotation = ann, geometry = geom)
-  })
-  rows <- purrr::compact(rows)
-  if (!length(rows)) return(NULL)
-
-  out <- do.call(rbind, rows)
-  if (!is.null(patient_ids))
-    out <- out[norm_id(out$patient_id) %in% norm_id(patient_ids), , drop = FALSE]
-  if (nrow(out) == 0) return(NULL)
-  out
+  load_annotations(file.path(root, "annotation"), patient_ids = patient_ids)
 }
 
 # --- Cells -------------------------------------------------------------------
@@ -284,6 +248,47 @@ all_slide_metrics <- function(cells, annots, scope = c("per_annotation", "union"
   if (length(keys)) return(dplyr::distinct(cp, dplyr::across(dplyr::all_of(keys)), .keep_all = TRUE))
   xy <- cell_centroids_px(cp, 1)
   cp[!duplicated(paste(round(xy$x, 2), round(xy$y, 2))), , drop = FALSE]
+}
+
+# WHAT THE REGION FILES ACTUALLY CONTAIN — report it, do not assume it.
+#
+# There are two possibilities and they cannot be told apart from the layout alone:
+#
+#   (a) each <pid>_<L>.csv holds the WHOLE SLIDE, with Out_of_annotation computed for
+#       region L. Then a patient's region files repeat the same cells, and pooling them
+#       triples that patient's cell count.
+#   (b) each holds ONLY the cells inside region L. Then the files are disjoint and
+#       pooling them is exactly right.
+#
+# The presence of an Out_of_annotation column hints at (a) — you only need a flag if
+# the file contains cells the region excludes — but a producer can write it either way,
+# and guessing wrong silently changes every cohort-level denominator on the site while
+# leaving every number plausible.
+#
+# So the code is written to be correct under BOTH: the per-region metrics intersect each
+# file with its own polygon (a no-op under (b)), and the cohort cell set de-duplicates
+# (a no-op under (a)... and under (b)). This function reports which one the data on disk
+# actually is, so the answer arrives as a printed table on the first knit rather than as
+# an assumption nobody revisits.
+all_slide_overlap_report <- function(cells) {
+  if (nrow(cells) == 0) return(tibble::tibble())
+  out <- purrr::map_dfr(unique(cells$patient_id), function(pid) {
+    cp <- dplyr::filter(cells, patient_id == pid)
+    n_files <- dplyr::n_distinct(cp$annotation)
+    n_rows  <- nrow(cp)
+    n_uniq  <- nrow(.all_slide_dedupe(cp))
+    tibble::tibble(patient_id = pid, n_region_files = n_files,
+                   n_rows = n_rows, n_unique_cells = n_uniq,
+                   rows_per_cell = round(n_rows / max(n_uniq, 1), 2))
+  })
+  # One region file cannot repeat itself, so a single-file patient is uninformative.
+  multi <- dplyr::filter(out, n_region_files > 1)
+  verdict <- if (nrow(multi) == 0) "no multi-region patient — cannot tell"
+    else if (all(multi$rows_per_cell > 1.5)) "whole-slide exports (files repeat cells)"
+    else if (all(multi$rows_per_cell < 1.1)) "region-restricted exports (files are disjoint)"
+    else "MIXED — check the producer; some patients repeat cells and others do not"
+  attr(out, "verdict") <- verdict
+  out
 }
 
 # The cell set for the whole-cohort readout: one row per physical cell per patient,

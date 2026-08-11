@@ -32,17 +32,23 @@ SLUG <- "annotation_membership_qc"
 
 Every value below is derived from two inputs, compared **per cell**:
 
-- `<patient>_a<k>.csv` — FlowPath per-annotation cell exports (one row per cell)
-  under the project's `data/flowpath/per_annotation`, carrying **both** the cell
-  `centroid` and the precomputed `Out_of_annotation` flag for the same cells. Only
-  some patients have these.
-- the pathologist annotation **geojson** polygons (`ANNOTATION_k`, in pixels),
-  loaded via `load_annotations()` for the patients in `neoplastic_data$SAMPLE`.
+- `<patient>_<A|B|C>.csv` — the all-slide export's per-region cell files under
+  `data/all_slide/csv/<patient>/`, one row per cell, carrying **both** the cell
+  `centroid` and the exporter's precomputed `Out_of_annotation` flag for the same
+  cells. That both live in one file is what makes this a per-cell comparison rather
+  than a cross-file match.
+- the pathologist annotation **geojson** polygons (`ANNOTATION_k`, in pixels), under
+  `data/all_slide/annotation/<patient>/`, loaded via `load_annotations()` for the
+  patients in `neoplastic_data$SAMPLE`.
+
+Region `A` is `ANNOTATION_1`, `B` is `ANNOTATION_2`, by alphabet position — the same
+parser keys the csvs and the geojsons, which is what guarantees a cell file and the
+polygon it is compared against refer to the same region.
 
 The main pipeline decides "inside the annotation" by **sf point-in-polygon** on the
 pathologist geojson, mapping cell centroids into the pixel frame with the fixed
 `centroid / 0.325`. This report cross-checks that against the shipped
-`Out_of_annotation` flag. Because the per-annotation csv carries *both* the
+`Out_of_annotation` flag. Because the region csv carries *both* the
 centroid and the flag for the **same cells**, agreement is a direct per-cell
 comparison (no cross-file matching):
 
@@ -59,16 +65,19 @@ slide** — sf is landing on the wrong cells.
 ## Compute agreement
 
 ```{r qc}
-# per-annotation flag csvs (only some patients have these); same path style as load_data.R.
-PER_ANNOT_DIR <- here("data", "flowpath", "per_annotation")
+# The region csvs and the polygons come from the same export tree, so REGION_CSV_DIR()
+# and load_annotations() default to the two halves of it. Both fall back to the older
+# flat layout if the nested one is absent.
+REGION_DIR <- REGION_CSV_DIR()
 
 annots <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
 
-if (dir.exists(PER_ANNOT_DIR) && length(fs::dir_ls(PER_ANNOT_DIR, glob = "*.csv"))) {
-  qc <- annotation_membership_qc(PER_ANNOT_DIR, annots, um_per_px = 0.325)
-} else {
+if (is.null(annots)) {
   qc <- tibble::tibble()
-  cat("No per-annotation csvs found at", PER_ANNOT_DIR, "\n")
+  cat("No annotation polygons found — nothing to compare the flag against.\n")
+} else {
+  qc <- annotation_membership_qc(REGION_DIR, annots, um_per_px = 0.325)
+  if (nrow(qc) == 0) cat("No region csvs found under", REGION_DIR, "\n")
 }
 
 if (nrow(qc)) {

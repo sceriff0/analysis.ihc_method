@@ -9,6 +9,8 @@ navbar:
     href: periphery.html
   - text: Membership QC
     href: annotation_membership_qc.html
+  - text: Clinical data
+    href: clinical_data.html
   - text: mirage phenotyping
     href: clinical_data_mirage.html
   - text: Paper figures
