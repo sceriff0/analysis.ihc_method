@@ -47,8 +47,10 @@ Every value below is derived from three inputs:
   patient's region files (one row per physical cell), so cohort-level fractions are not
   computed over an inflated denominator. Carries `phenotype`, per-marker sign columns,
   centroids and `patient_id`.
-- `neoplastic_data` — pathologist tumour-content percentage per annotation,
-  `ANNOTATION_1..3`.
+- `neoplastic_data` — the pathologist's neoplastic-cellularity percentage, **one row
+  per scored region** (`ANNOTATION_1..3`, or `whole_slide` for a patient with no
+  annotation drawn). Long rather than wide, because a whole-slide score cannot be put
+  in an `ANNOTATION_k` column without claiming a region that was never drawn.
 - `clinical_data` — the clinical CRF (`HOT score`, `Immuno-phenotype`, blood counts,
   `RESPONSE`, `OS`/`PFS`).
 
@@ -81,7 +83,7 @@ values — except for a whole-slide patient, which has no polygon and therefore 
 # is an error rather than being silently ignored.
 mem <- membership_data("all_slide", ihc_data, neoplastic_data)
 
-neo_ids   <- slide_key(neoplastic_data$SAMPLE)
+neo_ids   <- unique(slide_key(neoplastic_data$SAMPLE))
 ihc_ids   <- unique(slide_key(ihc_data$patient_id))
 have_poly <- unique(mem$per_annotation$patient_id[mem$per_annotation$source == "sf"])
 missing   <- setdiff(neo_ids, ihc_ids)                        # no cell csv at all
@@ -99,6 +101,32 @@ if (length(whole))
 if (length(missing))
   cat("pathologist patients with NO cell csv (absent from every IHC metric):",
       paste(sort(missing), collapse = ", "), "\n")
+```
+
+```{r region-reconciliation}
+# DOES THE PATHOLOGIST'S REGION LIST MATCH THE EXPORT'S? The concordance below is an
+# inner join on (patient_id, annotation), so a region scored but not exported — or
+# exported but not scored — drops out silently and the correlation is computed over
+# fewer pairs than anyone intended. Print the comparison instead.
+.scored   <- neoplastic_data |>
+  transmute(patient_id = slide_key(SAMPLE), annotation, path_pct)
+.exported <- mem$per_annotation |> select(patient_id, annotation, source, n_inside)
+.recon <- full_join(.scored, .exported, by = c("patient_id", "annotation")) |>
+  mutate(status = case_when(
+    is.na(path_pct) ~ "exported, NOT scored",
+    is.na(source)   ~ "scored, NOT exported",
+    TRUE            ~ "matched")) |>
+  arrange(patient_id, annotation)
+
+knitr::kable(.recon, caption = paste(
+  "Pathologist-scored regions vs regions the export produced. Only `matched` rows",
+  "reach the concordance below."))
+
+.bad <- filter(.recon, status != "matched")
+if (nrow(.bad))
+  cat("\n> **", nrow(.bad), " region(s) do not line up** and are excluded from every",
+      " correlation on this page. Reconcile `neoplastic_data` in `code/load_data.R`",
+      " against the export before reading the numbers.\n", sep = "")
 ```
 
 ```{r export-shape}

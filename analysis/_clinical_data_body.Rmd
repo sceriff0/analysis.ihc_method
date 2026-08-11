@@ -110,8 +110,8 @@ tumor_over_cd45         = (tumour cells inside) / (CD45+ cells inside)   -> can 
 dens_tumor_per_mm2      = (tumour cells inside) / (annotation area in mm^2)
                           area_mm2 = polygon pixel area * 0.325^2 / 1e6
 
-pathologist (per annotation) = ANNOTATION_k / 100
-pathologist (union)          = mean of that patient's ANNOTATION_k / 100 values
+pathologist (per annotation) = path_pct / 100, per scored region
+pathologist (union)          = mean of that patient's scored-region values / 100
 ```
 
 `tumor_over_inside_clean` answers the same IHC-vs-pathologist question as
@@ -147,12 +147,13 @@ of a patient's polygons.
 ihc_tumor_per_ann <- mem$per_annotation
 ihc_tumor_union   <- mem$union
 
+# neoplastic_data is already long — one row per scored region — so there is no pivot.
+# Its `annotation` labels are the same vocabulary the metrics frames use, including
+# `whole_slide` for a patient with no annotation drawn, so the join below is direct.
 path_long <- neoplastic_data |>
-  mutate(patient_id = slide_key(SAMPLE)) |>
-  pivot_longer(starts_with("ANNOTATION_"),
-               names_to = "annotation", values_to = "path_pct") |>
+  mutate(patient_id = slide_key(SAMPLE), path_frac = path_pct / 100) |>
   filter(!is.na(path_pct)) |>
-  mutate(path_frac = path_pct / 100)
+  select(patient_id, annotation, path_pct, path_frac)
 
 cc_ann <- ihc_tumor_per_ann |>
   inner_join(path_long, by = c("patient_id", "annotation")) |>
@@ -171,7 +172,7 @@ cat("per-annotation pairs:", nrow(cc_ann), " | union pairs:", nrow(cc_union), "\
 # the top rows to tell WHY the correlation is what it is:
 #   - big gap + fallback `source` or tiny n_inside -> suspect membership, not biology
 #   - big gap + a healthy primary-source patient   -> genuine IHC/pathologist disagreement
-#   - per-annotation: verify each _a<k> lines up with the pathologist's ANNOTATION_k
+#   - per-annotation: verify each region letter lines up with the pathologist's score
 cc_union |>
   transmute(patient_id, source, n_inside,
             area_mm2       = round(area_mm2, 3),
@@ -188,7 +189,7 @@ cc_ann |>
             path_frac      = round(path_frac, 3),
             abs_gap        = round(abs(tumor_over_inside - path_frac), 3)) |>
   arrange(desc(abs_gap)) |>
-  knitr::kable(caption = "PER-ANNOTATION concordance pairs (largest gap first). Confirm each geojson _a<k> is the pathologist's ANNOTATION_k.")
+  knitr::kable(caption = "PER-ANNOTATION concordance pairs (largest gap first). Confirm each region letter maps to the pathologist's score for that region.")
 ```
 
 **Concordance statistics.** `paired_cor3(x, y)` reports three correlations between

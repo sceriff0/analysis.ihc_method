@@ -4,7 +4,8 @@
 # Sourced first by every analysis. Defines, from data/ (gitignored):
 #   dds              DESeq2 object from counts.RData, with DESeq() already run
 #   clinical_data    the clinical CRF (clinical_data.xlsx)
-#   neoplastic_data  the pathologist tumour-content scores, inline (six patients)
+#   neoplastic_data  the pathologist tumour-content scores, inline, LONG:
+#                    one row per (SAMPLE, annotation) — see the note at its definition
 #   counts_data      normalised counts, wide: one row per bulk-RNA Sample
 #   ihc_data         single cells, one row per cell, pooled and DE-DUPLICATED over
 #                    the all-slide export's per-region csvs
@@ -37,14 +38,44 @@ clinical_data <- read_excel(here("data", "clinical_data.xlsx")) |>
   filter(!is.na(`ID PATIENT`)) |>
   mutate(`ID CRF PRESERVE` = gsub("-", ".", `ID CRF PRESERVE`))
 
+# The pathologist's neoplastic-cellularity score, one row per SCORED REGION.
+#
+# LONG, NOT WIDE (~ANNOTATION_1..3), for one reason: 24086 has no annotation drawn at
+# all, and its 75% refers to the WHOLE SLIDE. A wide frame can only put that in
+# ANNOTATION_1, which would claim a region the pathologist never drew — and would then
+# fail to join, because the metrics frame labels that patient's single row
+# `whole_slide`. Long says what was actually scored.
+#
+# `annotation` here must match the label the membership metrics emit, because
+# _clinical_data_body.Rmd joins on (patient_id, annotation):
+#   ANNOTATION_<k>  region k, k being the alphabet position of the export's letter
+#                   suffix (A -> 1, B -> 2, C -> 3)
+#   whole_slide     no annotation directory, so every cell counts (see all_slide.R)
+#
+# The region counts cross-check against the export exactly — 046 three csvs and three
+# geojsons, 052 two, 5456 three, 10338 one, 15897 two, and 24086 a bare csv with no
+# annotation directory. A mismatch between the two would silently drop a region from
+# the correlation, so clinical_data.Rmd prints the reconciliation.
+#
+# Values updated 2026-08-11 from the pathologist's re-read. They differ materially
+# from the previous set, so the tumour-content correlation is NOT comparable to an
+# earlier knit: 046 A 50->30, 052 70/50->50/75, 5456 A 70->80, 10338 75->80,
+# 15897 gains B=75 (was single-annotation), and 24086 goes from three annotations
+# (80/70/70) to one whole-slide score of 75.
 neoplastic_data <- tribble(
-  ~SAMPLE, ~ANNOTATION_1, ~ANNOTATION_2, ~ANNOTATION_3,
-  "24086",              80,            70,            70,
-  "15897",              70,            NA,            NA,
-  "052",                70,            50,            NA,
-  "046",                50,            60,            50,
-  "5456",               70,            80,            70,
-  "10338",               75,            NA,            NA
+  ~SAMPLE,  ~annotation,     ~path_pct,
+  "046",    "ANNOTATION_1",         30,
+  "046",    "ANNOTATION_2",         60,
+  "046",    "ANNOTATION_3",         50,
+  "052",    "ANNOTATION_1",         50,
+  "052",    "ANNOTATION_2",         75,
+  "5456",   "ANNOTATION_1",         80,
+  "5456",   "ANNOTATION_2",         80,
+  "5456",   "ANNOTATION_3",         70,
+  "10338",  "ANNOTATION_1",         80,
+  "15897",  "ANNOTATION_1",         60,
+  "15897",  "ANNOTATION_2",         75,
+  "24086",  "whole_slide",          75
 )
 
 counts_data <-  counts(dds, normalized = TRUE) |>

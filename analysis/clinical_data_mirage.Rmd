@@ -57,8 +57,11 @@ Every value below is derived from three inputs:
 
   `<patient>` is the directory name — nothing inside the files identifies the
   patient — normalised through `slide_key()`.
-- `neoplastic_data` — pathologist tumour-content percentage per annotation,
-  `ANNOTATION_1..3`.
+- `neoplastic_data` — the pathologist's neoplastic-cellularity percentage, one row per
+  scored region. **mirage has no whole-slide convention**, so a patient with no
+  annotation drawn (24086) contributes cells to no region here and drops out of the
+  per-annotation concordance — unlike the FlowPath page, where the layout says every
+  cell of such a patient is inside.
 - `clinical_data` — the clinical CRF (`HOT score`, `Immuno-phenotype`, blood counts,
   `RESPONSE`, `OS`/`PFS`).
 
@@ -117,7 +120,7 @@ annots <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
 mem    <- membership_data("mirage", ihc_data, neoplastic_data, annots = annots)
 inv    <- mem$inventory
 
-neo_ids      <- slide_key(neoplastic_data$SAMPLE)
+neo_ids      <- unique(slide_key(neoplastic_data$SAMPLE))
 mirage_ids   <- sort(unique(inv$patient_id))
 have_geojson <- unique(slide_key(annots$patient_id))
 no_polygon   <- setdiff(mirage_ids, have_geojson)   # cells, but nothing to place them in
