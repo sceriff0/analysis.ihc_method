@@ -1,0 +1,541 @@
+---
+title: "Paper figures — panel assembly sheet"
+author: "sceriff0"
+date: "2026-08-11"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+  library(readxl)     # not attached by tidyverse; the clinical table is .xlsx
+})
+
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+source(here("code", "pdf_export.R"))
+
+SLUG <- "paper_figures"
+
+# Every panel below is guarded on its own input, so this page renders on a machine
+# that has none of them and tells you exactly what is missing. That is the point of
+# the page: it is a checklist you can knit.
+suppressWarnings(suppressMessages({
+  have_helpers <- tryCatch({ source(here("code", "validation_helpers.R")); TRUE },
+                           error = function(e) FALSE)
+  if (have_helpers) source(here("code", "paper_figures.R"))
+  if (have_helpers) source(here("code", "all_slide.R"))
+}))
+
+# Where a hand-made panel (screenshot, exported schematic) is dropped in.
+MANUAL_DIR <- here("output", "figures", "manual")
+dir.create(MANUAL_DIR, recursive = TRUE, showWarnings = FALSE)
+```
+
+This page is **not an analysis**. It is the sheet the manuscript figures are cut
+from: one panel per plot, at publication proportions, exported as vector PDFs to
+`output/figures/paper_figures/` so they can be placed and labelled by hand in
+Affinity. No panel here computes anything a analysis page does not already
+compute — each is a re-cut of an existing quantity in the shape its legend asks
+for. Where a panel *cannot* be computed (a screenshot, a microscope crop, a
+schematic) the page says so, says exactly how to make it, and picks it up
+automatically once you drop the file in.
+
+**Two kinds of panel.**
+
+- **Computed** — built here from data and exported as a PDF. If the data is
+  absent the panel says which file it wanted.
+- **To supply** — a screenshot or an image from the imaging team. Save it as
+  `output/figures/manual/<panel-id>.png` (or `.pdf`) and re-knit; it appears
+  inline below its instructions, and the instructions disappear.
+
+```{r panel-slot}
+# A panel that cannot be computed. Prints the acquisition instructions until the
+# file exists, then prints the file instead. The id IS the filename, so there is
+# never a question of what to name a screenshot — the page tells you, and the same
+# string is what it looks for.
+#
+# Deliberately checks several extensions: a QuPath screenshot is a PNG, an exported
+# schematic is a PDF, and a microscope crop may be either. Whichever arrives first
+# is the one used.
+panel_slot <- function(id, what, howto, source = NULL) {
+  exts  <- c("png", "pdf", "jpg", "jpeg", "tif", "tiff", "svg")
+  found <- file.path(MANUAL_DIR, paste0(id, ".", exts))
+  found <- found[file.exists(found)]
+
+  cat("\n\n**Panel `", id, "` — ", what, "**\n\n", sep = "")
+  if (length(found)) {
+    # Route the supplied file through knitr's own fig.path. A markdown link
+    # straight at output/figures/manual/ would resolve while knitting and break in
+    # the built site, because workflowr writes the HTML into docs/ and nothing
+    # outside docs/ is published. Copying it here makes the panel a first-class
+    # site figure that travels with the page.
+    dest_dir <- knitr::opts_chunk$get("fig.path")
+    ok <- FALSE
+    if (!is.null(dest_dir) && nzchar(dest_dir)) {
+      dir.create(dest_dir, recursive = TRUE, showWarnings = FALSE)
+      dest <- file.path(sub("/+$", "", dest_dir), basename(found[1]))
+      ok   <- file.copy(found[1], dest, overwrite = TRUE)
+      if (ok) cat("![", what, "](", dest, ")\n\n", sep = "")
+    }
+    if (!ok) cat("_Supplied but not copied into the site:_ `",
+                 file.path("output", "figures", "manual", basename(found[1])), "`\n\n", sep = "")
+    cat("_Source file:_ `output/figures/manual/", basename(found[1]), "`\n\n", sep = "")
+    return(invisible(TRUE))
+  }
+  cat("> **TO SUPPLY.** Save as `output/figures/manual/", id, ".png` (or `.pdf`) and re-knit.\n>\n", sep = "")
+  for (line in howto) cat(">  - ", line, "\n", sep = "")
+  if (!is.null(source)) cat(">\n> _Source:_ ", source, "\n", sep = "")
+  cat("\n")
+  invisible(FALSE)
+}
+```
+
+```{r load-cells}
+# The cell source for every spatial and immune-fraction panel: the all-slide
+# layout, which is the only export where the pathologist polygon and the cell table
+# are matched region by region. See code/all_slide.R for the layout and for the
+# "no annotation directory means everything is inside" rule.
+as_cells <- tibble::tibble(); as_polys <- NULL; as_per <- tibble::tibble()
+as_union <- tibble::tibble()
+have_cells <- FALSE; geom_failure <- NULL
+
+if (have_helpers && dir.exists(file.path(ALL_SLIDE_DIR, "csv"))) {
+  as_cells <- all_slide_cells(ALL_SLIDE_DIR)
+  if (nrow(as_cells)) {
+    # all_slide_annotations() errors without sf, on purpose: a script that asked for
+    # geometry should not quietly get something else. This page is a checklist and
+    # has to knit anywhere, so it catches that and says what was lost — the panels
+    # then fall back to the export flag, which is a DIFFERENT membership rule and
+    # therefore reported, not absorbed.
+    as_polys <- tryCatch(
+      all_slide_annotations(ALL_SLIDE_DIR, patient_ids = unique(as_cells$patient_id)),
+      error = function(e) { geom_failure <<- conditionMessage(e); NULL })
+    as_per     <- all_slide_metrics(as_cells, as_polys, "per_annotation")
+    as_union   <- all_slide_metrics(as_cells, as_polys, "union")
+    have_cells <- TRUE
+  }
+}
+
+if (have_cells) {
+  if (!is.null(geom_failure))
+    cat("> **Polygons were not read**, so membership below falls back to each",
+        "export's own out-of-annotation flag and every density/area column is `NA`.",
+        "Reason: ", geom_failure, "\n\n")
+  else if (is.null(as_polys))
+    cat("> **No polygons found** — every patient is treated as whole-slide.\n\n")
+  knitr::kable(all_slide_inventory(as_cells),
+               caption = "What was read from data/all_slide/ — one row per patient x region.")
+} else {
+  cat("**No cells.** This page expects the all-slide export at `data/all_slide/`:\n\n",
+      "```\ndata/all_slide/csv/<patient>/<patient>_<A|B|C>.csv\n",
+      "data/all_slide/annotation/<patient>/<patient>_<A|B|C>.geojson\n```\n\n",
+      "On the cluster that tree is\n",
+      "`/hpcnfs/techunits/imaging/work/ATTEND/Mirage/all-slide_new` — symlink or copy it:\n\n",
+      "```sh\nln -s /hpcnfs/techunits/imaging/work/ATTEND/Mirage/all-slide_new data/all_slide\n```\n",
+      sep = "")
+}
+```
+
+---
+
+# Figure 2 — the MIRAGE pipeline
+
+## 2(a) Pipeline stage graph
+
+**Already drawn, and better than a redraw.** `mirage/docs/figures/pipeline-schematic.html`
+is Supplementary Figure S1: publication-shaped, self-contained, with every module's
+defaults as chips. Export it to PDF from a browser at A4 width and place it directly.
+
+Two things in the drafted legend contradict that schematic and need fixing in the
+*text*, not the figure:
+
+- **There are four Nextflow steps, not five.** `ParamUtils.STEPS` and
+  `Layout.CHECKPOINT_STEPS` both define `preprocessing → registration →
+  segmentation → postprocessing`. Quantification and GeoJSON export are both
+  *inside* postprocessing.
+- **The anchor is a configurable nuclear-counterstain channel**, not DAPI by
+  construction — S1's own samplesheet shows `nuclear_markers = [DAPI, CELLTOX]`.
+  "DAPI throughout this study" is the accurate phrasing.
+
+```{r fig2a, results="asis"}
+panel_slot(
+  "fig2a_pipeline_schematic",
+  "MIRAGE five-module / four-step pipeline graph",
+  c("Open `mirage/docs/figures/pipeline-schematic.html` in a browser.",
+    "Print to PDF, A4 landscape, background graphics ON, margins none.",
+    "Crop to the panel you want — the sheet holds several; Fig 2(a) is the step ladder plus the module table."),
+  source = "`mirage/docs/figures/pipeline-schematic.html` (Supplementary Figure S1)")
+```
+
+## 2(b) Illumination correction across a tile seam
+
+```{r fig2b, results="asis"}
+panel_slot(
+  "fig2b_basic_seam",
+  "Tile-boundary crop, before vs after BaSiC flatfield/darkfield correction",
+  c("**Do not use the pipeline's preprocess QC PNGs.** They are written at `preprocess_qc_scale_factor = 0.25`; a tile seam is a few-pixel intensity step and does not survive a quarter-scale downsample.",
+    "Take matched full-resolution crops at the SAME coordinates from the converted (pre-BaSiC) and preprocessed (post-BaSiC) OME-TIFFs.",
+    "Centre the crop on a mosaicing seam — a visible grid line in the uncorrected image.",
+    "Use one channel, one display range, identical for both crops. A different contrast stretch would manufacture the effect.",
+    "Record the pixel size from the OME-TIFF metadata so the scale bar is real."),
+  source = "imaging team — needs the raw and preprocessed images, not published QC output")
+```
+
+---
+
+# Figure 3 — MIRAGE → FlowPath hand-off
+
+## 3(a) Interop hand-off
+
+```{r fig3a, results="asis"}
+panel_slot(
+  "fig3a_interop_handoff",
+  "MIRAGE → cells.geojson → FlowPath, the hand-off only",
+  c("Three boxes, not a stage graph — Fig 2(a) is the stage graph and this panel must not repeat it.",
+    "Show the artefact in the middle: `cells.geojson`, geometry + per-cell features in one file.",
+    "Draw it in the S1/S2/S3 house style so the figure set reads as one artefact — copy the shared CSS block verbatim from any of `mirage/docs/figures/*.html` (it is duplicated across all three on purpose).",
+    "A real excerpt of `qupath-extension-flowpath/cells.geojson` makes a good inset."),
+  source = "new; `qupath-extension-flowpath/ARCHITECTURE.md` and `mirage/docs/spatialdata.md` describe the contract")
+```
+
+## 3(b) Interactive gating on MIRAGE-derived features
+
+```{r fig3b, results="asis"}
+panel_slot(
+  "fig3b_gating_threshold",
+  "One user-drawn gate on a threshold plot of MIRAGE per-cell features",
+  c("QuPath ≥ 0.7.0, cells loaded, then `Extensions → FlowPath - GatingTree` (Ctrl+G).",
+    "Add a root gate → threshold (1D). Pick a marker with clean separation — CD45 is the panel's cleanest.",
+    "Drag the threshold handle so it is visibly ON the histogram; the panel's claim is that gating is interactive, so the handle must be in frame.",
+    "Capture the histogram pane, not the whole application window.",
+    "The catalog docs currently ship `assets/screenshots/placeholder.png` for exactly this figure — nothing exists yet, this is yours to take."),
+  source = "screenshot — FlowPath GatingTree")
+```
+
+## 3(c) Sequential hierarchical phenotype tree
+
+```{r fig3c, results="asis"}
+panel_slot(
+  "fig3c_phenotype_tree",
+  "The sequential gating scheme and its terminal populations",
+  c("Draw from the ACTUAL `flowpath.json` used for the study, not from memory.",
+    "Sequential, not Boolean: a CD45-only pan-immune root, then the T/NK axis.",
+    "Shade the CD45+CD3−CD56− catch-all node — the coverage caveat in the legend depends on it being visually marked.",
+    "Reconcile the terminal-population count against the table printed below before writing a number into the legend."),
+  source = "the study's `flowpath.json`")
+```
+
+The project's own record of what the gate tree emits is below. It is the join
+table every analysis reads phenotypes through, so **if the figure and this table
+disagree, the analyses are keyed to this one** — fix the code or the figure, but
+do not leave them different.
+
+```{r fig3c-table}
+if (have_helpers) {
+  fp <- dplyr::filter(phenotype_lineage_labels,
+                      !grepl("_", phenotype_clean))     # FlowPath spellings only
+  knitr::kable(fp, caption = paste(
+    "FlowPath gate-tree labels as recorded in code/cell_tables.R, and the lineage",
+    "each collapses to. Myeloid/Macrophage_M2 appear on the mirage side only —",
+    "check the study panel.yaml before repeating the legend's 'no myeloid markers' caveat."))
+}
+```
+
+## 3(d) Spatial phenotype map — **computed**
+
+Cells coloured by phenotype call, in the geojson pixel frame, with the
+pathologist's polygon outlined. The whole-slide panel and its inset are exported
+as **separate PDFs** on purpose — place, scale and label them in Affinity rather
+than accepting a composite baked in R.
+
+```{r fig3d-map, fig.width=6.2, fig.height=5.2}
+map_pid <- NULL
+if (have_cells) {
+  # The exemplar: whichever patient has the most cells, so the map is dense enough
+  # to read at figure size. Override by hand when the paper wants a specific case.
+  map_pid <- as_cells |> count(patient_id, sort = TRUE) |> slice(1) |> pull(patient_id)
+  p <- paper_phenotype_map(as_cells, patient_id = map_pid, annots = as_polys,
+                           title = paste("Patient", map_pid, "— phenotype calls"))
+  if (!is.null(p)) print(p)
+}
+if (is.null(map_pid)) cat("_No cells — see the loader note at the top of the page._\n")
+```
+
+```{r fig3d-inset, fig.width=4.4, fig.height=4.0}
+# The inset comes from the SAME function, so it cannot drift from the map above.
+# The window is a fixed fraction of the field centred on the densest patch: an
+# inset that lands on empty slide shows nothing, and choosing it by eye each time
+# makes the figure unreproducible.
+if (have_cells && !is.null(map_pid)) {
+  cp <- dplyr::filter(as_cells, slide_key(patient_id) == slide_key(map_pid))
+  xy <- cell_centroids_px(cp)
+  ok <- is.finite(xy$x) & is.finite(xy$y)
+  if (any(ok)) {
+    cx <- median(xy$x[ok]); cy <- median(xy$y[ok])
+    w  <- diff(range(xy$x[ok])) * 0.12; h <- diff(range(xy$y[ok])) * 0.12
+    p <- paper_phenotype_map(as_cells, patient_id = map_pid, annots = as_polys,
+                             zoom = c(cx - w, cx + w, cy - h, cy + h),
+                             title = paste0("Patient ", map_pid, " — inset"))
+    if (!is.null(p)) print(p)
+  }
+}
+```
+
+---
+
+# Figure 4 — cross-panel registration accuracy
+
+## 4(a) Two-colour DAPI overlay, before and after
+
+```{r fig4a, results="asis"}
+panel_slot(
+  "fig4a_dapi_overlay",
+  "Two-colour DAPI overlay of two separately-acquired panels, before vs after registration",
+  c("The pipeline already makes this: `GENERATE_REGISTRATION_QC` emits DAPI-overlay QC whenever `reg_qc >= 1`, which is the default (`reg_qc = 2`).",
+    "But it writes at `qc_scale_factor = 0.25`. For a 'nuclei superimposed' claim, take a full-resolution crop at matched coordinates from the pre- and post-registration images instead.",
+    "Two colours, one panel per channel, same display range before and after.",
+    "Pick a field where the pre-registration drift is visible at figure size — a corner usually drifts more than the centre.",
+    "Record the pixel size for the scale bar."),
+  source = "mirage `GENERATE_REGISTRATION_QC` output, or full-res crops from the same run")
+```
+
+## 4(b) and 4(c) Target registration error and Dice, by configuration — **computed**
+
+The arm-ranking panels. There are **two possible sources**, and they are not
+equivalent:
+
+1. **The real arm sweep** (`data/registration_arms/`) — the study slides registered
+   once per configuration. This is what the figure should use.
+2. **The synthetic benchmark sweep** (`data/benchmark/param_matrix.csv`) — mirage's
+   `benchmarks/` runs, whose moving panels are shifted copies of channel 0. A
+   residual measured there reflects a known injected offset, not real
+   cross-acquisition difficulty.
+
+This chunk prefers (1) and falls back to (2), and says which it used — because
+which one produced the figure changes what the figure is allowed to claim.
+
+```{r fig4bc, fig.width=7.5, fig.height=4.8}
+reg_dir  <- here("data", "benchmark")
+arm_figs <- list(); arm_source <- NULL
+
+if (have_helpers && dir.exists(here("data", "registration_arms"))) {
+  suppressMessages(source(here("code", "registration_arms.R")))
+  .man <- arm_manifest()
+  .seg <- if (nrow(.man)) read_arms_seg_qc(.man) else tibble::tibble()
+  if (nrow(.seg)) {
+    arm_figs   <- build_arm_figs(.seg, tibble::tibble(), .man)[c("01_final_residual_um_by_arm",
+                                                                "02_final_dice_by_arm")]
+    arm_source <- "real"
+  }
+}
+if (!length(arm_figs) && have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
+  source(here("code", "registration_accuracy_plots.R"))
+  arm_figs   <- build_reg_figs(reg_dir)[c("06_tre_by_arm", "07_dice_by_arm")]
+  arm_source <- "synthetic"
+}
+arm_figs <- arm_figs[!vapply(arm_figs, is.null, logical(1))]
+for (p in arm_figs) print(p)
+```
+
+```{r fig4bc-note, results="asis"}
+if (identical(arm_source, "real")) {
+  cat("**Source: the real arm sweep** on the study slides — the right source for",
+      "the manuscript. Arms are ranked at each run's FINAL transform, because",
+      "`reg_micro_reg` 0 and 1 emit no `micro` stage and ranking on a fixed stage",
+      "would drop those arms. See [registration arms](registration_arms.html) for",
+      "the stage ladder, the pair-fraction trust check, and why the `rigid` stage",
+      "cannot be compared across depths.\n")
+} else if (identical(arm_source, "synthetic")) {
+  cat("> **Source: the SYNTHETIC sweep.** These arms come from",
+      "`data/benchmark/param_matrix.csv`, whose moving panels are shifted copies of",
+      "channel 0. Usable for cost and scaling; **not** a real-tissue accuracy claim.",
+      "Put the per-arm runs under `data/registration_arms/` and re-knit to replace",
+      "this panel with the real one.\n")
+} else {
+  cat("_No arm data._ Either symlink the per-arm runs under",
+      "`data/registration_arms/<arm>/` (preferred — see",
+      "[registration arms](registration_arms.html)), or drop mirage's `paper_data`",
+      "CSVs into `data/benchmark/`.\n")
+}
+```
+
+> **Two legend corrections this sweep forces.**
+>
+> - The presets are **not** "two accuracy presets differing in feature-matching
+>   resolution, not in the feature matcher". `memory_mode` selects the matcher:
+>   `low` = BRISK/RANSAC, `high` = SuperPoint/SuperGlue. It is a different matcher.
+> - Micro-registration is **not** on/off. `reg_micro_reg` is a nested depth
+>   (`0` none, `1` micro-rigid, `2` + micro non-rigid), so a preset × depth sweep has
+>   **six** arms, not four.
+>
+> **And there is no clean "rigid-only" baseline in a depth-crossed sweep.** mirage's
+> `rigid` QC stage means affine ∘ micro-rigid whenever `reg_micro_reg ≥ 1`, so a
+> rigid-only baseline exists only in the depth-0 arms. The `native` stage is the
+> honest no-registration baseline.
+
+---
+
+# Figure 5 — proof-of-concept concordance
+
+## 5(a) Registered, phenotyped cases — **computed**
+
+The same renderer as 3(d), one panel per case. Exported one PDF per case.
+
+```{r fig5a, fig.width=5.4, fig.height=4.6}
+if (have_cells) {
+  for (pid in sort(unique(as_cells$patient_id))) {
+    p <- paper_phenotype_map(as_cells, patient_id = pid, annots = as_polys,
+                             title = paste("Patient", pid))
+    if (!is.null(p)) print(p)
+  }
+}
+```
+
+## 5(b) Imaging immune fraction, hot vs cold — **computed**
+
+```{r fig5b-groups}
+# WHICH VARIABLE DEFINES HOT AND COLD. The clinical table carries two different
+# things: a continuous `HOT score` and a categorical `Immuno-phenotype`. The
+# legend's selection axis is the score, so the score is used here and the top/bottom
+# three cases become the groups. That IS a threshold — the legend cannot also claim
+# "no threshold" while showing two boxes. Set HOTCOLD_SOURCE to "immuno_phe" to
+# group by the clinical category instead.
+HOTCOLD_SOURCE <- "hot_score"
+
+groups <- NULL
+clin_path <- here("data", "clinical_data.xlsx")
+if (file.exists(clin_path) && have_cells) {
+  # Same idiom as periphery.Rmd: select(any_of(...)) so a clinical table missing
+  # either column loses that column rather than aborting the chunk.
+  clin <- readxl::read_excel(clin_path) |>
+    dplyr::filter(!is.na(`ID PATIENT`)) |>
+    dplyr::mutate(patient_id = slide_key(`ID PATIENT`)) |>
+    dplyr::select(patient_id,
+                  hot_score  = dplyr::any_of("HOT score"),
+                  immuno_phe = dplyr::any_of("Immuno-phenotype")) |>
+    dplyr::filter(patient_id %in% slide_key(as_union$patient_id))
+  if ("hot_score" %in% names(clin))
+    clin$hot_score <- suppressWarnings(as.numeric(clin$hot_score))
+
+  if (HOTCOLD_SOURCE == "hot_score" && "hot_score" %in% names(clin) &&
+      sum(is.finite(clin$hot_score)) >= 2) {
+    k <- min(3, floor(sum(is.finite(clin$hot_score)) / 2))
+    r <- rank(-clin$hot_score, ties.method = "first")
+    groups <- clin |>
+      dplyr::mutate(group = dplyr::case_when(r <= k ~ "hot",
+                                             r > dplyr::n() - k ~ "cold",
+                                             TRUE ~ NA_character_)) |>
+      dplyr::filter(!is.na(group)) |>
+      dplyr::select(patient_id, group)
+  } else if ("immuno_phe" %in% names(clin)) {
+    groups <- clin |> dplyr::transmute(patient_id, group = immuno_phe) |>
+      dplyr::filter(!is.na(group))
+  }
+}
+if (!is.null(groups)) knitr::kable(groups, caption = "Cases as grouped for panel 5(b).")
+```
+
+```{r fig5b, fig.width=3.4, fig.height=3.6}
+if (!is.null(groups) && nrow(as_union) > 0) {
+  p <- paper_immune_fraction_hotcold(as_union, groups)
+  if (!is.null(p)) print(p)
+} else {
+  cat("_Needs `data/clinical_data.xlsx` (for the hot/cold axis) and the all-slide cells._\n")
+}
+```
+
+No test is applied and no coefficient is printed — with three cases a side the six
+points *are* the evidence, and `paper_immune_fraction_hotcold()` deliberately never
+calls `paired_spearman()`. Every other page on this site reports rho freely; this
+panel is the one place that must not, because its legend says so.
+
+## 5(c) Imaging vs bulk-RNA deconvolution — **computed**
+
+```{r fig5c, fig.width=5.6, fig.height=4.6}
+paired_path <- here("output", "paired_deconv.rds")
+if (have_helpers && file.exists(paired_path)) {
+  p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq")
+  if (!is.null(p)) print(p)
+} else {
+  cat("_Needs `output/paired_deconv.rds`._ Knit [deconvolution](deconvolution.html)",
+      "first — its last chunk caches the paired frame so this panel does not have to",
+      "re-run immunedeconv.\n")
+}
+```
+
+No fit line and no coefficient, for the reason above and one more: the axes use
+different denominators (imaging counts cells, deconvolution estimates a mixture
+fraction), so a regression line would invite exactly the absolute-agreement
+reading the legend disclaims. **The populations plotted are fixed by
+`deconv_to_lineage()` and there are four** — CD4T, CD8T, Treg, NK. That answers
+the legend's `[author to supply: full list of populations plotted]`.
+
+---
+
+# Additional files
+
+```{r addfile-2}
+if (have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
+  pm <- readr::read_csv(file.path(reg_dir, "param_matrix.csv"), show_col_types = FALSE)
+  at <- .reg_arm_table(pm)
+  if (!is.null(at))
+    knitr::kable(dplyr::arrange(at, tre), digits = 4, caption = paste(
+      "Additional file 2 — per-arm registration accuracy.",
+      "TRE and DAPI-overlap Dice for every benchmarked configuration."))
+} else {
+  cat("**Additional file 2** (per-arm TRE and Dice table) needs `data/benchmark/param_matrix.csv`.\n")
+}
+```
+
+```{r addfile-4}
+if (have_helpers)
+  knitr::kable(paper_lineage_table(), caption = paste(
+    "Additional file 4 — the imaging-phenotype and deconvolution-cell-type",
+    "vocabularies, and the lineage each maps to. Generated from the same objects",
+    "the analyses join on, so it cannot drift from what was computed. The six",
+    "'(unmapped)' deconvolution types are precisely the catch-all the legend",
+    "calls Tier 3."))
+```
+
+**Additional files 1, 3, 5 and 6.**
+
+- **1 — full pipeline configuration.** `mirage/docs/parameters.md` is already the
+  complete per-module table. Missing from it: the compartment-to-marker map and a
+  default-versus-recommended comparison; both still have to be written.
+- **3 — Tier 2 / Tier 3 scatters.** Blocked: the tier vocabulary does not exist in
+  this codebase. Its content maps onto `cd45_over_inside` (Tier 1),
+  `deconv_to_lineage()` (Tier 2) and `Immune_other` (Tier 3) — settle the naming,
+  then this is a re-cut of the table above.
+- **5 — epitope / tissue-integrity monitoring.** Per-round DAPI retention exists
+  nowhere; imaging-team deliverable. For the CD8+ ⊂ CD3+ biological-consistency check,
+  the machinery is [marker exclusivity](exclusivity.html), which computes worst-case
+  conditional co-positivity per marker pair straight from the cell tables. Two things
+  to note: it is **exclusivity**-shaped (it asks whether two markers co-occur *more*
+  than they should) while CD8 ⊂ CD3 is an **inclusion** constraint (CD8+CD3− should be
+  rare), so it needs a negated-marker pair added; and it reads the exports directly, so
+  unlike mirage-side QC it works on data this project actually has.
+- **6 — computational performance.** Fully covered by
+  [pipeline benchmarks](benchmarks.html); nothing to add.
+
+---
+
+## Exported files
+
+```{r manifest}
+out_dir <- here("output", "figures", SLUG)
+if (dir.exists(out_dir)) {
+  f <- list.files(out_dir, pattern = "\\.pdf$")
+  if (length(f)) knitr::kable(tibble::tibble(panel = f),
+                              caption = "Vector PDFs written for Affinity.")
+}
+cat("\nComputed panels land in `output/figures/", SLUG, "/`.",
+    " Hand-made panels go in `output/figures/manual/` named as the slots above.\n", sep = "")
+```
+
+```{r export-pdfs, include=FALSE}
+export_pdf_figures(SLUG)
+```

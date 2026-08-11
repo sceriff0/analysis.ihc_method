@@ -476,6 +476,20 @@ if (!is.null(agr) && nrow(agr) > 0) {
   and `omnideconv::build_model()/deconvolute()` argument names against your
   installed versions before trusting their output.
 
+```{r cache-paired, include=FALSE}
+# Hand `paired` to the figure-assembly page rather than making it recompute.
+# Deconvolution needs immunedeconv, counts.RData and several minutes; the paper
+# panel is a re-cut of THIS frame, so re-deriving it there would be both slow and
+# a second place for the mapping to drift. Written only when there is something to
+# write, so a skipped deconvolution run leaves the previous cache alone instead of
+# replacing it with an empty one.
+if (!is.null(paired) && nrow(paired) > 0) {
+  dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
+  saveRDS(paired, here("output", "paired_deconv.rds"))
+  cat("cached", nrow(paired), "paired rows for paper_figures.Rmd\n")
+}
+```
+
 ```{r export-pdfs, include=FALSE}
 # Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
 # this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
