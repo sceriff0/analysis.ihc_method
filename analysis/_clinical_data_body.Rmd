@@ -32,6 +32,22 @@ everything downstream of that decision lives here once. The parent must define:
 Chunk labels here must not collide with the parent's (setup, annotations).
 -->
 
+```{r child-contract, include=FALSE}
+# A CHILD, NOT A PAGE. Everything named in the header block above comes from whichever
+# parent includes this file. Built on its own, the first chunk to touch one dies with
+# `object 'mem' not found` — which names neither this file nor the reason, and arrives
+# 8% into a build that looked like it was working. Say what is actually wrong instead.
+.absent <- setdiff(c("mem", "SLUG", "IMMUNE_HEADING", "IMMUNE_PROSE", "MEMBERSHIP_NOTES"),
+                   ls(envir = knitr::knit_global()))
+if (length(.absent))
+  stop("_clinical_data_body.Rmd is a child document, not a page: its parent supplies ",
+       paste(.absent, collapse = ", "), ". Build one of clinical_data.Rmd, ",
+       "clinical_data_mirage.Rmd, clinical_data_per_annotation.Rmd or ",
+       "clinical_data_per_annotation_old.Rmd — the leading underscore is what keeps ",
+       "workflowr from building this file on its own.", call. = FALSE)
+rm(.absent)
+```
+
 Cell labels:
 
 ```
