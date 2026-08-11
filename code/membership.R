@@ -18,6 +18,13 @@
 #               over the top-level exports
 #   "mirage"    the same geometric rule as "geojson",       data/mirage/<patient>/
 #               applied to cells MIRAGE phenotyped            (+ data/annotation/*.geojson)
+#   "all_slide" the same geometric rule again, but the       data/all_slide/csv/<pid>/
+#               polygon and the cell export are matched         <pid>_<A|B|C>.csv
+#               PER REGION, so no cell is scored against    (+ .../annotation/<pid>/
+#               a region it was not exported for. A            <pid>_<A|B|C>.geojson)
+#               patient with NO annotation directory is
+#               entirely inside by the layout's own
+#               convention -- see code/all_slide.R.
 #               itself rather than FlowPath
 #
 # "geojson" and "mirage" differ only in who called the phenotypes, so the diff
@@ -55,6 +62,7 @@ suppressPackageStartupMessages({
 })
 
 source(here::here("code", "mirage_cells.R"))   # the "mirage" mode's cell source
+source(here::here("code", "all_slide.R"))      # the "all_slide" mode's cell + polygon source
 
 PER_ANNOT_DIR     <- here::here("data", "flowpath", "per_annotation")
 PER_ANNOT_OLD_DIR <- here::here("data", "flowpath", "per_annotation", "old")
@@ -277,16 +285,19 @@ flag_cells_inventory <- function(ann_cells) {
 #                readout), the deduped in-annotation union under the flag modes
 #   $per_annotation  metrics, one row per (patient_id, annotation)
 #   $union           metrics, one row per patient
-#   $inventory   provenance table (flag modes) or NULL (geojson: provenance is the
-#                `source` column of the metrics frames)
+#   $inventory   provenance table (flag and all_slide modes) or NULL (geojson:
+#                provenance is the `source` column of the metrics frames)
 #   $has_area    TRUE only when a polygon was read, i.e. when the dens_*_per_mm2
 #                columns carry values rather than NA
 #
-# `annots` is required for "geojson" and ignored otherwise. `neoplastic_data` lets
+# `annots` is required for "geojson" and "mirage". "all_slide" reads its own
+# polygons from its own tree (they are matched to the cell files region by region,
+# so an externally supplied `annots` would not line up); passing one is an error
+# rather than a silently ignored argument. `neoplastic_data` lets
 # a flag-mode fallback patient with a single scored annotation be labelled with
 # that annotation, so it reaches the per-annotation panels (see
 # load_flag_fallback_cells()).
-MEMBERSHIP_MODES <- c("geojson", "flag", "flag_old", "mirage")
+MEMBERSHIP_MODES <- c("geojson", "flag", "flag_old", "mirage", "all_slide")
 
 membership_data <- function(mode = MEMBERSHIP_MODES, ihc_data,
                             neoplastic_data = NULL, annots = NULL,
@@ -308,6 +319,34 @@ membership_data <- function(mode = MEMBERSHIP_MODES, ihc_data,
                                               um_per_px = um_per_px),
       inventory      = if (mode == "mirage") mirage_cells_inventory(cells) else NULL,
       has_area       = TRUE
+    ))
+  }
+
+  # -- the region-matched polygon mode ----------------------------------------
+  # Cells and polygons come from the SAME tree and are paired by region, so this
+  # branch loads both itself. has_area is per-patient here, not per-cohort: a
+  # whole-slide patient has no polygon and therefore no area, while its annotated
+  # neighbours do, so the flag reports what at least one patient can support and
+  # the metrics frame's own `source` column says which patient is which.
+  if (mode == "all_slide") {
+    if (!is.null(annots))
+      stop("membership_data(\"all_slide\") reads its own polygons; drop the `annots` argument")
+    cells <- all_slide_cells(ALL_SLIDE_DIR)
+    if (nrow(cells) == 0) {
+      warning("membership_data(\"all_slide\"): no cells under ", ALL_SLIDE_DIR,
+              " — every panel will be empty")
+      return(list(mode = mode, cells = cells, per_annotation = tibble::tibble(),
+                  union = tibble::tibble(), inventory = tibble::tibble(),
+                  has_area = FALSE))
+    }
+    polys <- all_slide_annotations(ALL_SLIDE_DIR, patient_ids = unique(cells$patient_id))
+    return(list(
+      mode           = mode,
+      cells          = all_slide_union_cells(cells),
+      per_annotation = all_slide_metrics(cells, polys, "per_annotation", um_per_px),
+      union          = all_slide_metrics(cells, polys, "union", um_per_px),
+      inventory      = all_slide_inventory(cells),
+      has_area       = !is.null(polys) && nrow(polys) > 0
     ))
   }
 
