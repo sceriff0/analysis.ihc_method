@@ -189,9 +189,11 @@ STARE transform manifest, so it is the same measurement either way. Each backend
 
 ## Child documents
 
-`clinical_flowpath.Rmd` and `clinical_mirage.Rmd` are thin parents over
-`analysis/_children/clinical_body.Rmd`. Two rules, both enforced by
-`tests/testthat/test-child-documents.R`:
+**There are none, and two costs argue against adding one.** `clinical_flowpath.Rmd`
+was a thin parent over `analysis/_children/clinical_body.Rmd` while a second
+phenotyping arm (`clinical_mirage.Rmd`) shared the same body; the arm is withdrawn and
+the body is inlined again. If a second arm returns, both rules below apply and
+`tests/testthat/test-child-documents.R` enforces the first two.
 
 - Children live in **`analysis/_children/`**, not beside their parents. An underscore
   on the *file* only hides it from `render_site()`, which skips `^[_.]` resources;
@@ -200,13 +202,20 @@ STARE transform manifest, so it is the same measurement either way. Each backend
   the body to the builder as a page and the build died on the child's contract check.
   The underscore on the *directory* hides it from `render_site()`, and a subdirectory is
   out of reach of a non-recursive glob, so both routes are closed.
-- The `child=` path must be **absolute**, via `here::here("analysis", "_children", ...)`. knitr
-  resolves it against the knit working directory, and `_workflowr.yml` sets
+- The `child=` path must be **absolute**, via `here::here("analysis", "_children", ...)`.
+  knitr resolves it against the knit working directory, and `_workflowr.yml` sets
   `knit_root_dir: "."` — the project root — so a bare filename is looked for beside
   `_workflowr.yml` rather than beside its parent. The failure is
   `Error in file(con, "r") : cannot open the connection` partway through the parent,
   naming neither the child nor the path, because that is `readLines()`'s internal
   call inside `knitr:::call_block`.
+- **A child makes workflowr print a false fig.path warning on every plot it contains.**
+  `wflow_hook_plot_md()` compares the chunk's `fig.path` against a path it derives from
+  `knitr::current_input()`. Inside a child chunk `fig.path` is still the *parent's*
+  (`clinical_flowpath_files/figure-html/`) while `current_input()` returns the *child*
+  (`clinical_body.Rmd`), so the two never agree and the page renders
+  *"Warning! The custom fig.path you set was ignored by workflowr."* Nothing is ignored
+  and no figure moves — but the reader cannot tell that, so the warning is a real cost.
 
 ## Sweep QC vs run QC
 
@@ -278,6 +287,7 @@ It exports:
 |---|---|
 | `theme_paper(base_size, grid, axis_lines)` | the theme; applied via `theme_set()` on source |
 | `theme_paper_tile()` | heatmap variant (no axis line, no ticks) |
+| `theme_paper_panels()` | dense facet grid: hairline panel border + wider gutter, for `scales = "free"` grids where adjacent panels do NOT share an axis |
 | `oi`, `oi_ext` | Okabe-Ito categorical palette (8) and its 16-colour extension |
 | `scale_*_oi()`, `scale_*_ordinal()` | categorical / ordered-discrete scales |
 | `scale_*_div()`, `scale_*_seq()` | diverging (blue-white-red) and sequential ramps |

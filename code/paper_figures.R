@@ -16,7 +16,7 @@
 #
 # WHY THESE FUNCTIONS AND NOT OTHERS. The legends ask for four things no analysis
 # page currently draws:
-#   paper_phenotype_map()          Fig 3(d) and Fig 5(a) — cells coloured by call
+#   paper_phenotype_map()          Fig 5(a) — cells coloured by call
 #   paper_immune_fraction_hotcold() Fig 5(b) — CD45+/all cells, hot vs cold
 #   paper_deconv_scatter()          Fig 5(c) — one method, no fit, no coefficient
 #   paper_lineage_table()           Additional file 4 — the mapping, as data

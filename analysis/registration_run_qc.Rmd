@@ -37,8 +37,8 @@ benchmarks](benchmark_pipeline.html) and [registration accuracy](benchmark_regis
 read the tables mirage's `benchmarks/` sweep produces on **synthetic** images —
 rescaled copies with a known injected offset, run to measure cost and scaling. Useful
 for choosing parameters, silent about your samples. This page reads
-`data/mirage/<patient>/`, the same tree [`clinical_mirage`](clinical_mirage.html)
-takes its cells from, so a run already copied in needs nothing further.
+`data/mirage/<patient>/` — the tree a mirage run writes directly — so a run already
+copied in needs nothing further.
 
 **Where the numbers come from.**
 

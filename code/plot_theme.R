@@ -171,6 +171,20 @@ theme_paper_tile <- function(base_size = 10, ...) {
     theme(axis.ticks.length = unit(0, "pt"))
 }
 
+# Dense facet grid variant. theme_paper()'s 9pt gutter and borderless panels are
+# tuned for a handful of facets; a grid like 5 methods x 4 lineages puts twenty
+# small panels edge to edge, where one panel's point cloud reads as continuous with
+# the next. Worse, such grids are almost always drawn with `scales = "free"`, so
+# adjacent panels do NOT share an axis — running them together invites precisely the
+# cross-panel comparison the free scales forbid. A hairline border and a wider gutter
+# make each panel its own coordinate system, visibly. Type, colour and legend
+# styling are untouched, so a gridded figure still matches every other one.
+theme_paper_panels <- function(base_size = 10, spacing = 14, ...) {
+  theme_paper(base_size = base_size, ...) +
+    theme(panel.border  = element_rect(colour = "grey75", fill = NA, linewidth = 0.4),
+          panel.spacing = unit(spacing, "pt"))
+}
+
 # --- palettes ----------------------------------------------------------------
 # Okabe-Ito: the standard 8-colour colourblind-safe categorical palette. Ordered
 # so the first two (blue, vermillion) are the maximally separable pair, which is

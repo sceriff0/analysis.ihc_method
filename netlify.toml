@@ -1,0 +1,24 @@
+# Netlify deploy config for the workflowr site.
+#
+# workflowr renders analysis/*.Rmd to plain, self-contained HTML in docs/ (set by
+# `output_dir: ../docs` in analysis/_site.yml) and that HTML is committed. So there
+# is nothing for Netlify to build — it only has to serve a directory.
+#
+# `publish` is the one setting that matters, and it is what makes index the landing
+# page: Netlify serves index.html from the publish root, so pointing it at docs/
+# resolves https://<site>/ to docs/index.html. Publishing the repository root
+# instead would serve the repo, which has no index.html, and every visitor would
+# get a 404.
+#
+# `command = ""` is deliberate, not a placeholder: with no command Netlify skips its
+# build image entirely. That image has no R, no renv and no pandoc, so a knit
+# attempted there would fail — knitting happens on your machine and git carries the
+# result. Run wflow_build(), commit docs/, push; Netlify redeploys on the push.
+#
+# No redirect rules on purpose. Every link the site emits is relative, so nothing
+# needs rewriting, and a catch-all `/* -> /index.html` would turn a mistyped URL
+# into a silent home page instead of an honest 404.
+
+[build]
+  publish = "docs"
+  command = ""

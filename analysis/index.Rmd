@@ -26,7 +26,7 @@ navbar has one entry per part.
 
 | part | claim | pages |
 |---|---|---|
-| **1 · Clinical** | cells land in the right region, and the phenotyping method is what the two reports differ by | `clinical_flowpath`, `clinical_mirage`, `clinical_membership_qc` |
+| **1 · Clinical** | cells land in the right region, and FlowPath's phenotypes agree with the pathologist | `clinical_flowpath`, `clinical_membership_qc` |
 | **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_hot_cold` |
 | **3 · Registration** | the study slides were registered well enough to analyse, under a configuration chosen on real tissue | `registration_run_qc`, `registration_arms` |
 | **4 · Benchmarks** | the pipeline's cost and accuracy scale as claimed, measured on synthetic images | `benchmark_registration`, `benchmark_pipeline` |
@@ -51,34 +51,28 @@ Every page defines `SLUG` equal to its own filename and calls
 
 ## Part 1 — Clinical data and neoplastic concordance
 
-**Two clinical pages, one analysis.** They differ only in *who called the
-phenotypes*; the slides and the pathologist polygons are the same. The choice is made
-in the page's setup by `membership_data(mode, ...)` (`code/membership.R`); everything
-downstream is the same document, `analysis/_children/clinical_body.Rmd`, so any
-difference between the pages is attributable to that one choice.
+Phenotypes come from **FlowPath's** QuPath gate tree; membership from the
+pathologist's own polygons, region by region.
 
-|                | cells from | phenotypes by | membership |
-|---|---|---|---|
-| `clinical_flowpath` | the all-slide export | FlowPath gate tree | region-matched polygon |
-| `clinical_mirage` | `data/mirage/<pid>/` | **mirage's panel** | the same polygons |
-
-Read them against each other to isolate the **phenotyping method**.
-
-- [Clinical concordance — FlowPath](clinical_flowpath.html) — the reference page. A
+- [Clinical concordance — FlowPath](clinical_flowpath.html) — the main clinical page. A
   cell is inside when its centroid falls in **that region's own** polygon (sf
   point-in-polygon), because the all-slide export pairs a cell csv with a geojson
   region by region. A patient with no annotation directory is entirely inside — the
   layout's own convention, marked `whole_slide` rather than guessed. Includes the
   concordance against the pathologist's neoplastic-cellularity score.
-- [Clinical concordance — mirage phenotyping](clinical_mirage.html) — the same
-  polygons and the same statistics, but the phenotypes are **mirage's own**
-  (`panel.yaml`, no human in the loop) rather than the FlowPath gate tree. Reads
-  `data/mirage/<patient>/`. mirage has no out-of-annotation flag and no whole-slide
-  convention, so a patient without a polygon is absent rather than counted whole.
 - [Annotation membership QC](clinical_membership_qc.html) _(in progress)_ —
   sf point-in-polygon membership vs. the `Out_of_annotation` flag, compared per cell.
-  This is the check the two pages above depend on: if membership itself is wrong,
-  nothing downstream of it means anything.
+  This is the check the page above depends on: if membership itself is wrong, nothing
+  downstream of it means anything.
+
+> **The mirage-phenotyping arm is withdrawn for now.** `clinical_mirage` ran the
+> identical analysis on cells MIRAGE phenotyped itself (`panel.yaml`, no human in the
+> loop) over the same slides and the same polygons, so the two pages differed by the
+> phenotyping method alone. With one arm left, the shared body it was split into is
+> inlined back into `clinical_flowpath.Rmd` — which also removes workflowr's spurious
+> *"custom fig.path was ignored"* warning, an artefact of the `child=` indirection
+> rather than of anything the page did. `code/mirage_cells.R` and its tests stay put,
+> so restoring the arm is a page, not a rewrite.
 
 ## Part 2 — Bulk RNA, deconvolution and the hot/cold axis
 
@@ -143,7 +137,8 @@ samples — part 3 does that.
 - [License](license.html) — reuse terms for the code and results.
 - [Source code](https://github.com/sceriff0/ihc_method) — GitHub repository.
 
-> **Pages removed.** `overview` was an empty stub and its role is this page.
+> **Pages removed.** `clinical_mirage` is withdrawn (see part 1). `overview` was an
+> empty stub and its role is this page.
 > `clinical_data_per_annotation` and `..._per_annotation_old` were removed on
 > 2026-08-11: they took membership from the exporter's precomputed
 > `Out_of_annotation` column instead of from geometry, reading

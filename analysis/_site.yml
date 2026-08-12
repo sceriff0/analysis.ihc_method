@@ -13,10 +13,8 @@ navbar:
     href: paper_figures.html
   - text: 1 · Clinical
     menu:
-    - text: FlowPath phenotyping
+    - text: Clinical concordance (FlowPath)
       href: clinical_flowpath.html
-    - text: mirage phenotyping
-      href: clinical_mirage.html
     - text: '---'
     - text: Annotation membership QC
       href: clinical_membership_qc.html

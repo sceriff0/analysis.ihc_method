@@ -642,8 +642,14 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
     facet_grid(method ~ lineage, scales = "free") +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
+    # Every panel here has its OWN x and y range (scales = "free"), because the
+    # methods' scores are on incomparable scales. theme_paper_panels() draws the
+    # border and the wider gutter that say so — without them twenty panels sit edge
+    # to edge and read as one continuous field on a shared axis, which is the single
+    # wrong conclusion this figure can produce.
+    theme_paper_panels() +
     labs(title = "IHC lineage fraction vs bulk-RNA deconvolution score",
-         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients",
+         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales",
          x = "IHC fraction of all cells", y = "deconvolution score")
 }
 ```
@@ -820,12 +826,21 @@ deep core   =  P shrunk by d_px
 
 (grow/shrink are `st_buffer` by +/- `d_px`; `margin_regions`.) If `d_px` exceeds
 the core's inradius the shrunk core is empty, and the margin band falls back to the
-full grown buffer. Thresholds analysed: `d` = 100, 250, 500 microns (500 is the
-consensus-Immunoscore invasive-margin half-width).
+full grown buffer. Thresholds analysed: `d` = 50, 100, 200 microns. These are
+narrower than the 500 µm consensus-Immunoscore half-width on purpose: at 500 µm the
+grown buffer swallows most of a small annotation and the "margin" stops being a
+margin, so the band is read at widths where it still isolates the boundary. The
+widest, `D_MAIN`, is the one every single-threshold panel below uses.
 
 ```{r margin-metrics}
-THRESHOLDS_UM <- c(100, 250, 500)
+THRESHOLDS_UM <- c(50, 100, 200)
 UM_PER_PX     <- 0.325
+
+# The headline width, derived rather than repeated. Every panel that shows one
+# threshold reads D_MAIN, so changing THRESHOLDS_UM moves them all together — the
+# previous version spelled `500` into eight filters and four captions, which is four
+# captions that can disagree with the data they label.
+D_MAIN        <- max(THRESHOLDS_UM)
 
 # load_annotations() returns NULL when there is no geojson tree at all. This part is
 # the only one of the three that needs real polygon geometry, so the absence is
@@ -869,12 +884,13 @@ Densities are `NA` when the region is empty.
 
 ```{r margin-coverage, eval = have_margin, echo=FALSE}
 peri_union |>
-  filter(threshold_um == 500) |>
+  filter(threshold_um == D_MAIN) |>
   select(patient_id, region, source, um_per_unit, area_mm2,
          n_inside, n_cd45_inside, cd45_over_inside) |>
   arrange(patient_id, region) |>
   knitr::kable(digits = 3,
-    caption = "Cells and area per region at d = 500 µm (union). n_inside = 0 ⇒ empty region.")
+    caption = paste0("Cells and area per region at d = ", D_MAIN,
+                     " µm (union). n_inside = 0 ⇒ empty region."))
 ```
 
 ### Margin immunity vs clinical HOT score
@@ -904,12 +920,19 @@ if (nrow(df) > 2) {
     group_by(threshold_um) |>
     group_modify(~ paired_spearman(.x$cd45_over_inside, .x$hot_score)) |>
     mutate(lab = sprintf("rho = %.2f\np = %.3g (n = %d)", rho, p, n))
+  # Coloured by the categorical immuno-phenotype while the axis is the continuous
+  # HOT score: the two are separate clinical columns, and seeing them together is
+  # the point — a cold-labelled case sitting high on the score axis is a
+  # disagreement inside the clinical record, not in the imaging.
+  df <- df |> mutate(immuno_phe = hotcold_order(immuno_phe))
   ggplot(df, aes(cd45_over_inside, hot_score)) +
-    geom_point(alpha = 0.7, size = 2) +
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.85, size = 2) +
     geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
               hjust = -0.05, vjust = 1.2, inherit.aes = FALSE, size = 3) +
     facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0("d = ", .x, " µm"))) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = "Invasive-margin immune fraction vs clinical HOT score",
          x = "CD45+ fraction in margin band", y = "clinical HOT score")
 }
@@ -923,12 +946,19 @@ if (nrow(df) > 2) {
     group_by(threshold_um) |>
     group_modify(~ paired_spearman(.x$dens_cd45_per_mm2, .x$hot_score)) |>
     mutate(lab = sprintf("rho = %.2f\np = %.3g (n = %d)", rho, p, n))
+  # Coloured by the categorical immuno-phenotype while the axis is the continuous
+  # HOT score: the two are separate clinical columns, and seeing them together is
+  # the point — a cold-labelled case sitting high on the score axis is a
+  # disagreement inside the clinical record, not in the imaging.
+  df <- df |> mutate(immuno_phe = hotcold_order(immuno_phe))
   ggplot(df, aes(dens_cd45_per_mm2, hot_score)) +
-    geom_point(alpha = 0.7, size = 2) +
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.85, size = 2) +
     geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
               hjust = -0.05, vjust = 1.2, inherit.aes = FALSE, size = 3) +
     facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0("d = ", .x, " µm"))) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = "Invasive-margin immune density vs clinical HOT score",
          x = "CD45+ per mm² in margin band", y = "clinical HOT score")
 }
@@ -958,7 +988,7 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
 
 ### Margin-vs-core exclusion score
 
-Per patient at `d = 500` microns:
+Per patient at the widest band, `d = D_MAIN` (200) microns:
 
 ```
 exclusion_frac = cd45_over_inside (margin)  -  cd45_over_inside (core)
@@ -969,7 +999,7 @@ Positive means immunity is concentrated at the border.
 
 ```{r margin-core, eval = have_margin}
 mc <- peri_union |>
-  filter(threshold_um == 500) |>
+  filter(threshold_um == D_MAIN) |>
   select(patient_id, region, cd45_over_inside,
          dens_cd45_per_mm2, dens_CD8T_per_mm2, n_inside) |>
   pivot_wider(names_from = region,
@@ -986,7 +1016,8 @@ mc |>
          exclusion_frac, hot_score) |>
   arrange(desc(exclusion_frac)) |>
   knitr::kable(digits = 3,
-    caption = "Margin-vs-core CD45+ fraction at d = 500 µm. Positive exclusion_frac ⇒ border-concentrated immunity.")
+    caption = paste0("Margin-vs-core CD45+ fraction at d = ", D_MAIN,
+                     " µm. Positive exclusion_frac ⇒ border-concentrated immunity."))
 ```
 
 ```{r margin-core-scatter, eval = have_margin, fig.height=4.5}
@@ -999,7 +1030,7 @@ if (nrow(sc) > 1) {
     geom_abline(slope = 1, linetype = "dashed", colour = "grey50") +
     geom_point(size = 3, alpha = 0.85) +
     coord_equal() +
-    labs(title = "Margin vs core CD45+ fraction (d = 500 µm)",
+    labs(title = paste0("Margin vs core CD45+ fraction (d = ", D_MAIN, " µm)"),
          x = "CD45+ fraction, deep core", y = "CD45+ fraction, invasive margin",
          colour = "Immuno-phenotype")
   if ("colour" %in% names(sc) || any(!is.na(sc$immuno_phe)))
@@ -1019,7 +1050,7 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
     geom_boxplot(outlier.shape = NA) +
     geom_jitter(width = 0.2, alpha = 0.6) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)), name = "Immuno-phenotype") +
-    labs(title = "Margin-minus-core exclusion score by clinical phenotype (d = 500 µm)",
+    labs(title = paste0("Margin-minus-core exclusion score by clinical phenotype (d = ", D_MAIN, " µm)"),
          x = NULL, y = "exclusion score (margin − core CD45+ fraction)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
@@ -1028,15 +1059,15 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
 ### Single annotations vs union
 
 Per-annotation margin fraction (each single-annotation core) vs the patient's union
-margin fraction, at `d = 500` microns — a stability check across a patient's
+margin fraction, at `d = D_MAIN` (200) microns — a stability check across a patient's
 separately drawn regions.
 
 ```{r margin-per-ann-vs-union, eval = have_margin, fig.height=4.5}
 pa <- peri_per_ann |>
-  filter(region == "margin", threshold_um == 500) |>
+  filter(region == "margin", threshold_um == D_MAIN) |>
   select(patient_id, annotation, cd45_over_inside)
 un <- peri_union |>
-  filter(region == "margin", threshold_um == 500) |>
+  filter(region == "margin", threshold_um == D_MAIN) |>
   select(patient_id, union_cd45 = cd45_over_inside)
 cmp <- inner_join(pa, un, by = "patient_id") |>
   filter(is.finite(cd45_over_inside), is.finite(union_cd45))
@@ -1045,7 +1076,7 @@ if (nrow(cmp) > 1) {
     geom_line(aes(y = union_cd45, group = 1), colour = "grey60") +
     geom_point(aes(y = union_cd45), colour = "grey40", size = 3, shape = 18) +
     geom_jitter(aes(colour = annotation), width = 0.05, size = 2, alpha = 0.85) +
-    labs(title = "Margin immune fraction: single annotations vs union (d = 500 µm)",
+    labs(title = paste0("Margin immune fraction: single annotations vs union (d = ", D_MAIN, " µm)"),
          x = "patient", y = "CD45+ fraction in margin band", colour = "annotation") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
@@ -1054,7 +1085,7 @@ if (nrow(cmp) > 1) {
 ### Margin composition (three denominators)
 
 The same three-denominator composition used inside the tumour, applied to the
-margin band at `d = 500` microns:
+margin band at `d = D_MAIN` (200) microns:
 
 ```
 frac_inside = n_<lineage> / n_inside         (of all cells in band)
@@ -1064,7 +1095,7 @@ frac_cd45   = n_<lineage> / n_cd45_inside    (of CD45+ cells in band)
 
 ```{r margin-composition, eval = have_margin, fig.height=5}
 comp <- peri_union |>
-  filter(region == "margin", threshold_um == 500) |>
+  filter(region == "margin", threshold_um == D_MAIN) |>
   region_composition() |>
   pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
                names_to = "normalization", values_to = "frac") |>
@@ -1080,7 +1111,7 @@ if (nrow(comp) > 0) {
     geom_jitter(width = .15, alpha = .5, size = 1) +
     facet_wrap(~ normalization, scales = "free_y") +
     scale_fill_manual(values = oi, guide = "none") +
-    labs(title = "Immune composition in the invasive-margin band (d = 500 µm)",
+    labs(title = paste0("Immune composition in the invasive-margin band (d = ", D_MAIN, " µm)"),
          x = NULL, y = "fraction") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
@@ -1088,7 +1119,7 @@ if (nrow(comp) > 0) {
 
 ### Margin cell-type fractions: hot vs cold
 
-Same margin-band composition (d = 500 µm, union), now split by the clinical
+Same margin-band composition (d = D_MAIN = 200 µm, union), now split by the clinical
 `Immuno-phenotype`: for each lineage, the boxes contrast **hot** vs **cold** tumours.
 
 ```
@@ -1098,7 +1129,7 @@ compared per lineage and per denominator (of all cells / tumour cells / CD45+ ce
 
 ```{r margin-composition-hotcold, eval = have_margin, fig.height=5}
 comp_hc <- peri_union |>
-  filter(region == "margin", threshold_um == 500) |>
+  filter(region == "margin", threshold_um == D_MAIN) |>
   region_composition() |>
   inner_join(clin, by = "patient_id") |>
   filter(!is.na(immuno_phe)) |>
@@ -1119,7 +1150,7 @@ if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
     facet_wrap(~ normalization, scales = "free_y") +
     scale_colour_manual(values = hotcold_cols(levels(comp_hc$immuno_phe)),
                         name = "Immuno-phenotype") +   # hot = red, cold = light blue
-    labs(title = "Invasive-margin cell-type fractions: hot vs cold (d = 500 µm)",
+    labs(title = paste0("Invasive-margin cell-type fractions: hot vs cold (d = ", D_MAIN, " µm)"),
          subtitle = sprintf("%d patients with a margin band and an immuno-phenotype",
                             dplyr::n_distinct(comp_hc$patient_id)),
          x = NULL, y = "fraction in margin band") +

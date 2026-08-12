@@ -245,46 +245,6 @@ if (have_helpers) {
 }
 ```
 
-## 3(d) Spatial phenotype map — **computed**
-
-Cells coloured by phenotype call, in the geojson pixel frame, with the
-pathologist's polygon outlined. The whole-slide panel and its inset are exported
-as **separate PDFs** on purpose — place, scale and label them in Affinity rather
-than accepting a composite baked in R.
-
-```{r fig3d-map, fig.width=6.2, fig.height=5.2}
-map_pid <- NULL
-if (have_cells) {
-  # The exemplar: whichever patient has the most cells, so the map is dense enough
-  # to read at figure size. Override by hand when the paper wants a specific case.
-  map_pid <- as_cells |> count(patient_id, sort = TRUE) |> slice(1) |> pull(patient_id)
-  p <- paper_phenotype_map(as_cells, patient_id = map_pid, annots = as_polys,
-                           title = paste("Patient", map_pid, "— phenotype calls"))
-  if (!is.null(p)) print(p)
-}
-if (is.null(map_pid)) cat("_No cells — see the loader note at the top of the page._\n")
-```
-
-```{r fig3d-inset, fig.width=4.4, fig.height=4.0}
-# The inset comes from the SAME function, so it cannot drift from the map above.
-# The window is a fixed fraction of the field centred on the densest patch: an
-# inset that lands on empty slide shows nothing, and choosing it by eye each time
-# makes the figure unreproducible.
-if (have_cells && !is.null(map_pid)) {
-  cp <- dplyr::filter(as_cells, slide_key(patient_id) == slide_key(map_pid))
-  xy <- cell_centroids_px(cp)
-  ok <- is.finite(xy$x) & is.finite(xy$y)
-  if (any(ok)) {
-    cx <- median(xy$x[ok]); cy <- median(xy$y[ok])
-    w  <- diff(range(xy$x[ok])) * 0.12; h <- diff(range(xy$y[ok])) * 0.12
-    p <- paper_phenotype_map(as_cells, patient_id = map_pid, annots = as_polys,
-                             zoom = c(cx - w, cx + w, cy - h, cy + h),
-                             title = paste0("Patient ", map_pid, " — inset"))
-    if (!is.null(p)) print(p)
-  }
-}
-```
-
 ---
 
 # Figure 4 — cross-panel registration accuracy
@@ -383,7 +343,7 @@ if (identical(arm_source, "real")) {
 
 ## 5(a) Registered, phenotyped cases — **computed**
 
-The same renderer as 3(d), one panel per case. Exported one PDF per case.
+`paper_phenotype_map()`, one panel per case. Exported one PDF per case.
 
 ```{r fig5a, fig.width=5.4, fig.height=4.6}
 if (have_cells) {
