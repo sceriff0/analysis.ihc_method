@@ -13,7 +13,7 @@ spatial single-cell IHC, bulk RNA-seq, cell-type deconvolution, clinical data,
 and the image-registration / segmentation benchmarks that validate the pipeline.
 
 The single-cell inputs come from the sibling repos: cells are segmented and
-quantified by **mirage** (`../mirage`), which also phenotypes them, and gated
+quantified by **mirage** (`../mirage`), and gated
 independently in QuPath by **FlowPath** (`../qupath-extension-flowpath`); the
 benchmark tables come from mirage's `benchmarks/` sweep. `code/cell_tables.R`
 reconciles the export schemas and the two phenotype vocabularies those tools
@@ -40,7 +40,7 @@ Every page defines `SLUG` equal to its own filename and calls
 `export_pdf_figures(SLUG)` last, so a page's vector figures always land in
 `output/figures/<page name>/`.
 
-## Building the manuscript figures
+## Building the manuscript figures TODO
 
 - [Paper figures](paper_figures.html) — the panel assembly sheet. One panel per
   plot at publication proportions, exported as vector PDFs to
@@ -65,15 +65,6 @@ pathologist's own polygons, region by region.
   This is the check the page above depends on: if membership itself is wrong, nothing
   downstream of it means anything.
 
-> **The mirage-phenotyping arm is withdrawn for now.** `clinical_mirage` ran the
-> identical analysis on cells MIRAGE phenotyped itself (`panel.yaml`, no human in the
-> loop) over the same slides and the same polygons, so the two pages differed by the
-> phenotyping method alone. With one arm left, the shared body it was split into is
-> inlined back into `clinical_flowpath.Rmd` — which also removes workflowr's spurious
-> *"custom fig.path was ignored"* warning, an artefact of the `child=` indirection
-> rather than of anything the page did. `code/mirage_cells.R` and its tests stay put,
-> so restoring the arm is a page, not a rewrite.
-
 ## Part 2 — Bulk RNA, deconvolution and the hot/cold axis
 
 - [Bulk RNA, deconvolution and the hot/cold axis](molecular_hot_cold.html) — one page,
@@ -85,13 +76,6 @@ pathologist's own polygons, region by region.
   and immuno-phenotype. Points in parts 1 and 2 are coloured by that same clinical
   call, so a readout that only tracks IHC in hot tumours is visible as a colour split
   rather than hidden inside a middling correlation.
-
-  > This page replaces `bulkRna`, `deconvolution` and `periphery`. They shared the
-  > CRF-to-slide id bridge, the clinical hot/cold lookup and the whole-slide `ihc_data`
-  > reduction and re-derived all three independently; now those are built once, in the
-  > page's **Shared keys** chunk. Each of the three parts still degrades to a message
-  > when its own input is missing, so a machine without `immunedeconv` or without the
-  > pathologist geojson still knits the rest.
 
 ## Part 3 — Registration accuracy on the study run
 
@@ -110,7 +94,7 @@ manuscript needs.
   where the comparability rules live: mirage's `rigid` QC stage means affine ∘
   micro-rigid at depth ≥ 1, so it cannot be compared across depths.
 
-## Part 4 — Benchmarks
+## Part 4 — Benchmarks TODO
 
 Both read mirage's `benchmarks/` **sweep**, which runs on synthetic images with a
 known injected transform to measure cost and scaling. They say nothing about your
@@ -124,7 +108,7 @@ samples — part 3 does that.
 
 ## Marker QC (internal, no external reference)
 
-- [Marker QC](marker_qc.html) _(in progress)_ — whether the FlowPath gating is
+- [Marker QC](marker_qc.html) — whether the FlowPath gating is
   self-consistent before anything is compared against it: per-channel usability and
   bimodality, phenotype ↔ marker agreement, morphology by phenotype, then lineage
   leakage (CD45 firing inside tumour phenotypes, PANCK inside immune ones) and
@@ -136,12 +120,3 @@ samples — part 3 does that.
 - [About](about.html) — study and site background.
 - [License](license.html) — reuse terms for the code and results.
 - [Source code](https://github.com/sceriff0/ihc_method) — GitHub repository.
-
-> **Pages removed.** `clinical_mirage` is withdrawn (see part 1). `overview` was an
-> empty stub and its role is this page.
-> `clinical_data_per_annotation` and `..._per_annotation_old` were removed on
-> 2026-08-11: they took membership from the exporter's precomputed
-> `Out_of_annotation` column instead of from geometry, reading
-> `data/flowpath/per_annotation/<patient>_a<k>.csv` and an `old/` overlay — a layout
-> the export no longer produces. The current export ships a polygon *per region*, so
-> geometry is available everywhere the flag used to be the only option.

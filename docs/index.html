@@ -11,7 +11,7 @@
 
 
 
-<title>Home</title>
+<title>IHC method — analysis home</title>
 
 <script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -258,14 +258,78 @@ $(document).ready(function () {
   <a href="index.html">Home</a>
 </li>
 <li>
-  <a href="about.html">About</a>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_flowpath.html">Clinical concordance (FlowPath)</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
 </li>
 <li>
-  <a href="license.html">License</a>
+  <a href="molecular_hot_cold.html">2 · Molecular</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <li>
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
   <a href="https://github.com/sceriff0/ihc_method">
     <span class="fab fa-github"></span>
      
@@ -281,7 +345,7 @@ $(document).ready(function () {
 
 
 
-<h1 class="title toc-ignore">Home</h1>
+<h1 class="title toc-ignore">IHC method — analysis home</h1>
 
 </div>
 
@@ -289,7 +353,7 @@ $(document).ready(function () {
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-workflowr <span class="glyphicon glyphicon-ok text-success"
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
 aria-hidden="true"></span>
 </button>
 </p>
@@ -300,8 +364,8 @@ aria-hidden="true"></span>
 </li>
 <li>
 <a data-toggle="tab" href="#checks"> Checks <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
-</a>
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
 </li>
 <li>
 <a data-toggle="tab" href="#versions">Past versions</a>
@@ -310,13 +374,13 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-07-05
+<strong>Last updated:</strong> 2026-08-12
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 2
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 1
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> 0
+aria-hidden="true"></span> 1
 </p>
 <p>
 <strong>Knit directory:</strong> <code>ihc_method/</code> <span
@@ -339,33 +403,36 @@ versions</em> tab lists the development history.
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
-<span class="glyphicon glyphicon-ok text-success"
-aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
-</a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguptodate"
+<div id="strongRMarkdownfilestronguncommittedchanges"
 class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great! Since the R Markdown file has been committed to the Git
-repository, you know the exact version of the code that produced these
-results.</p>
+<p>The R Markdown file has unstaged changes. To know which version of
+the R Markdown file created these results, you’ll want to first commit
+it to the Git repo. If you’re still working on the analysis, you can
+ignore this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
 </div>
 </div>
 </div>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree3e16177b2e44c4a1a466d4120f1b9e2d57472baetargetblank3e16177a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree9b194614f34022b3702206c68229fc86b9f25123targetblank9b19461a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/3e16177b2e44c4a1a466d4120f1b9e2d57472bae" target="_blank">3e16177</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/9b194614f34022b3702206c68229fc86b9f25123" target="_blank">9b19461</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree3e16177b2e44c4a1a466d4120f1b9e2d57472baetargetblank3e16177a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree9b194614f34022b3702206c68229fc86b9f25123targetblank9b19461a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -375,7 +442,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/3e16177b2e44c4a1a466d4120f1b9e2d57472bae" target="_blank">3e16177</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/9b194614f34022b3702206c68229fc86b9f25123" target="_blank">9b19461</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -390,10 +457,19 @@ were generated:
 </p>
 <pre><code>
 Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/
+    Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
     Ignored:    renv/library/
     Ignored:    renv/staging/
+
+Unstaged changes:
+    Modified:   .gitignore
+    Modified:   README.md
+    Modified:   analysis/index.Rmd
 
 </code></pre>
 <p>
@@ -443,6 +519,200 @@ Message
 Rmd
 </td>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/1f3d09df9b4d871b4ce1c6871ac7e3c9b3e0b28b/analysis/index.Rmd" target="_blank">1f3d09d</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:recycle: drop the mirage arm, fix the fig.path warning, retune the
+margin bands
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/360ee92ef062086ca8b268e9275f7139c7b8c3b8/analysis/index.Rmd" target="_blank">360ee92</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:recycle: reorganise the workflowr site into four ordered parts
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/b1639b8970836674d8511f520e958209764e34c9/analysis/index.Rmd" target="_blank">b1639b8</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-11
+</td>
+<td>
+:fire: make the all-slide export the only FlowPath source
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3bf05c12b6a999ed9ea5e4545fef358e45ba1922/analysis/index.Rmd" target="_blank">3bf05c1</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-11
+</td>
+<td>
+:memo: document the new pages, the two stage vocabularies and the
+all-slide rule
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/8b763e0ecb1b1db5b50fd8143fd0ec50bd437285/analysis/index.Rmd" target="_blank">8b763e0</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-10
+</td>
+<td>
+:sparkles: add a run-QC page: registration and phenotyping accuracy on
+the study samples
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/ca2aeb7b29c07d9c11b64b5286e2e99c988b65f7/analysis/index.Rmd" target="_blank">ca2aeb7</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-10
+</td>
+<td>
+:sparkles: add mirage phenotyping as a fourth cell source, compared to
+clinical like FlowPath
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/46aa77bde183ec334a4acbf813f3801b490fb540/analysis/index.Rmd" target="_blank">46aa77b</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-10
+</td>
+<td>
+:recycle: decouple the analyses from the FlowPath export schema; merge
+the clinical_data trio
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/5e4f1e99ef0bdd81b3b8410c616cc593e07e19be/analysis/index.Rmd" target="_blank">5e4f1e9</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-07-24
+</td>
+<td>
+:memo: reconcile benchmark prose to current accuracy schema; link
+reg-accuracy page
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/d016ac9a7b7dc9045de2d90a7102e97e65a13a3c/analysis/index.Rmd" target="_blank">d016ac9</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-07-20
+</td>
+<td>
+:sparkles: add old/ overlay + whole-slide fallback to per-annotation
+analysis
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/42c64919444a619e4277fc12c9106714526feef4/analysis/index.Rmd" target="_blank">42c6491</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-07-08
+</td>
+<td>
+:loud_sound: added proper index.html
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/711533970658794d8e51566ac4c7e45404fa1148/docs/index.html" target="_blank">7115339</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-07-05
+</td>
+<td>
+:wrench: built the site
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/b70ccb229bffe7249bbffea62b5a7a8fe419eb50/analysis/index.Rmd" target="_blank">b70ccb2</a>
 </td>
 <td>
@@ -462,7 +732,189 @@ sceriff0
 </div>
 </div>
 </div>
-<p>Welcome to my research website.</p>
+<p>This site collects the reproducible analyses behind the IHC method
+study — spatial single-cell IHC, bulk RNA-seq, cell-type deconvolution,
+clinical data, and the image-registration / segmentation benchmarks that
+validate the pipeline.</p>
+<p>The single-cell inputs come from the sibling repos: cells are
+segmented and quantified by <strong>mirage</strong>
+(<code>../mirage</code>), and gated independently in QuPath by
+<strong>FlowPath</strong> (<code>../qupath-extension-flowpath</code>);
+the benchmark tables come from mirage’s <code>benchmarks/</code> sweep.
+<code>code/cell_tables.R</code> reconciles the export schemas and the
+two phenotype vocabularies those tools produce, so every analysis here
+reads one vocabulary — see <code>code/README.md</code>.</p>
+<div id="how-the-site-is-organised" class="section level2">
+<h2>How the site is organised</h2>
+<p>Four parts, in the order the study is read. Each part is one claim,
+and the navbar has one entry per part.</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>part</th>
+<th>claim</th>
+<th>pages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1 · Clinical</strong></td>
+<td>cells land in the right region, and FlowPath’s phenotypes agree with
+the pathologist</td>
+<td><code>clinical_flowpath</code>,
+<code>clinical_membership_qc</code></td>
+</tr>
+<tr class="even">
+<td><strong>2 · Molecular</strong></td>
+<td>bulk RNA, deconvolution and the invasive margin agree with the
+slide, and with the clinical hot/cold call</td>
+<td><code>molecular_hot_cold</code></td>
+</tr>
+<tr class="odd">
+<td><strong>3 · Registration</strong></td>
+<td>the study slides were registered well enough to analyse, under a
+configuration chosen on real tissue</td>
+<td><code>registration_run_qc</code>,
+<code>registration_arms</code></td>
+</tr>
+<tr class="even">
+<td><strong>4 · Benchmarks</strong></td>
+<td>the pipeline’s cost and accuracy scale as claimed, measured on
+synthetic images</td>
+<td><code>benchmark_registration</code>,
+<code>benchmark_pipeline</code></td>
+</tr>
+</tbody>
+</table>
+<p>The filename prefix is the part: anything <code>clinical_*</code>
+belongs to part 1, <code>registration_*</code> to part 3,
+<code>benchmark_*</code> to part 4. Two pages sit outside the four —
+<code>paper_figures</code> (the manuscript assembly sheet) and
+<code>marker_qc</code> (internal gating QC that everything else assumes
+has passed).</p>
+<p>Every page defines <code>SLUG</code> equal to its own filename and
+calls <code>export_pdf_figures(SLUG)</code> last, so a page’s vector
+figures always land in
+<code>output/figures/&lt;page name&gt;/</code>.</p>
+</div>
+<div id="building-the-manuscript-figures-todo" class="section level2">
+<h2>Building the manuscript figures TODO</h2>
+<ul>
+<li><a href="paper_figures.html">Paper figures</a> — the panel assembly
+sheet. One panel per plot at publication proportions, exported as vector
+PDFs to <code>output/figures/paper_figures/</code> for assembly in
+Affinity, plus a named slot with acquisition instructions for every
+panel that has to be a screenshot or a microscope crop. Reads the
+all-slide export (<code>data/all_slide/</code>); knit it to see which
+panels are ready and which are still missing their input.</li>
+</ul>
+</div>
+<div id="part-1-clinical-data-and-neoplastic-concordance"
+class="section level2">
+<h2>Part 1 — Clinical data and neoplastic concordance</h2>
+<p>Phenotypes come from <strong>FlowPath’s</strong> QuPath gate tree;
+membership from the pathologist’s own polygons, region by region.</p>
+<ul>
+<li><a href="clinical_flowpath.html">Clinical concordance — FlowPath</a>
+— the main clinical page. A cell is inside when its centroid falls in
+<strong>that region’s own</strong> polygon (sf point-in-polygon),
+because the all-slide export pairs a cell csv with a geojson region by
+region. A patient with no annotation directory is entirely inside — the
+layout’s own convention, marked <code>whole_slide</code> rather than
+guessed. Includes the concordance against the pathologist’s
+neoplastic-cellularity score.</li>
+<li><a href="clinical_membership_qc.html">Annotation membership QC</a>
+<em>(in progress)</em> — sf point-in-polygon membership vs. the
+<code>Out_of_annotation</code> flag, compared per cell. This is the
+check the page above depends on: if membership itself is wrong, nothing
+downstream of it means anything.</li>
+</ul>
+</div>
+<div id="part-2-bulk-rna-deconvolution-and-the-hotcold-axis"
+class="section level2">
+<h2>Part 2 — Bulk RNA, deconvolution and the hot/cold axis</h2>
+<ul>
+<li><a href="molecular_hot_cold.html">Bulk RNA, deconvolution and the
+hot/cold axis</a> — one page, three parts, one question: does a bulk
+readout agree with the slide, and does that agreement depend on whether
+the tumour is immunologically hot or cold? Part 1 is per-marker bulk
+expression vs the IHC positive-cell fraction; part 2 is
+<code>immunedeconv</code> cell-type scores vs the IHC lineage fractions;
+part 3 is the invasive-margin band (CD45+ fraction and density) against
+the clinical <code>HOT score</code> and immuno-phenotype. Points in
+parts 1 and 2 are coloured by that same clinical call, so a readout that
+only tracks IHC in hot tumours is visible as a colour split rather than
+hidden inside a middling correlation.</li>
+</ul>
+</div>
+<div id="part-3-registration-accuracy-on-the-study-run"
+class="section level2">
+<h2>Part 3 — Registration accuracy on the study run</h2>
+<p>These two read the <strong>real slides</strong>. They answer
+different questions and are not interchangeable; <a
+href="registration_arms.html">registration arms</a> is the one the
+manuscript needs.</p>
+<ul>
+<li><a href="registration_run_qc.html">Run QC — the study samples</a> —
+the registration QC of the run that produced the analysed data: VALIS’s
+or STARE’s own registration error (including STARE’s per-tile spatial
+map) and the independent DAPI-nucleus overlap cross-check. Reads
+<code>data/mirage/</code> and needs nothing else — the only page that
+renders from a pipeline run alone, with no counts, no clinical table and
+no gating.</li>
+<li><a href="registration_arms.html">Registration arms</a> — the study
+slides registered <strong>once per configuration</strong>
+(<code>memory_mode</code> high/low crossed with
+<code>reg_micro_reg</code> 0/1/2 = six arms). Ranks the arms on real
+tissue and separates what each knob buys. Also where the comparability
+rules live: mirage’s <code>rigid</code> QC stage means affine ∘
+micro-rigid at depth ≥ 1, so it cannot be compared across depths.</li>
+</ul>
+</div>
+<div id="part-4-benchmarks-todo" class="section level2">
+<h2>Part 4 — Benchmarks TODO</h2>
+<p>Both read mirage’s <code>benchmarks/</code> <strong>sweep</strong>,
+which runs on synthetic images with a known injected transform to
+measure cost and scaling. They say nothing about your samples — part 3
+does that.</p>
+<ul>
+<li><a href="benchmark_registration.html">Registration accuracy —
+synthetic sweep</a> — VALIS feature rTRE per stage, the
+segmentation-overlap cross-check, accuracy vs cost, and an agreement
+view of the two estimates.</li>
+<li><a href="benchmark_pipeline.html">Pipeline benchmarks</a> — resource
+scaling, I/O volume, whole-pipeline cost and segmentation-method
+comparison.</li>
+</ul>
+</div>
+<div id="marker-qc-internal-no-external-reference"
+class="section level2">
+<h2>Marker QC (internal, no external reference)</h2>
+<ul>
+<li><a href="marker_qc.html">Marker QC</a> — whether the FlowPath gating
+is self-consistent before anything is compared against it: per-channel
+usability and bimodality, phenotype ↔︎ marker agreement, morphology by
+phenotype, then lineage leakage (CD45 firing inside tumour phenotypes,
+PANCK inside immune ones) and marker-pair exclusivity. Replaces the
+former <code>ihc_qc</code> and <code>exclusivity</code> pages, which
+asked the same question of the same table from two directions.</li>
+</ul>
+</div>
+<div id="about" class="section level2">
+<h2>About</h2>
+<ul>
+<li><a href="about.html">About</a> — study and site background.</li>
+<li><a href="license.html">License</a> — reuse terms for the code and
+results.</li>
+<li><a href="https://github.com/sceriff0/ihc_method">Source code</a> —
+GitHub repository.</li>
+</ul>
+</div>
 
 
 <!-- Adjust MathJax settings so that all math formulae are shown using

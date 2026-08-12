@@ -1,0 +1,1409 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-11" />
+
+<title>Registration arms — choosing a configuration on the real slides</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ihc_method</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_flowpath.html">Clinical concordance (FlowPath)</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="molecular_hot_cold.html">2 · Molecular</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/sceriff0/ihc_method">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Registration arms — choosing a
+configuration on the real slides</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-11</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-12
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>ihc_method/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260630code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260630)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260630code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260630)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree9b194614f34022b3702206c68229fc86b9f25123targetblank9b19461a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/ihc_method/tree/9b194614f34022b3702206c68229fc86b9f25123" target="_blank">9b19461</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree9b194614f34022b3702206c68229fc86b9f25123targetblank9b19461a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/ihc_method/tree/9b194614f34022b3702206c68229fc86b9f25123" target="_blank">9b19461</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/
+    Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
+    Ignored:    renv/library/
+    Ignored:    renv/staging/
+
+Unstaged changes:
+    Modified:   .gitignore
+    Modified:   README.md
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/registration_arms.Rmd</code>) and
+HTML (<code>docs/registration_arms.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/360ee92ef062086ca8b268e9275f7139c7b8c3b8/analysis/registration_arms.Rmd" target="_blank">360ee92</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:recycle: reorganise the workflowr site into four ordered parts
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/d8c9575959eb2e0e7bf429cd84493b20de79da3e/analysis/registration_arms.Rmd" target="_blank">d8c9575</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-11
+</td>
+<td>
+:sparkles: rank registration configurations on the real slides, not the
+sweep
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="starting-data-and-notation" class="section level2">
+<h2>Starting data and notation</h2>
+<p>The study slides, registered <strong>once per configuration</strong>.
+Three pages now read registration accuracy and they answer different
+questions — this one answers <em>which configuration do we ship, and
+what does it buy?</em></p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>page</th>
+<th>data</th>
+<th>question</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><a href="benchmark_registration.html">Registration accuracy</a></td>
+<td>mirage’s <code>benchmarks/</code> sweep on
+<strong>synthetic</strong> images with a known injected offset</td>
+<td>how does cost and accuracy scale?</td>
+</tr>
+<tr class="even">
+<td><a href="registration_run_qc.html">Run QC</a></td>
+<td><strong>one</strong> run on the study slides</td>
+<td>was this cohort registered well enough to analyse?</td>
+</tr>
+<tr class="odd">
+<td><strong>this page</strong></td>
+<td>the study slides, <strong>N runs</strong>, one per arm</td>
+<td>which configuration, and what does each knob buy?</td>
+</tr>
+</tbody>
+</table>
+<p>The manuscript’s registration-accuracy figure needs <em>this</em>
+page, not the sweep: an arm ranking measured on real tissue rather than
+on a synthetic offset.</p>
+<div id="the-axes" class="section level3">
+<h3>The axes</h3>
+<p><strong>Two VALIS knobs, crossed:</strong></p>
+<ul>
+<li><strong><code>memory_mode</code></strong> — the VALIS accuracy
+preset. <code>low</code> is BRISK/RANSAC at small dimensions;
+<code>high</code> is SuperPoint/SuperGlue at larger ones. These are
+<strong>different feature matchers</strong>, not one matcher at two
+resolutions — worth stating plainly, because a figure legend that says
+otherwise is describing a different experiment.</li>
+<li><strong><code>reg_micro_reg</code></strong> — micro-registration
+<strong>depth</strong>, nested, <em>not</em> a boolean: <code>0</code> =
+none, <code>1</code> = micro-rigid only (refines <code>slide.M</code>),
+<code>2</code> = additionally micro non-rigid
+(<code>register_micro</code>).</li>
+</ul>
+<p>Crossing them gives 2 × 3 = <strong>six arms</strong>, not the 2 × 2
+an on/off reading would.</p>
+<p><strong>Plus a backend comparator, on a different axis:</strong></p>
+<ul>
+<li><strong><code>registration_method = tiled</code></strong> — STARE,
+at defaults. A <em>different backend</em>: JVM-free, internally tiled,
+runnable on a laptop. <code>memory_mode</code> and
+<code>reg_micro_reg</code> are <strong>VALIS-only params</strong>, so a
+tiled arm has neither and carries <code>NA</code> for both. It is not a
+seventh cell of the preset × depth grid; it is one point of comparison
+against the whole grid.</li>
+</ul>
+<p><strong>Why a cross-backend comparison is legitimate at all.</strong>
+The segmentation-overlap scorer is method-agnostic —
+<code>bin/warp_seg_qc.py</code> takes <code>--method</code> and builds
+its warper from either a VALIS registrar pickle or a STARE transform
+manifest — so the metric is the same measurement in both cases. That is
+the one thing that makes “which backend aligns better” answerable
+here.</p>
+<p><strong>What is not comparable is the stage axis.</strong>
+<code>lib/WarpBackends.groovy</code> declares one stage list per backend
+and they are different vocabularies:</p>
+<table>
+<thead>
+<tr class="header">
+<th>backend</th>
+<th>stages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>valis</code></td>
+<td><code>native → rigid → non_rigid → micro</code></td>
+</tr>
+<tr class="even">
+<td><code>tiled</code></td>
+<td><code>native → rigid → refined</code></td>
+</tr>
+</tbody>
+</table>
+<p>Only <code>native</code> is shared as both a spelling and a meaning.
+<code>rigid</code> is shared as a <strong>word</strong> and not as an
+<strong>operation</strong>: for VALIS it is the affine transform
+(composed with micro-rigid at depth ≥ 1); for STARE it is the coarse
+global anchor before mesh refinement.</p>
+<p><strong>And each backend reports its own error in its own units, in
+its own file.</strong> VALIS writes rTRE (a fraction of the image
+diagonal) or a raw distance to <code>registered/summary/*.csv</code>;
+STARE writes TRE in <strong>pixels</strong> to
+<code>qc/registration/*_tre.json</code>, with a per-tile breakdown VALIS
+has no equivalent of. Those get separate figures here, never a shared
+axis — a pixel TRE beside a diagonal-relative rTRE is a unit error
+dressed up as a comparison.</p>
+</div>
+<div id="where-the-numbers-come-from" class="section level3">
+<h3>Where the numbers come from</h3>
+<p>Every arm is a normal mirage run at <code>reg_qc = 2</code>, so each
+emits the staged segmentation-overlap QC: DAPI segmented on the
+<strong>native</strong> image, cells paired <strong>once</strong> at the
+rigid anchor, then those same pairs re-scored after each stage. Because
+the pairing is held fixed, a change between stages is geometry and not a
+change in which cells got compared.</p>
+<pre><code>data/registration_arms/&lt;arm&gt;/&lt;patient&gt;/qc/registration/*_seg_qc.json
+data/registration_arms/&lt;arm&gt;/&lt;patient&gt;/registered/summary/*.csv   (optional)
+data/registration_arms/arms.csv                                   (optional, preferred)</code></pre>
+<p>Every reader here is <code>run_qc.R</code>’s, called once per arm
+tree — the artifacts are the same artifacts, only the number of trees
+changed.</p>
+<table>
+<caption>The arms found, and how each was labelled. A <code>tiled</code>
+arm carries no preset and no micro depth — those params do not exist on
+that backend.</caption>
+<colgroup>
+<col width="33%" />
+<col width="25%" />
+<col width="11%" />
+<col width="16%" />
+<col width="13%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">arm</th>
+<th align="left">arm_dir</th>
+<th align="left">backend</th>
+<th align="left">memory_mode</th>
+<th align="right">micro_reg</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">low / micro 0</td>
+<td align="left">valis_low_micro0</td>
+<td align="left">valis</td>
+<td align="left">low</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">low / micro 1</td>
+<td align="left">valis_low_micro1</td>
+<td align="left">valis</td>
+<td align="left">low</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">low / micro 2</td>
+<td align="left">valis_low_micro2</td>
+<td align="left">valis</td>
+<td align="left">low</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">high / micro 0</td>
+<td align="left">valis_high_micro0</td>
+<td align="left">valis</td>
+<td align="left">high</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">high / micro 1</td>
+<td align="left">valis_high_micro1</td>
+<td align="left">valis</td>
+<td align="left">high</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">high / micro 2</td>
+<td align="left">valis_high_micro2</td>
+<td align="left">valis</td>
+<td align="left">high</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">tiled (STARE, defaults)</td>
+<td align="left">tiled_defaults</td>
+<td align="left">tiled</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Label the arms explicitly.</strong> Directory names are
+parsed for <code>high</code>/<code>low</code> and a micro depth, but a
+mislabelled arm does not fail — it produces a clean figure with the
+conclusion inverted. Write <code>data/registration_arms/arms.csv</code>
+and the parse is bypassed:</p>
+<pre><code>arm_dir,backend,memory_mode,micro_reg
+valis_high_micro2,valis,high,2
+valis_low_micro0,valis,low,0
+tiled_defaults,tiled,,</code></pre>
+<p>A directory name containing <code>tiled</code> or <code>stare</code>
+is read as the tiled backend and is <em>not</em> scanned for preset or
+depth — reading knobs off a run that never had them would invent
+values.</p>
+</blockquote>
+</div>
+</div>
+<div id="what-may-be-compared-across-arms-and-what-may-not"
+class="section level2">
+<h2>What may be compared across arms, and what may not</h2>
+<p>This sweep crosses REGISTRATION BACKENDS (tiled and valis). They do
+not share a stage vocabulary — VALIS reports
+<code>native → rigid → non_rigid → micro</code>, STARE reports
+<code>native → rigid → refined</code> — and <code>rigid</code> is a
+shared word rather than a shared operation (VALIS: affine, composed with
+micro-rigid at depth ≥ 1; STARE: the coarse global anchor before mesh
+refinement). Only <code>native</code> and each run’s FINAL stage may be
+put on one axis. The segmentation-overlap METRIC is backend-agnostic —
+mirage’s scorer builds its warper from either a VALIS registrar or a
+STARE manifest — which is what makes the final-stage comparison
+legitimate at all.</p>
+<p>Stages directly comparable across these arms:
+<code>native</code>.</p>
+<p>Three traps are worth stating before any figure:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>A tiled arm’s final stage is <code>refined</code>, and a
+VALIS-only stage vocabulary drops it.</strong>
+<code>read_seg_qc()</code> factors the stage against the known list;
+anything unknown becomes <code>NA</code> and is filtered out. With a
+VALIS-only list, every STARE <code>refined</code> row vanished and the
+tiled arm’s “final” stage came out as <code>rigid</code> — making the
+backend look far worse than it is, with no error and no missing-data
+warning. The stage vocabulary now covers both backends, and “the last
+stage” is read from each run’s own <code>stage_order</code> rather than
+from a shared ordering.</p></li>
+<li><p><strong><code>rigid</code> is not “rigid only”.</strong> mirage
+defines the QC <code>rigid</code> stage as the rigid transform
+<em>after</em> <code>MicroRigidRegistrar</code> refined it. At
+<code>reg_micro_reg = 0</code> that is affine alone; at <code>≥ 1</code>
+it is affine ∘ micro-rigid. Putting <code>rigid</code> on one axis
+across a depth-crossed sweep plots two different transforms and reads as
+a micro-registration effect that is really a definition change.
+<strong>A true rigid-only baseline exists only in the depth-0
+arms.</strong></p></li>
+<li><p><strong><code>native</code> is only nearly comparable.</strong>
+It is the untransformed segmentation, so it looks like a clean
+no-registration baseline — but the pairing is established at the rigid
+anchor, and arms with different rigid transforms pair different cells.
+Read it as a baseline; do not difference against it.</p></li>
+</ol>
+<p>Which is why the arms are ranked on <strong>each run’s final
+stage</strong> — the transform that arm actually ships. That stage is
+not constant: depths 0 and 1 emit no <code>micro</code> stage at all, so
+ranking on “the micro stage” would silently drop four of six arms.</p>
+<table>
+<caption>Stages each depth actually reported. Depths 0 and 1 emit no
+<code>micro</code> stage — at depth 1 the micro-rigid refinement has
+already been folded into <code>rigid</code>.</caption>
+<thead>
+<tr class="header">
+<th align="right">micro_reg</th>
+<th align="right">native</th>
+<th align="right">rigid</th>
+<th align="right">non_rigid</th>
+<th align="right">micro</th>
+<th align="right">refined</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">108</td>
+<td align="right">108</td>
+<td align="right">108</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">1</td>
+<td align="right">108</td>
+<td align="right">108</td>
+<td align="right">108</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">2</td>
+<td align="right">99</td>
+<td align="right">99</td>
+<td align="right">99</td>
+<td align="right">99</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="right">NA</td>
+<td align="right">54</td>
+<td align="right">54</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">54</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="headline-the-arm-ranking" class="section level2">
+<h2>Headline: the arm ranking</h2>
+<table>
+<caption>Per arm, median across slides at that arm’s final transform.
+Sorted by residual displacement — lower is better.
+<code>pair_fraction</code> is the trust check: read it before the
+ranking.</caption>
+<colgroup>
+<col width="21%" />
+<col width="7%" />
+<col width="10%" />
+<col width="8%" />
+<col width="7%" />
+<col width="10%" />
+<col width="10%" />
+<col width="11%" />
+<col width="12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">arm</th>
+<th align="left">backend</th>
+<th align="left">memory_mode</th>
+<th align="right">micro_reg</th>
+<th align="right">n_slides</th>
+<th align="left">final_stage</th>
+<th align="right">disp_um_p50</th>
+<th align="right">dice_matched</th>
+<th align="right">pair_fraction</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">high / micro 0</td>
+<td align="left">valis</td>
+<td align="left">high</td>
+<td align="right">0</td>
+<td align="right">54</td>
+<td align="left">non_rigid</td>
+<td align="right">0.904</td>
+<td align="right">0.778</td>
+<td align="right">0.873</td>
+</tr>
+<tr class="even">
+<td align="left">high / micro 1</td>
+<td align="left">valis</td>
+<td align="left">high</td>
+<td align="right">1</td>
+<td align="right">54</td>
+<td align="left">non_rigid</td>
+<td align="right">1.083</td>
+<td align="right">0.767</td>
+<td align="right">0.875</td>
+</tr>
+<tr class="odd">
+<td align="left">high / micro 2</td>
+<td align="left">valis</td>
+<td align="left">high</td>
+<td align="right">2</td>
+<td align="right">45</td>
+<td align="left">micro</td>
+<td align="right">1.101</td>
+<td align="right">0.762</td>
+<td align="right">0.876</td>
+</tr>
+<tr class="even">
+<td align="left">low / micro 2</td>
+<td align="left">valis</td>
+<td align="left">low</td>
+<td align="right">2</td>
+<td align="right">54</td>
+<td align="left">micro</td>
+<td align="right">1.194</td>
+<td align="right">0.710</td>
+<td align="right">0.803</td>
+</tr>
+<tr class="odd">
+<td align="left">low / micro 1</td>
+<td align="left">valis</td>
+<td align="left">low</td>
+<td align="right">1</td>
+<td align="right">54</td>
+<td align="left">non_rigid</td>
+<td align="right">1.919</td>
+<td align="right">0.639</td>
+<td align="right">0.803</td>
+</tr>
+<tr class="even">
+<td align="left">low / micro 0</td>
+<td align="left">valis</td>
+<td align="left">low</td>
+<td align="right">0</td>
+<td align="right">54</td>
+<td align="left">non_rigid</td>
+<td align="right">8.973</td>
+<td align="right">0.205</td>
+<td align="right">0.642</td>
+</tr>
+<tr class="odd">
+<td align="left">tiled (STARE, defaults)</td>
+<td align="left">tiled</td>
+<td align="left">NA</td>
+<td align="right">NA</td>
+<td align="right">54</td>
+<td align="left">refined</td>
+<td align="right">NA</td>
+<td align="right">0.735</td>
+<td align="right">0.867</td>
+</tr>
+</tbody>
+</table>
+<div id="final-residual-um-by-arm" class="section level3">
+<h3>final residual um by arm</h3>
+<p><strong>The arm ranking.</strong> Matched-nucleus centroid residual
+(median per slide) at each arm’s final transform, in microns. Physical
+units and no resolution floor, so this is the number to quote. One point
+per slide: with a handful of slides the points are the evidence, not the
+box.</p>
+<p><img src="figure/registration_arms.Rmd/figures-1.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="final-dice-by-arm" class="section level3">
+<h3>final dice by arm</h3>
+<p><strong>The same ranking, measured differently.</strong> Areal Dice
+over the matched pairs. It is bounded above by segmentation agreement
+rather than by registration, so read the ORDER, not the absolute level.
+Agreement with the residual figure is corroboration; disagreement is a
+reason to distrust both.</p>
+<p><img src="figure/registration_arms.Rmd/figures-2.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stage-ladder-within-arm" class="section level3">
+<h3>stage ladder within arm</h3>
+<p><strong>What each stage bought, within an arm.</strong> One line per
+moving slide, log y. Read DOWN a panel — inside one arm
+<code>rigid</code> has a fixed meaning. Do not read <code>rigid</code>
+ACROSS panels.</p>
+<p><img src="figure/registration_arms.Rmd/figures-3.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pair-fraction-by-arm" class="section level3">
+<h3>pair fraction by arm</h3>
+<p><strong>Is the ranking trustworthy?</strong> Fraction of nuclei
+paired at the rigid anchor. mirage’s own rule: below ~0.5 the later
+stages are scored on a biased subset of cells that happened to land
+close. An arm that wins on residual while pairing thinly has not
+won.</p>
+<p><img src="figure/registration_arms.Rmd/figures-4.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="knob-effects" class="section level3">
+<h3>knob effects</h3>
+<p><strong>Which knob moved the result.</strong> Final-transform
+residual by micro-registration depth, split by accuracy preset. The
+presets use different feature matchers (BRISK/RANSAC vs
+SuperPoint/SuperGlue), so a preset difference is a matcher
+difference.</p>
+<p><img src="figure/registration_arms.Rmd/figures-5.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="delta-vs-rigid-anchor" class="section level3">
+<h3>delta vs rigid anchor</h3>
+<p><strong>Did a stage make it worse?</strong> Residual minus the rigid
+stage’s. Above zero means that stage degraded the alignment. mirage
+catches-and-continues a failed micro-registration, so this regression is
+silent by design — this is where it surfaces.</p>
+<p><img src="figure/registration_arms.Rmd/figures-6.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="valis-intrinsic-by-arm" class="section level3">
+<h3>valis intrinsic by arm</h3>
+<p><strong>VALIS grading itself</strong>, one panel per arm, medians
+printed. Independent of every segmentation-overlap metric above — VALIS
+scoring its own feature correspondences — so agreement with the ranking
+figures is corroboration rather than restatement. <strong>Three stages
+from two columns:</strong> VALIS’s <code>error_df</code> is
+<code>filename</code>, <code>rigid_D</code>, <code>non_rigid_D</code>;
+micro-registration has no column of its own because it <em>updates the
+non-rigid field</em>, so the micro value lives in the difference between
+the pre-micro and final summaries rather than in a column. <strong>A
+missing <code>micro</code> box is the finding</strong> — that arm wrote
+no pre-micro summary, so <code>reg_micro_reg &lt; 2</code> and
+micro-registration never ran. A duplicated <code>non_rigid</code> box
+would instead read as ‘micro bought nothing’. Read DOWN a panel: the
+stage meanings differ across depths, which is why this facets rather
+than sharing one axis. See <a href="registration_run_qc.html">run QC</a>
+for the full column-and-file to stage mapping.</p>
+<p><img src="figure/registration_arms.Rmd/figures-7.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stare-intrinsic-tre-px" class="section level3">
+<h3>stare intrinsic tre px</h3>
+<p><strong>STARE grading itself</strong>, before and after mesh
+refinement. In <strong>pixels</strong> — this is deliberately a separate
+figure from the VALIS rTRE above, because the two are in different units
+and a shared axis would invite a comparison that is not one.</p>
+<p><img src="figure/registration_arms.Rmd/figures-8.png" alt="" width="720" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="notes" class="section level2">
+<h2>Notes</h2>
+<ul>
+<li><strong>This is the page the manuscript’s registration figure should
+cite</strong>, not <a href="benchmark_registration.html">registration
+accuracy</a>. That page reads the synthetic sweep, whose moving panels
+are shifted copies of channel 0, so a residual measured there reflects a
+known injected offset rather than real cross-acquisition difficulty. The
+arm ranking only means what the paper wants it to mean if it was
+measured on tissue.</li>
+<li><strong>Two independent estimates, again.</strong> The
+segmentation-overlap metrics (figures 1–4) and VALIS’s own error (figure
+7) are computed by different methods from different inputs. Their
+agreement is the argument; neither alone is.</li>
+<li><strong>Dice has a ceiling below 1 under perfect
+registration.</strong> Two independent segmentation runs on the same
+nucleus in different rounds do not produce identical outlines. The
+<em>delta</em> between stages is the registration signal; the absolute
+level is not.</li>
+<li><strong>A cheaper arm that pairs thinly is not cheaper.</strong>
+<code>pair_fraction</code> gates every other number on the page — check
+figure 4 before quoting figure 1.</li>
+<li><strong>The tiled arm answers a different question from the VALIS
+grid.</strong> The grid asks “which configuration of this backend?”; the
+tiled arm asks “is the other backend competitive at all?”. It ran at
+defaults, so a poor showing is evidence about STARE-at-defaults and not
+about STARE — it has its own knobs (<code>reg_tiled_tile</code>,
+<code>reg_tiled_halo</code>, <code>reg_tiled_gate_tre</code>,
+<code>reg_tiled_coarse_max_dim</code>) that this sweep never varied. Say
+so if the paper reports it, or a reader will read a tuned-versus-untuned
+comparison as backend-versus-backend.</li>
+<li><strong>The tiled backend is the only one that localises its
+error.</strong> If the paper needs to show <em>where</em> registration
+is hard on a slide rather than how hard on average, that figure only
+exists on this path.</li>
+<li><strong>The ANHIR/ACROBAT landmark evaluation is a different
+benchmark.</strong> mirage’s <code>benchmarks/registration_eval/</code>
+measures TRE against <strong>landmark ground truth</strong> on public
+datasets. Nothing on this page is ground-truth-anchored: it is a
+landmark-free internal comparison, which is the right tool for choosing
+between arms and the wrong one for an absolute accuracy claim.</li>
+</ul>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base     
+
+other attached packages:
+ [1] jsonlite_2.0.0  fs_2.1.0        here_1.0.2      lubridate_1.9.5
+ [5] forcats_1.0.1   stringr_1.6.0   dplyr_1.2.1     purrr_1.2.2    
+ [9] readr_2.2.0     tidyr_1.3.2     tibble_3.3.1    ggplot2_4.0.3  
+[13] tidyverse_2.0.0 workflowr_1.7.2
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     renv_1.2.3         stringi_1.8.7     
+ [5] hms_1.1.4          digest_0.6.39      magrittr_2.0.5     timechange_0.4.0  
+ [9] evaluate_1.0.5     grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0     
+[13] rprojroot_2.1.1    processx_3.9.0     whisker_0.4.1      ps_1.9.3          
+[17] promises_1.5.0     httr_1.4.7         scales_1.4.0       jquerylib_0.1.4   
+[21] cli_3.6.6          crayon_1.5.3       rlang_1.2.0        bit64_4.8.2       
+[25] withr_3.0.3        cachem_1.1.0       yaml_2.3.12        otel_0.2.0        
+[29] parallel_4.3.2     tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12     
+[33] vctrs_0.7.3        R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0      
+[37] bit_4.6.0          vroom_1.7.1        pkgconfig_2.0.3    callr_3.7.6       
+[41] pillar_1.11.1      bslib_0.9.0        later_1.4.8        gtable_0.3.6      
+[45] glue_1.8.1         Rcpp_1.1.1-1.1     xfun_0.58          tidyselect_1.2.1  
+[49] rstudioapi_0.15.0  knitr_1.51         farver_2.1.2       htmltools_0.5.9   
+[53] labeling_0.4.3     rmarkdown_2.31     compiler_4.3.2     getPass_0.2-4     
+[57] S7_0.2.2          </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

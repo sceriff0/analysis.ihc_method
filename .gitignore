@@ -21,3 +21,4 @@ specs/
 /*.png
 /*.tif
 /*.tiff
+output/*
