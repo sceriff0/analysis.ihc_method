@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-12" />
+
+<title>Marker QC — channel usability, phenotype agreement and lineage leakage</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ihc_method</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_flowpath.html">Clinical concordance (FlowPath)</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="molecular_hot_cold.html">2 · Molecular</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/sceriff0/ihc_method">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Marker QC — channel usability, phenotype
+agreement and lineage leakage</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-12</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-12
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>ihc_method/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260630code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260630)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260630code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260630)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreec5d0eaacbe7a20e9e627473b75c0818b22d2a749targetblankc5d0eaaa">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/ihc_method/tree/c5d0eaacbe7a20e9e627473b75c0818b22d2a749" target="_blank">c5d0eaa</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreec5d0eaacbe7a20e9e627473b75c0818b22d2a749targetblankc5d0eaaa"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/ihc_method/tree/c5d0eaacbe7a20e9e627473b75c0818b22d2a749" target="_blank">c5d0eaa</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/
+    Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
+    Ignored:    renv/library/
+    Ignored:    renv/staging/
+
+Unstaged changes:
+    Modified:   .gitignore
+    Modified:   analysis/index.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/marker_qc.Rmd</code>) and HTML
+(<code>docs/marker_qc.html</code>) files. If you’ve configured a remote
+Git repository (see <code>?wflow_git_remote</code>), click on the
+hyperlinks in the table below to view the files as they were in that
+past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/marker_qc.html" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+Revert ":wrench: built the site"
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/marker_qc.html" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:wrench: built the site
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/360ee92ef062086ca8b268e9275f7139c7b8c3b8/analysis/marker_qc.Rmd" target="_blank">360ee92</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:recycle: reorganise the workflowr site into four ordered parts
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<p>Internal QC of the FlowPath gating, with <strong>no external
+reference</strong>: every check below asks whether the marker calls are
+self-consistent, not whether they match bulk RNA, deconvolution or the
+clinical record. Those comparisons live on <a
+href="molecular_hot_cold.html">the molecular page</a>; a disagreement
+there is only interpretable once the checks here pass.</p>
+<p>Two parts, both reading the whole-slide <code>ihc_data</code>:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>part</th>
+<th>asks</th>
+<th>fails when</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>is each channel usable, and does it agree with the phenotype it
+defines?</td>
+<td>a channel is unimodal, unused, or a phenotype’s defining marker is
+not enriched in it</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>do the lineages stay exclusive, or do markers leak across them?</td>
+<td>CD45 fires inside tumour phenotypes, PANCK inside immune ones, or a
+marker pair co-fires above chance</td>
+</tr>
+</tbody>
+</table>
+<p><code>CAP</code> is the shared figure caption; both parts stamp it on
+every plot so an exported PDF still says which report it came from.</p>
+<div id="part-1-channel-usability-and-phenotype-agreement"
+class="section level2">
+<h2>Part 1 — Channel usability and phenotype agreement</h2>
+<div id="starting-data-and-notation" class="section level3">
+<h3>Starting data and notation</h3>
+<p>Every value below is derived from a single input, with <strong>no
+external reference</strong>:</p>
+<ul>
+<li><code>ihc_data</code> — FlowPath single cells, deduplicated to
+<strong>one copy per patient</strong> (whole slide). Each cell carries a
+<code>phenotype</code> label and, for each marker, a value / z-score /
+sign triple — under whichever of the three export spellings the file
+uses (<code>code/cell_tables.R</code>).</li>
+</ul>
+<p>Notation used throughout. <code>ihc_marker_long(ihc_data)</code>
+reshapes the whole set of imaged cells to <strong>one row per (cell,
+marker) pair</strong>, over the markers in <code>ihc_markers</code> (=
+<code>marker_gene_map$marker</code>, excluding
+<code>wrongL1CAM</code>/DAPI):</p>
+<pre><code>raw    = marker_value(cell, marker)     the intensity the export carries
+zscore = marker_zscore(cell, marker)
+sign   = marker_sign(cell, marker)      verbatim, for display
+gated  = marker_gated(cell, marker)     FALSE = a gate never evaluated this marker
+                                        on this cell — NOT the same as negative
+pos    = marker_pos(cell, marker)       TRUE only for an explicitly positive sign</code></pre>
+<p><code>gated</code> is the distinction the sign string alone hides:
+FlowPath leaves an ungated column blank and mirage writes
+<code>·</code>, both of which are “never measured”, not “negative”.
+Panels that would otherwise count an unmeasured cell as a negative one
+filter on <code>gated</code> first.</p>
+<p><code>phenotype_clean</code> is the cell type. All patient ids are
+mapped to the shared slide space by <code>slide_key()</code>. The report
+restricts to <strong>typed</strong> cells: the cell type is not NA and
+not “Unknown”.</p>
+<pre class="r"><code>mk_long &lt;- ihc_marker_long(ihc_data) |&gt;
+  filter(!is.na(phenotype_clean), phenotype_clean != &quot;Unknown&quot;)
+cat(&quot;cells:&quot;, dplyr::n_distinct(mk_long$cell_id),
+    &quot;| markers:&quot;, dplyr::n_distinct(mk_long$marker),
+    &quot;| phenotypes:&quot;, dplyr::n_distinct(mk_long$phenotype_clean), &quot;\n&quot;)</code></pre>
+<pre><code>cells: 405697 | markers: 19 | phenotypes: 11 </code></pre>
+</div>
+<div id="phenotype-marker-concordance" class="section level3">
+<h3>Phenotype ↔︎ marker concordance</h3>
+<p>For each phenotype and marker, over the typed cells of that
+phenotype:</p>
+<pre><code>mean_z(type, marker)  = average of &lt;marker&gt;_zscore over cells of that type
+pct_pos(type, marker) = fraction of those cells positive for the marker</code></pre>
+<p>where: - both averages use na.rm = TRUE (a positive cell counts as 1,
+negative as 0).</p>
+<p>The heatmap fills each (marker, type) tile with <code>mean_z</code>
+(diverging scale centred at 0).</p>
+<pre class="r"><code>conc &lt;- mk_long |&gt;
+  group_by(phenotype_clean, marker) |&gt;
+  summarise(mean_z = mean(zscore, na.rm = TRUE),
+            pct_pos = mean(pos,  na.rm = TRUE), .groups = &quot;drop&quot;)
+
+ggplot(conc, aes(marker, phenotype_clean, fill = mean_z)) +
+  geom_tile(colour = &quot;white&quot;, linewidth = 0.3) +
+  scale_fill_div(midpoint = 0, name = &quot;mean z&quot;, guide = guide_cbar()) +
+  labs(title = &quot;Phenotype vs marker: mean z-score&quot;,
+       subtitle = &quot;Expect each phenotype to peak on its defining marker(s); off-diagonal signal = mislabelled cells.&quot;,
+       x = &quot;marker&quot;, y = &quot;phenotype (phenotype_clean)&quot;, caption = CAP) +
+  theme_paper_tile() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))</code></pre>
+<p><img src="figure/marker_qc.Rmd/concordance-matrix-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-concordance-matrix-1">
+Past versions of concordance-matrix-1.png
+</button>
+</p>
+<div id="fig-concordance-matrix-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/marker_qc.Rmd/concordance-matrix-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/marker_qc.Rmd/concordance-matrix-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><strong>Defining-marker check.</strong> <code>expected</code> is a
+fixed table giving the defining marker for each phenotype. Within each
+phenotype the markers are ranked by descending mean z-score:</p>
+<pre><code>rank_z(type, marker) = rank of the marker&#39;s mean_z within the phenotype
+                       (rank 1 = largest mean_z)
+rank_of_defining     = rank_z of that phenotype&#39;s defining marker
+pass                 = rank_of_defining &lt;= 2</code></pre>
+<p>where: - the defining-marker row is kept by joining on the
+<code>expected</code> table; - pass means the defining marker is among
+the phenotype’s top-2 mean-z signals.</p>
+<p><code>mean_z</code> is rounded to 2 dp; rows are sorted by descending
+<code>rank_of_defining</code>.</p>
+<pre class="r"><code># Encode the expected defining marker(s) per phenotype and check it is the top
+# (or near-top) signal. Flags phenotypes whose defining marker is not their max.
+expected &lt;- tibble::tribble(
+  ~phenotype_clean,           ~marker,
+  &quot;PANCK+Tumor&quot;,              &quot;PANCK&quot;,
+  &quot;VIM+Tumor&quot;,                &quot;VIMENTIN&quot;,
+  &quot;T helper&quot;,                 &quot;CD4&quot;,
+  &quot;T cytotoxic&quot;,              &quot;CD8&quot;,
+  &quot;Activated T cytotoxic&quot;,    &quot;CD8&quot;,
+  &quot;CD4+ Treg&quot;,                &quot;FOXP3&quot;,
+  &quot;CD8+ T reg&quot;,               &quot;FOXP3&quot;,
+  &quot;Natural Killer&quot;,           &quot;CD56&quot;,
+  &quot;Activated Natural Killer&quot;, &quot;CD56&quot;,
+  &quot;Immune&quot;,                   &quot;CD45&quot;,
+  &quot;Stroma&quot;,                   &quot;SMA&quot;
+)
+
+check &lt;- conc |&gt;
+  group_by(phenotype_clean) |&gt;
+  mutate(rank_z = rank(-mean_z)) |&gt;
+  inner_join(expected, by = c(&quot;phenotype_clean&quot;, &quot;marker&quot;)) |&gt;
+  transmute(phenotype_clean, defining_marker = marker,
+            mean_z = round(mean_z, 2), rank_of_defining = as.integer(rank_z),
+            pass = rank_z &lt;= 2) |&gt;
+  arrange(desc(rank_of_defining))
+knitr::kable(check, caption = &quot;Is each phenotype&#39;s defining marker among its top-2 signals?&quot;)</code></pre>
+<table>
+<caption>Is each phenotype’s defining marker among its top-2
+signals?</caption>
+<colgroup>
+<col width="35%" />
+<col width="22%" />
+<col width="9%" />
+<col width="23%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">phenotype_clean</th>
+<th align="left">defining_marker</th>
+<th align="right">mean_z</th>
+<th align="right">rank_of_defining</th>
+<th align="left">pass</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Activated T cytotoxic</td>
+<td align="left">CD8</td>
+<td align="right">1.79</td>
+<td align="right">5</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">Activated Natural Killer</td>
+<td align="left">CD56</td>
+<td align="right">2.11</td>
+<td align="right">3</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4+ Treg</td>
+<td align="left">FOXP3</td>
+<td align="right">3.12</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">CD8+ T reg</td>
+<td align="left">FOXP3</td>
+<td align="right">2.70</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">Immune</td>
+<td align="left">CD45</td>
+<td align="right">0.49</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">Natural Killer</td>
+<td align="left">CD56</td>
+<td align="right">2.25</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">PANCK+Tumor</td>
+<td align="left">PANCK</td>
+<td align="right">0.63</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">Stroma</td>
+<td align="left">SMA</td>
+<td align="right">2.95</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">T cytotoxic</td>
+<td align="left">CD8</td>
+<td align="right">1.74</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">T helper</td>
+<td align="left">CD4</td>
+<td align="right">1.14</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="odd">
+<td align="left">VIM+Tumor</td>
+<td align="left">VIMENTIN</td>
+<td align="right">0.63</td>
+<td align="right">1</td>
+<td align="left">TRUE</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="per-channel-usability" class="section level3">
+<h3>Per-channel usability</h3>
+<p>Per marker, over all cells with a finite z-score (typed and untyped —
+<code>ihc_marker_long(ihc_data)</code> is re-derived here without the
+phenotype filter).</p>
+<p><strong>Bimodality.</strong> Sarle’s bimodality coefficient on the
+marker’s z-scores:</p>
+<pre><code>BC = (skew^2 + 1) / (kurtosis_excess + 3*(n-1)^2 / ((n-2)*(n-3)))</code></pre>
+<p>where: - skew = skewness of the finite z-scores (mean of the cubed
+standardised values); - kurtosis_excess = excess kurtosis of those
+z-scores (mean of the 4th-power standardised values, minus 3); - n =
+number of finite z-scores; - BC is NA if n &lt; 4 or the z-score sd is
+0.</p>
+<p><code>dip_p</code> is Hartigan’s dip-test p-value
+(<code>diptest::dip.test</code>) when the package is installed and n
+&gt;= 4, else NA.</p>
+<p><strong>Sign-vs-zscore separability.</strong> With the
+positive/negative split from <code>pos(cell, marker)</code>:</p>
+<pre><code>neg_max        = largest z-score among the marker&#39;s sign-negative cells
+pos_min        = smallest z-score among the marker&#39;s sign-positive cells
+separable      = pos_min &gt; neg_max
+cutoff         = (neg_max + pos_min) / 2 when separable, else NA
+likely_bimodal = BC &gt; 0.555 OR dip_p &lt; 0.05</code></pre>
+<p>Rows are sorted by descending BC.</p>
+<pre class="r"><code>bimodality_coef &lt;- function(x) {                       # Sarle&#39;s BC
+  x &lt;- x[is.finite(x)]; n &lt;- length(x)
+  if (n &lt; 4) return(NA_real_)
+  m &lt;- mean(x); s &lt;- sd(x); if (s == 0) return(NA_real_)
+  g &lt;- mean(((x - m) / s)^3)                           # skewness
+  k &lt;- mean(((x - m) / s)^4) - 3                        # excess kurtosis
+  (g^2 + 1) / (k + 3 * (n - 1)^2 / ((n - 2) * (n - 3)))
+}
+dip_p &lt;- function(x) {
+  x &lt;- x[is.finite(x)]
+  if (!requireNamespace(&quot;diptest&quot;, quietly = TRUE) || length(x) &lt; 4) return(NA_real_)
+  suppressWarnings(diptest::dip.test(x)$p.value)
+}
+
+channel_qc &lt;- ihc_marker_long(ihc_data) |&gt;
+  filter(!is.na(zscore)) |&gt;
+  group_by(marker) |&gt;
+  summarise(
+    n        = n(),
+    bc       = bimodality_coef(zscore),
+    dip_p    = dip_p(zscore),
+    neg_max  = suppressWarnings(max(zscore[!pos], na.rm = TRUE)),
+    pos_min  = suppressWarnings(min(zscore[pos],  na.rm = TRUE)),
+    .groups  = &quot;drop&quot;
+  ) |&gt;
+  mutate(
+    separable = is.finite(neg_max) &amp; is.finite(pos_min) &amp; pos_min &gt; neg_max,
+    cutoff    = if_else(separable, (neg_max + pos_min) / 2, NA_real_),
+    likely_bimodal = bc &gt; 0.555 | (!is.na(dip_p) &amp; dip_p &lt; 0.05)
+  ) |&gt;
+  arrange(desc(bc))
+knitr::kable(channel_qc, digits = 3,
+             caption = &quot;Per-channel bimodality and sign-vs-zscore separability&quot;)</code></pre>
+<table style="width:100%;">
+<caption>Per-channel bimodality and sign-vs-zscore
+separability</caption>
+<colgroup>
+<col width="11%" />
+<col width="10%" />
+<col width="7%" />
+<col width="7%" />
+<col width="10%" />
+<col width="10%" />
+<col width="12%" />
+<col width="9%" />
+<col width="19%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">marker</th>
+<th align="right">n</th>
+<th align="right">bc</th>
+<th align="right">dip_p</th>
+<th align="right">neg_max</th>
+<th align="right">pos_min</th>
+<th align="left">separable</th>
+<th align="right">cutoff</th>
+<th align="left">likely_bimodal</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">SMA</td>
+<td align="right">1888301</td>
+<td align="right">0.677</td>
+<td align="right">NA</td>
+<td align="right">0.700</td>
+<td align="right">0.20</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">VIMENTIN</td>
+<td align="right">1888301</td>
+<td align="right">0.475</td>
+<td align="right">NA</td>
+<td align="right">0.500</td>
+<td align="right">-0.50</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">PANCK</td>
+<td align="right">1888301</td>
+<td align="right">0.438</td>
+<td align="right">NA</td>
+<td align="right">-0.500</td>
+<td align="right">-0.80</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">CD8</td>
+<td align="right">1888301</td>
+<td align="right">0.393</td>
+<td align="right">NA</td>
+<td align="right">2.300</td>
+<td align="right">0.00</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">CD163</td>
+<td align="right">1888301</td>
+<td align="right">0.377</td>
+<td align="right">NA</td>
+<td align="right">3.100</td>
+<td align="right">0.80</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">FOXP3</td>
+<td align="right">1888301</td>
+<td align="right">0.287</td>
+<td align="right">NA</td>
+<td align="right">1.900</td>
+<td align="right">0.50</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">CD14</td>
+<td align="right">1888301</td>
+<td align="right">0.275</td>
+<td align="right">NA</td>
+<td align="right">1.300</td>
+<td align="right">0.70</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">P53</td>
+<td align="right">1888301</td>
+<td align="right">0.172</td>
+<td align="right">NA</td>
+<td align="right">0.400</td>
+<td align="right">-0.90</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">FSP1</td>
+<td align="right">1888301</td>
+<td align="right">0.148</td>
+<td align="right">NA</td>
+<td align="right">2.900</td>
+<td align="right">1.20</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">L1CAM</td>
+<td align="right">1888301</td>
+<td align="right">0.110</td>
+<td align="right">NA</td>
+<td align="right">1.200</td>
+<td align="right">-0.20</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">CD74</td>
+<td align="right">1888301</td>
+<td align="right">0.099</td>
+<td align="right">NA</td>
+<td align="right">1.800</td>
+<td align="right">0.70</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">GZMB</td>
+<td align="right">1888301</td>
+<td align="right">0.097</td>
+<td align="right">NA</td>
+<td align="right">2.000</td>
+<td align="right">1.30</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">CD45</td>
+<td align="right">1888301</td>
+<td align="right">0.092</td>
+<td align="right">NA</td>
+<td align="right">0.350</td>
+<td align="right">-0.35</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">CD3</td>
+<td align="right">1888301</td>
+<td align="right">0.076</td>
+<td align="right">NA</td>
+<td align="right">0.800</td>
+<td align="right">-0.25</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4</td>
+<td align="right">1888301</td>
+<td align="right">0.058</td>
+<td align="right">NA</td>
+<td align="right">0.500</td>
+<td align="right">-0.50</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">CD56</td>
+<td align="right">1888301</td>
+<td align="right">0.032</td>
+<td align="right">NA</td>
+<td align="right">4.400</td>
+<td align="right">0.90</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">PD1</td>
+<td align="right">1888301</td>
+<td align="right">0.024</td>
+<td align="right">NA</td>
+<td align="right">4.197</td>
+<td align="right">0.55</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">ARID1A</td>
+<td align="right">1888301</td>
+<td align="right">0.022</td>
+<td align="right">NA</td>
+<td align="right">0.800</td>
+<td align="right">-0.60</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">PDL1</td>
+<td align="right">1888301</td>
+<td align="right">0.010</td>
+<td align="right">NA</td>
+<td align="right">4.597</td>
+<td align="right">1.20</td>
+<td align="left">FALSE</td>
+<td align="right">NA</td>
+<td align="left">FALSE</td>
+</tr>
+</tbody>
+</table>
+<p>Density of the z-scores per marker, over cells with a finite z-score
+that a gate actually evaluated (<code>gated</code>), split by the
+positive call (<code>sign +</code> / <code>sign -</code>); facets are
+free-scaled.</p>
+<pre class="r"><code>ihc_marker_long(ihc_data) |&gt;
+  filter(!is.na(zscore), gated) |&gt;
+  mutate(call = if_else(pos, &quot;sign +&quot;, &quot;sign -&quot;)) |&gt;
+  ggplot(aes(zscore, fill = call)) +
+    geom_density(alpha = 0.55, colour = NA) +
+    facet_wrap(~ marker, scales = &quot;free&quot;) +
+    scale_fill_manual(values = c(&quot;sign +&quot; = oi[1], &quot;sign -&quot; = oi[2]), name = NULL) +
+    labs(title = &quot;Marker z-score by sign call&quot;,
+         subtitle = &quot;Clean channels show two separated humps; failed channels overlap or are unimodal.&quot;,
+         x = &quot;z-score&quot;, y = &quot;density&quot;, caption = CAP)</code></pre>
+<p><img src="figure/marker_qc.Rmd/channel-qc-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-channel-qc-plot-1">
+Past versions of channel-qc-plot-1.png
+</button>
+</p>
+<div id="fig-channel-qc-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/marker_qc.Rmd/channel-qc-plot-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/marker_qc.Rmd/channel-qc-plot-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="morphology-by-phenotype" class="section level3">
+<h3>Morphology by phenotype</h3>
+<p>Morphology features are whichever of <code>area</code>,
+<code>perimeter</code>, <code>eccentricity</code>, <code>solidity</code>
+are present in <code>ihc_data</code>, plus circularity when both
+<code>area</code> and <code>perimeter</code> exist:</p>
+<pre><code>circularity = 4 * pi * area / perimeter^2</code></pre>
+<p>Over typed cells, each feature is pivoted long and filtered to finite
+values; the plot is a per-phenotype boxplot (phenotypes ordered by
+median feature value, outliers hidden, facets free-scaled).</p>
+<pre class="r"><code>morph_feats &lt;- intersect(c(&quot;area&quot;, &quot;perimeter&quot;, &quot;eccentricity&quot;, &quot;solidity&quot;),
+                         names(ihc_data))
+
+morph &lt;- ihc_data |&gt;
+  filter(!is.na(phenotype_clean), phenotype_clean != &quot;Unknown&quot;) |&gt;
+  mutate(circularity = if (all(c(&quot;area&quot;, &quot;perimeter&quot;) %in% names(ihc_data)))
+           4 * pi * area / perimeter^2 else NA_real_) |&gt;
+  select(phenotype_clean, any_of(c(morph_feats, &quot;circularity&quot;))) |&gt;
+  pivot_longer(-phenotype_clean, names_to = &quot;feature&quot;, values_to = &quot;value&quot;) |&gt;
+  filter(is.finite(value))
+
+ggplot(morph, aes(reorder(phenotype_clean, value, FUN = median), value,
+                  fill = phenotype_clean)) +
+  geom_boxplot(outlier.shape = NA, width = .6, colour = &quot;grey30&quot;) +
+  facet_wrap(~ feature, scales = &quot;free&quot;) +
+  coord_flip() +
+  scale_fill_ordinal(guide = &quot;none&quot;) +
+  labs(title = &quot;Cell morphology by phenotype&quot;,
+       subtitle = &quot;Shapes should track cell type: tumour largest, lymphocytes small/round, stroma elongated.&quot;,
+       x = NULL, y = NULL, caption = CAP)</code></pre>
+<p><img src="figure/marker_qc.Rmd/morphology-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-morphology-1">
+Past versions of morphology-1.png
+</button>
+</p>
+<div id="fig-morphology-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/marker_qc.Rmd/morphology-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/marker_qc.Rmd/morphology-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="notes" class="section level3">
+<h3>Notes</h3>
+<ul>
+<li>All three checks use only <code>ihc_data</code>; no external
+reference is joined.</li>
+<li><code>mean</code> reductions carry <code>na.rm = TRUE</code>;
+<code>neg_max</code>/<code>pos_min</code> return non-finite
+(<code>±Inf</code>) when a marker has no negative (resp. positive) cell,
+which drives <code>separable = FALSE</code> via the
+<code>is.finite</code> guards.</li>
+<li><code>separable = FALSE</code> means the sign call is not a pure
+threshold on the z-score (the <code>_sign+</code> and
+<code>_sign−</code> z-score ranges overlap — likely thresholded on
+<code>_raw</code>); its <code>cutoff</code> is then
+<code>NA</code>.</li>
+<li><code>likely_bimodal</code> uses an inclusive-or of BC &gt; 0.555
+and dip-p &lt; 0.05; if <code>diptest</code> is absent the dip-p term is
+<code>NA</code> and only BC decides.</li>
+</ul>
+</div>
+</div>
+<div id="part-2-lineage-leakage-and-marker-exclusivity"
+class="section level2">
+<h2>Part 2 — Lineage leakage and marker exclusivity</h2>
+<div id="starting-data-and-notation-1" class="section level3">
+<h3>Starting data and notation</h3>
+<p>Single input: <code>ihc_data</code>, the FlowPath single cells
+deduplicated to <strong>one copy per patient</strong> (whole slide).
+“Patient p’s cells” means every row of <code>ihc_data</code> for that
+patient; “the cohort” means all cells pooled across patients. All
+patient ids are mapped to slide space by <code>slide_key()</code> (strip
+non-digits, apply the typo fix <code>15879</code> -&gt;
+<code>15897</code>).</p>
+<p>Cell labels:</p>
+<pre><code>marker+ cell = marker_pos(cell, marker) — the marker&#39;s sign column, whichever of
+               &lt;marker&gt;_sign / sign:&lt;marker&gt; / &lt;marker&gt;_positive the export carries
+tumour-phenotype cell = phenotype_clean contains &quot;Tumor&quot;
+                        (phenotype_clean = the text inside the parentheses of `phenotype`)
+immune-phenotype cell = phenotype_clean is one of the literal immune labels below</code></pre>
+<p>The immune-phenotype labels are: <code>Immune</code>,
+<code>T helper</code>, <code>T cytotoxic</code>,
+<code>Activated T cytotoxic</code>, <code>CD4+ Treg</code>,
+<code>CD8+ T reg</code>, <code>Natural Killer</code>,
+<code>Activated Natural Killer</code> (defined in the chunk below;
+excludes Stroma / Unknown / Tumor). These two phenotype sets are read
+directly from <code>phenotype_clean</code>, <strong>not</strong> through
+the <code>lineage()</code> collapse. Missing
+<code>phenotype_clean</code> is treated as the empty string, so it
+matches neither set.</p>
+</div>
+<div id="phenotype-level-leakage" class="section level3">
+<h3>Phenotype-level leakage</h3>
+<p>Per patient p, the fraction of one lineage’s phenotyped cells that
+call the opposite lineage’s marker:</p>
+<pre><code>cd45pos_in_tumorph(p) = (tumour-phenotype cells of p that are CD45+) / (tumour-phenotype cells of p)
+panckpos_in_immune(p) = (immune-phenotype cells of p that are PANCK+) / (immune-phenotype cells of p)
+
+n_cells(p) = all cells of p
+where:
+  tumour-phenotype cell = phenotype_clean contains &quot;Tumor&quot;
+  immune-phenotype cell = phenotype_clean is one of the literal immune labels
+  CD45+  = marker_pos(cell, &quot;CD45&quot;)
+  PANCK+ = marker_pos(cell, &quot;PANCK&quot;)</code></pre>
+<p>Each ratio is <code>NA</code> when its patient has no cell in the
+corresponding phenotype set (<code>any(...)</code> guard); positivity is
+never <code>NA</code>.</p>
+<pre class="r"><code>immune_ph &lt;- c(&quot;Immune&quot;, &quot;T helper&quot;, &quot;T cytotoxic&quot;, &quot;Activated T cytotoxic&quot;,
+               &quot;CD4+ Treg&quot;, &quot;CD8+ T reg&quot;, &quot;Natural Killer&quot;, &quot;Activated Natural Killer&quot;)
+
+excl &lt;- ihc_data |&gt;
+  mutate(patient_id  = slide_key(patient_id),
+         is_tumor_ph = str_detect(replace_na(phenotype_clean, &quot;&quot;), &quot;Tumor&quot;),
+         is_immune_ph = phenotype_clean %in% immune_ph,
+         panck_pos = marker_pos(ihc_data, &quot;PANCK&quot;),
+         cd45_pos  = marker_pos(ihc_data, &quot;CD45&quot;))
+
+spill &lt;- excl |&gt;
+  group_by(patient_id) |&gt;
+  summarise(
+    n_cells            = n(),
+    cd45pos_in_tumorph = if (any(is_tumor_ph))  mean(cd45_pos[is_tumor_ph],  na.rm = TRUE) else NA_real_,
+    panckpos_in_immune = if (any(is_immune_ph)) mean(panck_pos[is_immune_ph], na.rm = TRUE) else NA_real_,
+    .groups = &quot;drop&quot;
+  )
+knitr::kable(spill, digits = 3,
+             caption = &quot;Per-patient phenotype-level leakage (want ~0)&quot;)</code></pre>
+<table>
+<caption>Per-patient phenotype-level leakage (want ~0)</caption>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="right">n_cells</th>
+<th align="right">cd45pos_in_tumorph</th>
+<th align="right">panckpos_in_immune</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">046</td>
+<td align="right">405697</td>
+<td align="right">0</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="right">378194</td>
+<td align="right">0</td>
+<td align="right">0.424</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td align="right">235328</td>
+<td align="right">0</td>
+<td align="right">0.591</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="right">202652</td>
+<td align="right">0</td>
+<td align="right">0.971</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="right">283631</td>
+<td align="right">0</td>
+<td align="right">0.389</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="right">382799</td>
+<td align="right">0</td>
+<td align="right">0.502</td>
+</tr>
+</tbody>
+</table>
+<p>Bars are the two ratios above, per patient, dropping <code>NA</code>
+entries.</p>
+<pre class="r"><code>spill |&gt;
+  pivot_longer(c(cd45pos_in_tumorph, panckpos_in_immune),
+               names_to = &quot;leak&quot;, values_to = &quot;rate&quot;) |&gt;
+  filter(!is.na(rate)) |&gt;
+  mutate(leak = c(cd45pos_in_tumorph = &quot;CD45+ among tumour-typed&quot;,
+                  panckpos_in_immune = &quot;PANCK+ among immune-typed&quot;)[leak]) |&gt;
+  ggplot(aes(reorder(patient_id, rate), rate, fill = leak)) +
+    geom_col(position = position_dodge(width = .7), width = .65) +
+    coord_flip() +
+    scale_fill_manual(values = oi[c(1, 2)], name = NULL) +
+    labs(title = &quot;Phenotype-level leakage per patient&quot;,
+         subtitle = &quot;Fraction of a lineage&#39;s cells calling the opposite lineage&#39;s marker — lower is better.&quot;,
+         x = &quot;patient&quot;, y = &quot;fraction of cells&quot;, caption = CAP)</code></pre>
+<p><img src="figure/marker_qc.Rmd/leakage-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-leakage-plot-1">
+Past versions of leakage-plot-1.png
+</button>
+</p>
+<div id="fig-leakage-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/marker_qc.Rmd/leakage-plot-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/marker_qc.Rmd/leakage-plot-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="marker-pair-exclusivity-panel" class="section level3">
+<h3>Marker-pair exclusivity panel</h3>
+<p><code>sign_pos</code> is the per-cell positivity matrix: one logical
+column per marker in <code>ihc_markers</code>, obtained by applying
+<code>is_pos</code> to every <code>&lt;marker&gt;_sign</code> column and
+stripping the <code>_sign</code> suffix. Each row is a cell of the
+cohort; <code>patient_id</code> is
+<code>slide_key</code>-normalised.</p>
+<p>For a candidate pair of markers (a, b), retained only if both columns
+exist in <code>sign_pos</code>, all counts are <strong>pooled over the
+whole cohort</strong>:</p>
+<pre><code>n_a    = cohort cells that are a+
+n_b    = cohort cells that are b+
+n_both = cohort cells that are both a+ and b+   (double-positive)
+
+pct_dp_all  = n_both / (all cohort cells)
+p(b | a)    = n_both / n_a       (share of a+ cells that are also b+)
+p(a | b)    = n_both / n_b       (share of b+ cells that are also a+)
+where:
+  marker+ cell = marker_pos(cell, marker)</code></pre>
+<p>The two conditionals are set to <code>NA</code> when their
+denominator (<code>n_a</code> or <code>n_b</code>) is 0.
+<code>pct_dp_all</code> uses the all-cell denominator; the conditionals
+use the single-marker positive counts.</p>
+<pre class="r"><code># Per-cell marker positivity matrix: one logical column per marker, named for the
+# marker rather than for whichever sign column the export used. A marker the panel
+# does not carry comes back all-FALSE, so its pairs report 0% co-positivity instead
+# of aborting the chunk.
+sign_pos &lt;- marker_matrix(ihc_data, ihc_markers) |&gt;
+  mutate(patient_id = slide_key(ihc_data$patient_id), .before = 1)
+
+# Literature-backed mutually-exclusive lineage marker pairs (+ known exception).
+exclusivity_pairs &lt;- tibble::tribble(
+  ~a,      ~b,      ~pair_label,                              ~expected_copos, ~reference,
+  &quot;PANCK&quot;, &quot;CD45&quot;,  &quot;epithelial/tumour vs leukocyte&quot;,         &quot;~0 (rare hybrid CTCs)&quot;,     &quot;Nandedkar 1998&quot;,
+  &quot;CD4&quot;,   &quot;CD8&quot;,   &quot;helper vs cytotoxic T&quot;,                  &quot;~3% peripheral DP-T&quot;,       &quot;Overgaard 2023 (Biomedicines)&quot;,
+  &quot;CD3&quot;,   &quot;CD56&quot;,  &quot;T cell vs NK cell&quot;,                      &quot;rare CD3+CD56+ NKT&quot;,        &quot;std NK/NKT gating&quot;,
+  &quot;CD3&quot;,   &quot;CD14&quot;,  &quot;lymphoid vs monocyte/macrophage&quot;,        &quot;~0 distinct lineages&quot;,      &quot;flow-panel convention&quot;,
+  &quot;CD3&quot;,   &quot;CD163&quot;, &quot;lymphoid vs M2 macrophage&quot;,              &quot;~0 (lymphocytes CD163-)&quot;,   &quot;Roberts 2004&quot;,
+  &quot;CD45&quot;,  &quot;SMA&quot;,   &quot;leukocyte vs smooth-muscle/myofibroblast&quot;,&quot;~0 distinct lineages&quot;,     &quot;stromal-marker convention&quot;
+) |&gt;
+  # keep only pairs whose markers are both present
+  filter(a %in% names(sign_pos), b %in% names(sign_pos))
+
+pair_stats &lt;- exclusivity_pairs |&gt;
+  rowwise() |&gt;
+  mutate(
+    n_a          = sum(sign_pos[[a]], na.rm = TRUE),
+    n_b          = sum(sign_pos[[b]], na.rm = TRUE),
+    n_both       = sum(sign_pos[[a]] &amp; sign_pos[[b]], na.rm = TRUE),
+    pct_dp_all   = n_both / nrow(sign_pos),
+    p_b_given_a  = ifelse(n_a &gt; 0, n_both / n_a, NA_real_),
+    p_a_given_b  = ifelse(n_b &gt; 0, n_both / n_b, NA_real_)
+  ) |&gt;
+  ungroup() |&gt;
+  select(pair = pair_label, a, b, expected_copos, reference,
+         n_both, pct_dp_all, p_b_given_a, p_a_given_b)
+
+knitr::kable(pair_stats, digits = 4,
+             caption = &quot;Mutually-exclusive marker pairs: observed vs expected co-positivity&quot;)</code></pre>
+<table>
+<caption>Mutually-exclusive marker pairs: observed vs expected
+co-positivity</caption>
+<colgroup>
+<col width="27%" />
+<col width="4%" />
+<col width="4%" />
+<col width="16%" />
+<col width="20%" />
+<col width="4%" />
+<col width="7%" />
+<col width="8%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">pair</th>
+<th align="left">a</th>
+<th align="left">b</th>
+<th align="left">expected_copos</th>
+<th align="left">reference</th>
+<th align="right">n_both</th>
+<th align="right">pct_dp_all</th>
+<th align="right">p_b_given_a</th>
+<th align="right">p_a_given_b</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">epithelial/tumour vs leukocyte</td>
+<td align="left">PANCK</td>
+<td align="left">CD45</td>
+<td align="left">~0 (rare hybrid CTCs)</td>
+<td align="left">Nandedkar 1998</td>
+<td align="right">377289</td>
+<td align="right">0.1998</td>
+<td align="right">0.2712</td>
+<td align="right">0.6123</td>
+</tr>
+<tr class="even">
+<td align="left">helper vs cytotoxic T</td>
+<td align="left">CD4</td>
+<td align="left">CD8</td>
+<td align="left">~3% peripheral DP-T</td>
+<td align="left">Overgaard 2023 (Biomedicines)</td>
+<td align="right">190637</td>
+<td align="right">0.1010</td>
+<td align="right">0.3349</td>
+<td align="right">0.7971</td>
+</tr>
+<tr class="odd">
+<td align="left">T cell vs NK cell</td>
+<td align="left">CD3</td>
+<td align="left">CD56</td>
+<td align="left">rare CD3+CD56+ NKT</td>
+<td align="left">std NK/NKT gating</td>
+<td align="right">68529</td>
+<td align="right">0.0363</td>
+<td align="right">0.1574</td>
+<td align="right">0.9384</td>
+</tr>
+<tr class="even">
+<td align="left">lymphoid vs monocyte/macrophage</td>
+<td align="left">CD3</td>
+<td align="left">CD14</td>
+<td align="left">~0 distinct lineages</td>
+<td align="left">flow-panel convention</td>
+<td align="right">97642</td>
+<td align="right">0.0517</td>
+<td align="right">0.2243</td>
+<td align="right">0.4869</td>
+</tr>
+<tr class="odd">
+<td align="left">lymphoid vs M2 macrophage</td>
+<td align="left">CD3</td>
+<td align="left">CD163</td>
+<td align="left">~0 (lymphocytes CD163-)</td>
+<td align="left">Roberts 2004</td>
+<td align="right">57857</td>
+<td align="right">0.0306</td>
+<td align="right">0.1329</td>
+<td align="right">0.4839</td>
+</tr>
+<tr class="even">
+<td align="left">leukocyte vs smooth-muscle/myofibroblast</td>
+<td align="left">CD45</td>
+<td align="left">SMA</td>
+<td align="left">~0 distinct lineages</td>
+<td align="left">stromal-marker convention</td>
+<td align="right">94688</td>
+<td align="right">0.0501</td>
+<td align="right">0.1537</td>
+<td align="right">0.3165</td>
+</tr>
+</tbody>
+</table>
+<p>Worst-direction co-positivity per pair:</p>
+<pre><code>max_cond = larger of  p(b | a)  and  p(a | b)</code></pre>
+<p>plotted for the pairs with a finite value.</p>
+<pre class="r"><code># The worst-case conditional co-positivity per pair (max of the two directions).
+pair_stats |&gt;
+  mutate(max_cond = pmax(p_b_given_a, p_a_given_b, na.rm = TRUE),
+         pair = sprintf(&quot;%s / %s&quot;, a, b)) |&gt;
+  filter(is.finite(max_cond)) |&gt;
+  ggplot(aes(reorder(pair, max_cond), max_cond)) +
+    geom_col(fill = oi[2], width = .65) +
+    coord_flip() +
+    scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+    labs(title = &quot;Worst-direction co-positivity per exclusive pair&quot;,
+         subtitle = &quot;max( P(B+|A+), P(A+|B+) ) — high bars = the pair most likely showing spillover.&quot;,
+         x = NULL, y = &quot;conditional co-positivity&quot;, caption = CAP)</code></pre>
+<p><img src="figure/marker_qc.Rmd/exclusivity-summary-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-exclusivity-summary-1">
+Past versions of exclusivity-summary-1.png
+</button>
+</p>
+<div id="fig-exclusivity-summary-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/marker_qc.Rmd/exclusivity-summary-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/marker_qc.Rmd/exclusivity-summary-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Per-patient double-positive fraction, one value per (patient, pair),
+over <strong>all</strong> of that patient’s cells:</p>
+<pre><code>dp(p, a, b) = (cells of p that are both a+ and b+) / (all cells of p)</code></pre>
+<p>This denominator is all of patient p’s cells, i.e. the per-patient
+analogue of <code>pct_dp_all</code>, not of the conditional rates
+above.</p>
+<pre class="r"><code>per_pat &lt;- exclusivity_pairs |&gt;
+  select(a, b, pair_label) |&gt;
+  purrr::pmap_dfr(function(a, b, pair_label) {
+    sign_pos |&gt;
+      group_by(patient_id) |&gt;
+      summarise(dp = mean(.data[[a]] &amp; .data[[b]], na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+      mutate(pair = pair_label)
+  })
+
+if (nrow(per_pat) &gt; 0) {
+  ggplot(per_pat, aes(patient_id, pair, fill = dp)) +
+    geom_tile(colour = &quot;white&quot;, linewidth = 0.3) +
+    scale_fill_seq(labels = scales::percent_format(accuracy = .1),
+                   name = &quot;double-pos fraction&quot;, guide = guide_cbar()) +
+    labs(title = &quot;Marker-pair co-positivity per patient&quot;,
+         subtitle = &quot;Bright = high double-positive rate = likely spillover in that patient.&quot;,
+         x = &quot;patient&quot;, y = NULL, caption = CAP) +
+    theme_paper_tile() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+}</code></pre>
+<p><img src="figure/marker_qc.Rmd/exclusivity-heatmap-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-exclusivity-heatmap-1">
+Past versions of exclusivity-heatmap-1.png
+</button>
+</p>
+<div id="fig-exclusivity-heatmap-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/marker_qc.Rmd/exclusivity-heatmap-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/marker_qc.Rmd/exclusivity-heatmap-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p>Pairs held out of the tribble because their phenotypes are defined to
+overlap (co-positivity is expected, not an artifact): PANCK/VIMENTIN
+(the <code>VIM+Tumor</code> EMT phenotype) and CD8/FOXP3 (the
+<code>CD8+ T reg</code> phenotype).</p>
+</div>
+<div id="notes-1" class="section level3">
+<h3>Notes</h3>
+<ul>
+<li>Single source <code>ihc_data</code> (whole slide); every metric is a
+count ratio, no external reference.</li>
+<li>Denominator audit: leakage rates divide by the phenotype-set size
+within a patient’s cells; <code>pct_dp_all</code> and heatmap
+<code>dp</code> divide by all cells (whole cohort / the patient);
+<code>p_b_given_a</code> / <code>p_a_given_b</code> divide by the
+single-marker positive counts (<code>n_a</code> / <code>n_b</code>). The
+conditional rates and pair counts are pooled cohort-wide, whereas
+leakage and the heatmap are per patient.</li>
+<li>Leakage membership uses <code>phenotype_clean</code> text and the
+literal immune-phenotype list, not the <code>phenotype_lineage</code>
+collapse.</li>
+</ul>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices datasets  utils     methods  
+[8] base     
+
+other attached packages:
+ [1] data.table_1.18.4           fs_2.1.0                   
+ [3] readxl_1.5.0                DESeq2_1.42.1              
+ [5] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+ [7] MatrixGenerics_1.14.0       matrixStats_1.5.0          
+ [9] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[11] IRanges_2.36.0              S4Vectors_0.40.2           
+[13] BiocGenerics_0.48.1         here_1.0.2                 
+[15] lubridate_1.9.5             forcats_1.0.1              
+[17] stringr_1.6.0               dplyr_1.2.1                
+[19] purrr_1.2.2                 readr_2.2.0                
+[21] tidyr_1.3.2                 tibble_3.3.1               
+[23] ggplot2_4.0.3               tidyverse_2.0.0            
+[25] workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1        viridisLite_0.4.3       farver_2.1.2           
+ [4] S7_0.2.2                bitops_1.0-9            fastmap_1.2.0          
+ [7] RCurl_1.98-1.19         promises_1.5.0          digest_0.6.39          
+[10] timechange_0.4.0        lifecycle_1.0.5         processx_3.9.0         
+[13] magrittr_2.0.5          compiler_4.3.2          rlang_1.2.0            
+[16] sass_0.4.10             tools_4.3.2             yaml_2.3.12            
+[19] knitr_1.51              labeling_0.4.3          S4Arrays_1.2.1         
+[22] DelayedArray_0.28.0     RColorBrewer_1.1-3      abind_1.4-8            
+[25] BiocParallel_1.36.0     withr_3.0.3             grid_4.3.2             
+[28] git2r_0.33.0            scales_1.4.0            cli_3.6.6              
+[31] rmarkdown_2.31          crayon_1.5.3            generics_0.1.4         
+[34] otel_0.2.0              rstudioapi_0.15.0       httr_1.4.7             
+[37] tzdb_0.5.0              cachem_1.1.0            zlibbioc_1.48.2        
+[40] parallel_4.3.2          cellranger_1.1.0        XVector_0.42.0         
+[43] vctrs_0.7.3             Matrix_1.6-5            jsonlite_2.0.0         
+[46] callr_3.7.6             hms_1.1.4               locfit_1.5-9.12        
+[49] jquerylib_0.1.4         glue_1.8.1              codetools_0.2-20       
+[52] ps_1.9.3                stringi_1.8.7           gtable_0.3.6           
+[55] later_1.4.8             pillar_1.11.1           htmltools_0.5.9        
+[58] GenomeInfoDbData_1.2.11 R6_2.6.1                rprojroot_2.1.1        
+[61] evaluate_1.0.5          lattice_0.22-9          renv_1.2.3             
+[64] httpuv_1.6.12           bslib_0.9.0             Rcpp_1.1.1-1.1         
+[67] SparseArray_1.2.4       whisker_0.4.1           xfun_0.58              
+[70] getPass_0.2-4           pkgconfig_2.0.3        </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

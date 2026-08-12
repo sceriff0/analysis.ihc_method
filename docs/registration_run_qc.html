@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-10" />
+
+<title>Run QC — registration accuracy on the study samples</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ihc_method</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_flowpath.html">Clinical concordance (FlowPath)</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="molecular_hot_cold.html">2 · Molecular</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/sceriff0/ihc_method">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Run QC — registration accuracy on the study
+samples</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-10</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-12
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>ihc_method/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260630code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260630)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260630code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260630)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreec5d0eaacbe7a20e9e627473b75c0818b22d2a749targetblankc5d0eaaa">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/ihc_method/tree/c5d0eaacbe7a20e9e627473b75c0818b22d2a749" target="_blank">c5d0eaa</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreec5d0eaacbe7a20e9e627473b75c0818b22d2a749targetblankc5d0eaaa"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/ihc_method/tree/c5d0eaacbe7a20e9e627473b75c0818b22d2a749" target="_blank">c5d0eaa</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .RData
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/
+    Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
+    Ignored:    renv/library/
+    Ignored:    renv/staging/
+
+Unstaged changes:
+    Modified:   .gitignore
+    Modified:   analysis/index.Rmd
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/registration_run_qc.Rmd</code>)
+and HTML (<code>docs/registration_run_qc.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/registration_run_qc.html" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+Revert ":wrench: built the site"
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/registration_run_qc.html" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:wrench: built the site
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/1f3d09df9b4d871b4ce1c6871ac7e3c9b3e0b28b/analysis/registration_run_qc.Rmd" target="_blank">1f3d09d</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:recycle: drop the mirage arm, fix the fig.path warning, retune the
+margin bands
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/360ee92ef062086ca8b268e9275f7139c7b8c3b8/analysis/registration_run_qc.Rmd" target="_blank">360ee92</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-12
+</td>
+<td>
+:recycle: reorganise the workflowr site into four ordered parts
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="starting-data-and-notation" class="section level2">
+<h2>Starting data and notation</h2>
+<p>How well was <strong>this cohort</strong> registered and phenotyped?
+Everything here is measured on the real patient slides, by the pipeline,
+during the run that produced the cells the other pages analyse.</p>
+<p>That is a different question from the one the benchmark pages answer.
+<a href="benchmark_pipeline.html">Pipeline benchmarks</a> and <a
+href="benchmark_registration.html">registration accuracy</a> read the
+tables mirage’s <code>benchmarks/</code> sweep produces on
+<strong>synthetic</strong> images — rescaled copies with a known
+injected offset, run to measure cost and scaling. Useful for choosing
+parameters, silent about your samples. This page reads
+<code>data/mirage/&lt;patient&gt;/</code> — the tree a mirage run writes
+directly — so a run already copied in needs nothing further.</p>
+<p><strong>Where the numbers come from.</strong></p>
+<table>
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>artifact</th>
+<th>what it is</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>qc/registration/*_seg_qc.json</code></td>
+<td>staged <strong>segmentation-overlap</strong> QC
+(<code>reg_qc = 2</code>): matched-nucleus Dice, per-pair IoU and
+centroid residual, per moving slide per stage</td>
+</tr>
+<tr class="even">
+<td><code>registered/summary/**/*.csv</code></td>
+<td><strong>VALIS’s own</strong> error, written during
+<code>register()</code> — <code>rigid_D</code> and
+<code>non_rigid_D</code> (two metric columns, no micro column) plus
+<code>n_matches</code>. Nextflow preserves <code>REGISTER</code>’s
+<code>preprocessed/data/</code> producer subdirectory on publish, so
+these sit two levels down; the reader recurses</td>
+</tr>
+<tr class="odd">
+<td><code>qc/registration/*_tre.json</code></td>
+<td><strong>STARE’s own</strong> TRE, when the tiled path ran — plus a
+per-tile spatial map</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three signals, and only one comparison is
+meaningful.</strong> VALIS rTRE and STARE TRE are both
+<strong>intrinsic</strong>: each method grading itself, from the very
+features it registered on. They are not comparable to each other — only
+one of them ran — and neither is evidence on its own, because a method
+that aligned its own features well has demonstrated exactly that and
+nothing more. The segmentation-overlap Dice is computed from
+<strong>DAPI nuclei, not features</strong>, by a different method
+entirely, so it is the independent check on whichever intrinsic number
+this run has. §4 plots them against each other; a run where the
+self-report looks excellent and the overlap does not is the failure mode
+worth catching.</p>
+<pre><code>stage        what the transform is at that point
+-----------  -----------------------------------------------------------
+native       none — the raw between-slide offset
+rigid        rigid only (post micro-rigid). THE ANCHOR: correspondences are
+             established once here and then held fixed, so every later change
+             is geometry rather than a different set of cells being paired
+non_rigid    rigid + the wave-1 non-rigid field
+micro        + the micro residual — what the pipeline actually ships</code></pre>
+<p><strong>Two traps in these files.</strong></p>
+<ul>
+<li><p><strong>Two files, four stages, three columns — and the two files
+are not two measurements of the same thing.</strong>
+<code>register_micro()</code> re-runs <code>measure_error()</code> and
+<strong>overwrites</strong> <code>&lt;name&gt;_summary.csv</code>,
+composing the micro residual into the same displacement field.
+<code>&lt;name&gt;_summary_premicro.csv</code> is a copy taken just
+before that, and it is written <strong>only at
+<code>reg_micro_reg = 2</code></strong> — below that
+<code>register_micro()</code> never runs, so the plain summary already
+<em>is</em> the pre-micro one.</p>
+<p><strong>Why there is no micro column.</strong> VALIS’s
+<code>error_df</code> schema is <code>from</code>/<code>filename</code>,
+<code>rigid_D</code>, <code>non_rigid_D</code> — that is the whole of
+it. Micro-registration is not modelled as a fourth stage with its own
+column; it is an <strong>update to the non-rigid field</strong>. So the
+micro number does not live in a column at all: <strong>it lives in the
+difference between the two files.</strong></p>
+<p>The stage axis is therefore recovered from <em>which file</em> a
+value came from, not from which column:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>stage</th>
+<th>column</th>
+<th>file</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>rigid</code></td>
+<td><code>rigid_D</code></td>
+<td>final — unchanged by micro, so either file gives it</td>
+</tr>
+<tr class="even">
+<td><code>non_rigid</code></td>
+<td><code>non_rigid_D</code></td>
+<td><strong>pre-micro</strong> — the only file that still isolates
+it</td>
+</tr>
+<tr class="odd">
+<td><code>micro</code></td>
+<td><code>non_rigid_D</code></td>
+<td><strong>final</strong> — same column, other file</td>
+</tr>
+</tbody>
+</table>
+<p>Two columns, two files, three stages. That is exactly the
+reconstruction mirage’s own report performs
+(<code>bin/generate_qc_report.py:_RECONCILE_TRE_SOURCE</code>), and it
+sorts the two files purely on the <code>_summary_premicro.csv</code>
+filename suffix.</p>
+<p>It is also why reading the two files as “pre-micro” and “post-micro”
+<em>panels</em> looked like a duplicate: <code>rigid_D</code> is the
+same number in both, so one of two stages was drawn twice, and the one
+that did differ was given the same label in both panels when the two
+values are two different stages.</p>
+<p><strong>A blank micro stage is a claim, not a gap.</strong> With no
+pre-micro file (<code>reg_micro_reg &lt; 2</code>, the shipped default)
+the final <code>non_rigid_D</code> <em>is</em> the pre-micro value, so
+it becomes <code>non_rigid</code> and no <code>micro</code> box is
+drawn. Drawing one anyway — a byte-for-byte duplicate of
+<code>non_rigid</code> — would read as <em>“micro bought nothing”</em>,
+which is a different statement from <em>“micro did not run”</em>. mirage
+makes the same choice on the segmentation-overlap side: when
+micro-registration is skipped, or raises and is caught, the QC omits the
+stage rather than duplicating <code>non_rigid</code>.</p>
+<p><strong>STARE has no micro stage at all.</strong> The tiled backend
+writes no <code>registered/summary/*.csv</code>, so it never reaches
+this axis; its intrinsic TRE comes from <code>*_tre.json</code> in
+pixels and is plotted on its own.</p></li>
+<li><p><strong>Pair fraction gates everything above it.</strong> A Dice
+computed over 30% of the cells is a Dice over a thin and probably biased
+subset. Read §3c before quoting any accuracy number from §3.</p></li>
+</ul>
+<pre><code>artifacts found — seg_qc: 216 rows | valis: 140 rows | stare: 0 rows | stare_tiles: 0 rows
+registration path in this run: VALIS</code></pre>
+</div>
+<div id="headline-accuracy-per-slide" class="section level2">
+<h2>Headline accuracy per slide</h2>
+<p>One row per moving slide at the <strong>final</strong> stage — the
+alignment the cells were actually quantified on.
+<code>dice_matched</code> is the matched-nucleus overlap and
+<code>disp_um_p50</code> the median centroid residual in microns, which
+is the number to quote as the pipeline’s spatial resolution on this
+cohort. <code>pair_fraction</code> is how much of the slide those two
+are based on.</p>
+<table style="width:100%;">
+<caption>Registration accuracy per moving slide, worst residual first.
+The gain_* columns are the change from the rigid anchor: negative micron
+gain = the non-rigid and micro stages tightened the alignment. A low
+pair_fraction undermines the row.</caption>
+<colgroup>
+<col width="6%" />
+<col width="35%" />
+<col width="7%" />
+<col width="3%" />
+<col width="7%" />
+<col width="7%" />
+<col width="8%" />
+<col width="11%" />
+<col width="10%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="left">moving</th>
+<th align="left">final_stage</th>
+<th align="right">dice</th>
+<th align="right">disp_um_p50</th>
+<th align="right">disp_um_p90</th>
+<th align="right">pair_fraction</th>
+<th align="right">gain_vs_rigid_dice</th>
+<th align="right">gain_vs_rigid_um</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">046</td>
+<td
+align="left">046_DAPI_FOXP3_VIMENTIN_DAPI_VIMENTIN_FOXP3_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.150</td>
+<td align="right">9.34</td>
+<td align="right">17.35</td>
+<td align="right">0.63</td>
+<td align="right">-0.435</td>
+<td align="right">6.36</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_CD14_CD56_DAPI_CD56_CD14_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.222</td>
+<td align="right">9.10</td>
+<td align="right">14.26</td>
+<td align="right">0.69</td>
+<td align="right">-0.369</td>
+<td align="right">5.96</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_CD163_CD45_DAPI_CD45_CD163_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.240</td>
+<td align="right">9.09</td>
+<td align="right">14.68</td>
+<td align="right">0.69</td>
+<td align="right">-0.355</td>
+<td align="right">6.02</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td
+align="left">24086_DAPI_FOXP3_VIMENTIN_DAPI_VIMENTIN_FOXP3_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.239</td>
+<td align="right">8.93</td>
+<td align="right">14.69</td>
+<td align="right">0.68</td>
+<td align="right">-0.357</td>
+<td align="right">5.85</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_CD8_CD4_DAPI_CD4_CD8_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.263</td>
+<td align="right">8.83</td>
+<td align="right">14.83</td>
+<td align="right">0.72</td>
+<td align="right">-0.328</td>
+<td align="right">5.63</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.357</td>
+<td align="right">8.15</td>
+<td align="right">18.34</td>
+<td align="right">0.70</td>
+<td align="right">-0.270</td>
+<td align="right">5.27</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">046_DAPI_CD8_CD4_DAPI_CD4_CD8_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.288</td>
+<td align="right">8.01</td>
+<td align="right">15.68</td>
+<td align="right">0.65</td>
+<td align="right">-0.309</td>
+<td align="right">5.09</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">046_DAPI_P53_CD3_DAPI_CD3_P53_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.293</td>
+<td align="right">7.57</td>
+<td align="right">16.02</td>
+<td align="right">0.63</td>
+<td align="right">-0.277</td>
+<td align="right">4.34</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">052_DAPI_CD14_CD56_DAPI_CD56_CD14_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.369</td>
+<td align="right">7.33</td>
+<td align="right">13.23</td>
+<td align="right">0.64</td>
+<td align="right">-0.227</td>
+<td align="right">4.33</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_L1CAM_FSP1_DAPI_FSP1_L1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.421</td>
+<td align="right">6.17</td>
+<td align="right">11.67</td>
+<td align="right">0.75</td>
+<td align="right">-0.191</td>
+<td align="right">3.10</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.529</td>
+<td align="right">2.65</td>
+<td align="right">11.29</td>
+<td align="right">0.71</td>
+<td align="right">-0.084</td>
+<td align="right">-0.63</td>
+</tr>
+<tr class="even">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.733</td>
+<td align="right">2.19</td>
+<td align="right">3.58</td>
+<td align="right">0.93</td>
+<td align="right">-0.070</td>
+<td align="right">0.70</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td
+align="left">10338_DAPI_FOXP3_VIMENTIN_DAPI_VIMENTIN_FOXP3_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.728</td>
+<td align="right">2.19</td>
+<td align="right">3.89</td>
+<td align="right">0.91</td>
+<td align="right">-0.085</td>
+<td align="right">0.83</td>
+</tr>
+<tr class="even">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_CD8_CD4_DAPI_CD4_CD8_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.769</td>
+<td align="right">1.64</td>
+<td align="right">3.34</td>
+<td align="right">0.92</td>
+<td align="right">-0.049</td>
+<td align="right">0.35</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_P53_CD3_DAPI_CD3_P53_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.562</td>
+<td align="right">1.62</td>
+<td align="right">27.71</td>
+<td align="right">0.78</td>
+<td align="right">-0.104</td>
+<td align="right">-0.96</td>
+</tr>
+<tr class="even">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_L1CAM_FSP1_DAPI_FSP1_L1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.783</td>
+<td align="right">1.55</td>
+<td align="right">3.11</td>
+<td align="right">0.92</td>
+<td align="right">-0.055</td>
+<td align="right">0.40</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">046_DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.599</td>
+<td align="right">1.50</td>
+<td align="right">9.97</td>
+<td align="right">0.74</td>
+<td align="right">-0.026</td>
+<td align="right">-1.44</td>
+</tr>
+<tr class="even">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_CD74_GZMB_DAPI_GZMB_CD74_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.793</td>
+<td align="right">1.39</td>
+<td align="right">3.07</td>
+<td align="right">0.92</td>
+<td align="right">0.015</td>
+<td align="right">-0.29</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_CD14_CD56_DAPI_CD56_CD14_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.806</td>
+<td align="right">1.32</td>
+<td align="right">2.83</td>
+<td align="right">0.92</td>
+<td align="right">-0.025</td>
+<td align="right">0.11</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.741</td>
+<td align="right">1.22</td>
+<td align="right">5.45</td>
+<td align="right">0.88</td>
+<td align="right">0.017</td>
+<td align="right">-0.73</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">046_DAPI_CD74_GZMB_DAPI_GZMB_CD74_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.644</td>
+<td align="right">1.13</td>
+<td align="right">9.44</td>
+<td align="right">0.75</td>
+<td align="right">0.011</td>
+<td align="right">-1.77</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_CD74_GZMB_DAPI_GZMB_CD74_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.756</td>
+<td align="right">1.11</td>
+<td align="right">5.10</td>
+<td align="right">0.88</td>
+<td align="right">0.032</td>
+<td align="right">-0.85</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">046_DAPI_L1CAM_FSP1_DAPI_FSP1_L1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.690</td>
+<td align="right">1.10</td>
+<td align="right">10.10</td>
+<td align="right">0.80</td>
+<td align="right">0.017</td>
+<td align="right">-1.46</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.717</td>
+<td align="right">1.07</td>
+<td align="right">7.52</td>
+<td align="right">0.78</td>
+<td align="right">0.073</td>
+<td align="right">-1.89</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_CD163_CD45_DAPI_CD45_CD163_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.828</td>
+<td align="right">1.06</td>
+<td align="right">2.53</td>
+<td align="right">0.92</td>
+<td align="right">-0.001</td>
+<td align="right">-0.15</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">24086_DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.762</td>
+<td align="right">1.06</td>
+<td align="right">4.94</td>
+<td align="right">0.87</td>
+<td align="right">0.026</td>
+<td align="right">-0.78</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td align="left">10338_DAPI_P53_CD3_DAPI_CD3_P53_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.836</td>
+<td align="right">1.01</td>
+<td align="right">2.39</td>
+<td align="right">0.93</td>
+<td align="right">-0.001</td>
+<td align="right">-0.12</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">046_DAPI_CD14_CD56_DAPI_CD56_CD14_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.674</td>
+<td align="right">0.97</td>
+<td align="right">8.86</td>
+<td align="right">0.75</td>
+<td align="right">0.023</td>
+<td align="right">-1.81</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">046_DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.681</td>
+<td align="right">0.96</td>
+<td align="right">8.63</td>
+<td align="right">0.75</td>
+<td align="right">0.050</td>
+<td align="right">-1.99</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_P53_CD3_DAPI_CD3_P53_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.847</td>
+<td align="right">0.78</td>
+<td align="right">2.37</td>
+<td align="right">0.88</td>
+<td align="right">0.033</td>
+<td align="right">-0.36</td>
+</tr>
+<tr class="odd">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_CD74_GZMB_DAPI_GZMB_CD74_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.854</td>
+<td align="right">0.75</td>
+<td align="right">2.20</td>
+<td align="right">0.89</td>
+<td align="right">0.037</td>
+<td align="right">-0.39</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_CD14_CD56_DAPI_CD56_CD14_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.826</td>
+<td align="right">0.74</td>
+<td align="right">3.14</td>
+<td align="right">0.86</td>
+<td align="right">0.045</td>
+<td align="right">-0.66</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">052_DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.789</td>
+<td align="right">0.72</td>
+<td align="right">6.13</td>
+<td align="right">0.84</td>
+<td align="right">0.126</td>
+<td align="right">-1.91</td>
+</tr>
+<tr class="even">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.852</td>
+<td align="right">0.72</td>
+<td align="right">2.29</td>
+<td align="right">0.89</td>
+<td align="right">0.090</td>
+<td align="right">-1.12</td>
+</tr>
+<tr class="odd">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_L1CAM_FSP1_DAPI_FSP1_L1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.860</td>
+<td align="right">0.70</td>
+<td align="right">2.10</td>
+<td align="right">0.90</td>
+<td align="right">0.084</td>
+<td align="right">-0.94</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="left">052_DAPI_CD8_CD4_DAPI_CD4_CD8_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.840</td>
+<td align="right">0.69</td>
+<td align="right">2.70</td>
+<td align="right">0.88</td>
+<td align="right">0.092</td>
+<td align="right">-1.14</td>
+</tr>
+<tr class="odd">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_CD8_CD4_DAPI_CD4_CD8_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.862</td>
+<td align="right">0.67</td>
+<td align="right">2.10</td>
+<td align="right">0.89</td>
+<td align="right">0.068</td>
+<td align="right">-0.74</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="left">052_DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.836</td>
+<td align="right">0.63</td>
+<td align="right">2.93</td>
+<td align="right">0.88</td>
+<td align="right">0.038</td>
+<td align="right">-0.61</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">052_DAPI_CD74_GZMB_DAPI_GZMB_CD74_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.858</td>
+<td align="right">0.63</td>
+<td align="right">2.22</td>
+<td align="right">0.89</td>
+<td align="right">0.104</td>
+<td align="right">-1.14</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td
+align="left">15897_DAPI_FOXP3_VIMENTIN_DAPI_VIMENTIN_FOXP3_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.867</td>
+<td align="right">0.63</td>
+<td align="right">2.02</td>
+<td align="right">0.88</td>
+<td align="right">0.095</td>
+<td align="right">-1.02</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">052_DAPI_L1CAM_FSP1_DAPI_FSP1_L1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.862</td>
+<td align="right">0.62</td>
+<td align="right">2.13</td>
+<td align="right">0.90</td>
+<td align="right">0.097</td>
+<td align="right">-1.07</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="left">15897_DAPI_CD163_CD45_DAPI_CD45_CD163_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.871</td>
+<td align="right">0.62</td>
+<td align="right">1.96</td>
+<td align="right">0.88</td>
+<td align="right">0.063</td>
+<td align="right">-0.67</td>
+</tr>
+<tr class="odd">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.881</td>
+<td align="right">0.61</td>
+<td align="right">1.82</td>
+<td align="right">0.90</td>
+<td align="right">0.068</td>
+<td align="right">-0.76</td>
+</tr>
+<tr class="even">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_CD74_GZMB_DAPI_GZMB_CD74_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.874</td>
+<td align="right">0.61</td>
+<td align="right">1.90</td>
+<td align="right">0.90</td>
+<td align="right">0.048</td>
+<td align="right">-0.59</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">046_DAPI_CD163_CD45_DAPI_CD45_CD163_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.855</td>
+<td align="right">0.59</td>
+<td align="right">2.54</td>
+<td align="right">0.87</td>
+<td align="right">0.133</td>
+<td align="right">-1.55</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td
+align="left">052_DAPI_FOXP3_VIMENTIN_DAPI_VIMENTIN_FOXP3_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.849</td>
+<td align="right">0.56</td>
+<td align="right">2.56</td>
+<td align="right">0.89</td>
+<td align="right">0.095</td>
+<td align="right">-1.21</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">052_DAPI_P53_CD3_DAPI_CD3_P53_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.867</td>
+<td align="right">0.56</td>
+<td align="right">2.08</td>
+<td align="right">0.89</td>
+<td align="right">0.090</td>
+<td align="right">-0.97</td>
+</tr>
+<tr class="even">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_P53_CD3_DAPI_CD3_P53_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.889</td>
+<td align="right">0.56</td>
+<td align="right">1.69</td>
+<td align="right">0.91</td>
+<td align="right">0.074</td>
+<td align="right">-0.80</td>
+</tr>
+<tr class="odd">
+<td align="left">37895</td>
+<td
+align="left">37895_DAPI_FOXP3_VIMENTIN_DAPI_VIMENTIN_FOXP3_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.892</td>
+<td align="right">0.54</td>
+<td align="right">1.63</td>
+<td align="right">0.90</td>
+<td align="right">0.067</td>
+<td align="right">-0.73</td>
+</tr>
+<tr class="even">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_L1CAM_FSP1_DAPI_FSP1_L1CAM_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.888</td>
+<td align="right">0.54</td>
+<td align="right">1.67</td>
+<td align="right">0.93</td>
+<td align="right">0.050</td>
+<td align="right">-0.61</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">052_DAPI_CD163_CD45_DAPI_CD45_CD163_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.870</td>
+<td align="right">0.53</td>
+<td align="right">2.04</td>
+<td align="right">0.89</td>
+<td align="right">0.128</td>
+<td align="right">-1.34</td>
+</tr>
+<tr class="even">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_CD163_CD45_DAPI_CD45_CD163_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.891</td>
+<td align="right">0.52</td>
+<td align="right">1.64</td>
+<td align="right">0.90</td>
+<td align="right">0.076</td>
+<td align="right">-0.83</td>
+</tr>
+<tr class="odd">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_CD8_CD4_DAPI_CD4_CD8_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.898</td>
+<td align="right">0.50</td>
+<td align="right">1.55</td>
+<td align="right">0.91</td>
+<td align="right">0.062</td>
+<td align="right">-0.67</td>
+</tr>
+<tr class="even">
+<td align="left">37895</td>
+<td align="left">37895_DAPI_CD14_CD56_DAPI_CD56_CD14_corrected</td>
+<td align="left">micro</td>
+<td align="right">0.901</td>
+<td align="right">0.49</td>
+<td align="right">1.49</td>
+<td align="right">0.91</td>
+<td align="right">0.054</td>
+<td align="right">-0.59</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="figures" class="section level2">
+<h2>Figures</h2>
+<p>Each figure is preceded by its derivation note. A figure whose
+artifact this run did not produce is simply absent — a VALIS run has no
+§2, a tiled run has no §1.</p>
+<div id="valis-error-by-stage" class="section level3">
+<h3>valis error by stage</h3>
+<p>VALIS’s own error across <code>original</code> → <code>rigid</code> →
+<code>non_rigid</code> → <code>micro</code>, one box per stage with
+every slide overlaid and the <strong>median printed</strong>. rTRE is
+relative to the image diagonal (unitless, comparable across slide
+sizes); some builds emit raw <code>*_D</code> distances instead.
+<strong>Intrinsic</strong> — VALIS scoring its own feature matches. The
+four stages come from three columns across two files:
+<code>non_rigid</code> from the pre-micro summary, <code>micro</code>
+from the final one (same column, micro composed in). A missing
+<code>micro</code> box means <code>reg_micro_reg &lt; 2</code> and
+micro-registration never ran.</p>
+<p><img src="figure/registration_run_qc.Rmd/figures-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-1">
+Past versions of figures-1.png
+</button>
+</p>
+<div id="fig-figures-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/registration_run_qc.Rmd/figures-1.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/registration_run_qc.Rmd/figures-1.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="overlap-dice-by-stage" class="section level3">
+<h3>overlap dice by stage</h3>
+<p>Matched-nucleus Dice per stage, from
+<code>qc/registration/*_seg_qc.json</code>. Computed by warping each
+slide’s natively-segmented DAPI nuclei and measuring overlap — it does
+not use the features the registration was fitted on, which is what makes
+it the independent check. Correspondences are fixed at the rigid anchor,
+so a change between stages is geometry, not a different set of
+pairs.</p>
+<p><img src="figure/registration_run_qc.Rmd/figures-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-2">
+Past versions of figures-2.png
+</button>
+</p>
+<div id="fig-figures-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/registration_run_qc.Rmd/figures-2.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/registration_run_qc.Rmd/figures-2.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="displacement-um-by-stage" class="section level3">
+<h3>displacement um by stage</h3>
+<p>Matched-nucleus centroid residual in <strong>microns</strong>
+(<code>displacement_um_p50</code>/<code>_p90</code>). Physical units, so
+this is the figure to quote as the pipeline’s spatial resolution on this
+cohort — and to compare against cell diameter when deciding whether
+per-cell marker assignment across cycles is trustworthy.</p>
+<p><img src="figure/registration_run_qc.Rmd/figures-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-3">
+Past versions of figures-3.png
+</button>
+</p>
+<div id="fig-figures-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/registration_run_qc.Rmd/figures-3.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/registration_run_qc.Rmd/figures-3.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="pair-fraction" class="section level3">
+<h3>pair fraction</h3>
+<p>The fraction of cells that paired between the two slides, per moving
+slide. Every Dice and displacement above is computed over this subset.
+Below the dashed 0.5 line the pairing is thin and probably biased toward
+the well-aligned regions, which flatters the accuracy numbers.</p>
+<p><img src="figure/registration_run_qc.Rmd/figures-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-4">
+Past versions of figures-4.png
+</button>
+</p>
+<div id="fig-figures-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/figure/registration_run_qc.Rmd/figures-4.png" target="_blank">c5d0eaa</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/figure/registration_run_qc.Rmd/figures-4.png" target="_blank">70924d7</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div id="notes" class="section level2">
+<h2>Notes</h2>
+<ul>
+<li><strong>Landmark-free throughout.</strong> No manual fiducials are
+placed anywhere: the intrinsic scores come from the registration’s own
+correspondences and the overlap score from DAPI segmentation. That is
+what makes this runnable on every cohort, and also why the independent
+cross-check in §4 matters more than either number alone.</li>
+<li><strong>Intrinsic scores are not interchangeable.</strong> VALIS
+rTRE is relative to the image diagonal and unitless; STARE TRE is in
+pixels; the overlap residual is in microns. Only the last is a physical
+distance. Compare across cohorts with the first, quote the third.</li>
+<li><strong>This page says nothing about cost.</strong> Resource
+scaling, runtime and the segmentation-method comparison live on <a
+href="benchmark_pipeline.html">pipeline benchmarks</a>, which needs the
+sweep — it is not produced by an ordinary run.</li>
+<li>mirage also writes a self-contained HTML QC report per run
+(<code>&lt;outdir&gt;/qc/</code>) with the preprocessing, registration
+and segmentation <strong>images</strong>. This page is the numeric
+complement: it is what you can tabulate, compare across patients and
+carry into the analysis pages, not what you eyeball.</li>
+</ul>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices datasets  utils     methods   base     
+
+other attached packages:
+ [1] fs_2.1.0        jsonlite_2.0.0  here_1.0.2      lubridate_1.9.5
+ [5] forcats_1.0.1   stringr_1.6.0   dplyr_1.2.1     purrr_1.2.2    
+ [9] readr_2.2.0     tidyr_1.3.2     tibble_3.3.1    ggplot2_4.0.3  
+[13] tidyverse_2.0.0 workflowr_1.7.2
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     renv_1.2.3         stringi_1.8.7     
+ [5] hms_1.1.4          digest_0.6.39      magrittr_2.0.5     timechange_0.4.0  
+ [9] evaluate_1.0.5     grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0     
+[13] rprojroot_2.1.1    processx_3.9.0     whisker_0.4.1      ps_1.9.3          
+[17] promises_1.5.0     httr_1.4.7         scales_1.4.0       jquerylib_0.1.4   
+[21] cli_3.6.6          crayon_1.5.3       rlang_1.2.0        bit64_4.8.2       
+[25] withr_3.0.3        cachem_1.1.0       yaml_2.3.12        otel_0.2.0        
+[29] parallel_4.3.2     tools_4.3.2        tzdb_0.5.0         httpuv_1.6.12     
+[33] vctrs_0.7.3        R6_2.6.1           lifecycle_1.0.5    git2r_0.33.0      
+[37] bit_4.6.0          vroom_1.7.1        pkgconfig_2.0.3    callr_3.7.6       
+[41] pillar_1.11.1      bslib_0.9.0        later_1.4.8        gtable_0.3.6      
+[45] glue_1.8.1         Rcpp_1.1.1-1.1     xfun_0.58          tidyselect_1.2.1  
+[49] rstudioapi_0.15.0  knitr_1.51         farver_2.1.2       htmltools_0.5.9   
+[53] labeling_0.4.3     rmarkdown_2.31     compiler_4.3.2     getPass_0.2-4     
+[57] S7_0.2.2          </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
