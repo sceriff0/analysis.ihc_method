@@ -3,7 +3,7 @@
 #
 # Three pages now read registration accuracy, and they are not interchangeable:
 #
-#   registration_accuracy.Rmd  mirage's benchmarks/ sweep on SYNTHETIC images with a
+#   benchmark_registration.Rmd  mirage's benchmarks/ sweep on SYNTHETIC images with a
 #                              known injected offset. Measures cost and scaling.
 #   run_qc.Rmd                 ONE run's QC on the study slides. "Was this cohort
 #                              registered well enough to analyse?"

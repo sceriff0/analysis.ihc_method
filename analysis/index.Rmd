@@ -19,14 +19,26 @@ benchmark tables come from mirage's `benchmarks/` sweep. `code/cell_tables.R`
 reconciles the export schemas and the two phenotype vocabularies those tools
 produce, so every analysis here reads one vocabulary — see `code/README.md`.
 
-Each analysis below is a standalone page. Start with the **Overview**, then dive
-into whichever thread you need. Pages marked _(in progress)_ are authored but not
-yet knit to HTML, so their links may not resolve until the next site build.
+## How the site is organised
 
-## Start here
+Four parts, in the order the study is read. Each part is one claim, and the
+navbar has one entry per part.
 
-- [Overview](overview.html) — project scope, the datasets in play, and how the
-  pieces fit together.
+| part | claim | pages |
+|---|---|---|
+| **1 · Clinical** | cells land in the right region, and the phenotyping method is what the two reports differ by | `clinical_flowpath`, `clinical_mirage`, `clinical_membership_qc` |
+| **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_hot_cold` |
+| **3 · Registration** | the study slides were registered well enough to analyse, under a configuration chosen on real tissue | `registration_run_qc`, `registration_arms` |
+| **4 · Benchmarks** | the pipeline's cost and accuracy scale as claimed, measured on synthetic images | `benchmark_registration`, `benchmark_pipeline` |
+
+The filename prefix is the part: anything `clinical_*` belongs to part 1,
+`registration_*` to part 3, `benchmark_*` to part 4. Two pages sit outside the
+four — `paper_figures` (the manuscript assembly sheet) and `marker_qc` (internal
+gating QC that everything else assumes has passed).
+
+Every page defines `SLUG` equal to its own filename and calls
+`export_pdf_figures(SLUG)` last, so a page's vector figures always land in
+`output/figures/<page name>/`.
 
 ## Building the manuscript figures
 
@@ -37,84 +49,104 @@ yet knit to HTML, so their links may not resolve until the next site build.
   microscope crop. Reads the all-slide export (`data/all_slide/`); knit it to see
   which panels are ready and which are still missing their input.
 
-## Method validation & QC
+## Part 1 — Clinical data and neoplastic concordance
 
-The core "method" contribution: how cells are assigned to tumour annotations,
-how IHC markers are quality-controlled, and how the imaging pipeline is benchmarked.
+**Two clinical pages, one analysis.** They differ only in *who called the
+phenotypes*; the slides and the pathologist polygons are the same. The choice is made
+in the page's setup by `membership_data(mode, ...)` (`code/membership.R`); everything
+downstream is the same document, `analysis/_children/clinical_body.Rmd`, so any
+difference between the pages is attributable to that one choice.
 
-- [Annotation membership QC](annotation_membership_qc.html) _(in progress)_ —
+|                | cells from | phenotypes by | membership |
+|---|---|---|---|
+| `clinical_flowpath` | the all-slide export | FlowPath gate tree | region-matched polygon |
+| `clinical_mirage` | `data/mirage/<pid>/` | **mirage's panel** | the same polygons |
+
+Read them against each other to isolate the **phenotyping method**.
+
+- [Clinical concordance — FlowPath](clinical_flowpath.html) — the reference page. A
+  cell is inside when its centroid falls in **that region's own** polygon (sf
+  point-in-polygon), because the all-slide export pairs a cell csv with a geojson
+  region by region. A patient with no annotation directory is entirely inside — the
+  layout's own convention, marked `whole_slide` rather than guessed. Includes the
+  concordance against the pathologist's neoplastic-cellularity score.
+- [Clinical concordance — mirage phenotyping](clinical_mirage.html) — the same
+  polygons and the same statistics, but the phenotypes are **mirage's own**
+  (`panel.yaml`, no human in the loop) rather than the FlowPath gate tree. Reads
+  `data/mirage/<patient>/`. mirage has no out-of-annotation flag and no whole-slide
+  convention, so a patient without a polygon is absent rather than counted whole.
+- [Annotation membership QC](clinical_membership_qc.html) _(in progress)_ —
   sf point-in-polygon membership vs. the `Out_of_annotation` flag, compared per cell.
-- [IHC marker QC](ihc_qc.html) _(in progress)_ — per-marker distribution and
-  bimodality checks on `ihc_data`, with no external reference.
-- [Run QC](run_qc.html) — **the registration QC of the run on the study samples**:
-  VALIS's or STARE's own registration error (including STARE's per-tile spatial map)
-  and the independent DAPI-nucleus overlap cross-check. Reads `data/mirage/` and needs
-  nothing else — the only page that renders from a pipeline run alone.
+  This is the check the two pages above depend on: if membership itself is wrong,
+  nothing downstream of it means anything.
 
-**Three pages read registration accuracy and they are not interchangeable.**
-[Registration arms](registration_arms.html) is the one the manuscript needs.
+## Part 2 — Bulk RNA, deconvolution and the hot/cold axis
 
+- [Bulk RNA, deconvolution and the hot/cold axis](molecular_hot_cold.html) — one page,
+  three parts, one question: does a bulk readout agree with the slide, and does that
+  agreement depend on whether the tumour is immunologically hot or cold?
+  Part 1 is per-marker bulk expression vs the IHC positive-cell fraction; part 2 is
+  `immunedeconv` cell-type scores vs the IHC lineage fractions; part 3 is the
+  invasive-margin band (CD45+ fraction and density) against the clinical `HOT score`
+  and immuno-phenotype. Points in parts 1 and 2 are coloured by that same clinical
+  call, so a readout that only tracks IHC in hot tumours is visible as a colour split
+  rather than hidden inside a middling correlation.
+
+  > This page replaces `bulkRna`, `deconvolution` and `periphery`. They shared the
+  > CRF-to-slide id bridge, the clinical hot/cold lookup and the whole-slide `ihc_data`
+  > reduction and re-derived all three independently; now those are built once, in the
+  > page's **Shared keys** chunk. Each of the three parts still degrades to a message
+  > when its own input is missing, so a machine without `immunedeconv` or without the
+  > pathologist geojson still knits the rest.
+
+## Part 3 — Registration accuracy on the study run
+
+These two read the **real slides**. They answer different questions and are not
+interchangeable; [registration arms](registration_arms.html) is the one the
+manuscript needs.
+
+- [Run QC — the study samples](registration_run_qc.html) — the registration QC of the
+  run that produced the analysed data: VALIS's or STARE's own registration error
+  (including STARE's per-tile spatial map) and the independent DAPI-nucleus overlap
+  cross-check. Reads `data/mirage/` and needs nothing else — the only page that
+  renders from a pipeline run alone, with no counts, no clinical table and no gating.
 - [Registration arms](registration_arms.html) — the study slides registered **once
   per configuration** (`memory_mode` high/low crossed with `reg_micro_reg` 0/1/2 =
   six arms). Ranks the arms on real tissue and separates what each knob buys. Also
   where the comparability rules live: mirage's `rigid` QC stage means affine ∘
   micro-rigid at depth ≥ 1, so it cannot be compared across depths.
 
-The next two read mirage's `benchmarks/` **sweep**, which runs on synthetic images
-to measure cost and scaling. They say nothing about your samples; Run QC does, and
-the arm page does for the configuration choice.
+## Part 4 — Benchmarks
 
-- [Registration accuracy](registration_accuracy.html) — sweep registration accuracy:
-  VALIS feature rTRE per stage, the segmentation-overlap cross-check, accuracy vs
-  cost, and an agreement view of the two estimates.
-- [Pipeline benchmarks](benchmarks.html) — sweep resource scaling, I/O volume,
+Both read mirage's `benchmarks/` **sweep**, which runs on synthetic images with a
+known injected transform to measure cost and scaling. They say nothing about your
+samples — part 3 does that.
+
+- [Registration accuracy — synthetic sweep](benchmark_registration.html) — VALIS
+  feature rTRE per stage, the segmentation-overlap cross-check, accuracy vs cost, and
+  an agreement view of the two estimates.
+- [Pipeline benchmarks](benchmark_pipeline.html) — resource scaling, I/O volume,
   whole-pipeline cost and segmentation-method comparison.
 
-## Molecular & clinical analyses
+## Marker QC (internal, no external reference)
 
-**Two clinical_data pages, one analysis.** They differ only in *who called the
-phenotypes*; the slides and the pathologist polygons are the same. The choice is made
-in the page's setup by `membership_data(mode, ...)` (`code/membership.R`); everything
-downstream is the same document, `analysis/_clinical_data_body.Rmd`, so any difference
-between the pages is attributable to that one choice.
-
-|                | cells from | phenotypes by | membership |
-|---|---|---|---|
-| `clinical_data` | the all-slide export | FlowPath gate tree | region-matched polygon |
-| `clinical_data_mirage` | `data/mirage/<pid>/` | **mirage's panel** | the same polygons |
-
-Read them against each other to isolate the **phenotyping method**.
-
-- [Clinical data](clinical_data.html) — the reference page. A cell is inside when its
-  centroid falls in **that region's own** polygon (sf point-in-polygon), because the
-  all-slide export pairs a cell csv with a geojson region by region. A patient with no
-  annotation directory is entirely inside — the layout's own convention, marked
-  `whole_slide` rather than guessed.
-- [Clinical data — mirage phenotyping](clinical_data_mirage.html) — the same polygons
-  and the same statistics, but the phenotypes are **mirage's own** (`panel.yaml`, no
-  human in the loop) rather than the FlowPath gate tree. Reads
-  `data/mirage/<patient>/`. mirage has no out-of-annotation flag and no whole-slide
-  convention, so a patient without a polygon is absent rather than counted whole.
-
-> **Two pages were removed on 2026-08-11**, `clinical_data_per_annotation` and
-> `..._per_annotation_old`. They took membership from the exporter's precomputed
-> `Out_of_annotation` column instead of from geometry, reading
-> `data/flowpath/per_annotation/<patient>_a<k>.csv` and an `old/` overlay — a layout
-> the export no longer produces, and a split that no longer exists. The current export
-> ships a polygon *per region*, so geometry is available everywhere the flag used to be
-> the only option.
-
-- [Bulk RNA-seq](bulkRna.html) — DESeq2-based differential expression over the
-  bulk RNA inputs.
-- [Deconvolution](deconvolution.html) — cell-type deconvolution (immunedeconv),
-  bridging bulk RNA (CRF-id) and IHC (patient) id spaces via the clinical table.
-- [Marker exclusivity](exclusivity.html) _(in progress)_ — per-patient marker
-  co-expression / lineage leakage from the whole-slide `ihc_data`.
-- [Tumour border / invasive margin](periphery.html) _(in progress)_ —
-  immune composition in the invasive-margin buffer around tumour annotations.
+- [Marker QC](marker_qc.html) _(in progress)_ — whether the FlowPath gating is
+  self-consistent before anything is compared against it: per-channel usability and
+  bimodality, phenotype ↔ marker agreement, morphology by phenotype, then lineage
+  leakage (CD45 firing inside tumour phenotypes, PANCK inside immune ones) and
+  marker-pair exclusivity. Replaces the former `ihc_qc` and `exclusivity` pages,
+  which asked the same question of the same table from two directions.
 
 ## About
 
 - [About](about.html) — study and site background.
 - [License](license.html) — reuse terms for the code and results.
 - [Source code](https://github.com/sceriff0/ihc_method) — GitHub repository.
+
+> **Pages removed.** `overview` was an empty stub and its role is this page.
+> `clinical_data_per_annotation` and `..._per_annotation_old` were removed on
+> 2026-08-11: they took membership from the exporter's precomputed
+> `Out_of_annotation` column instead of from geometry, reading
+> `data/flowpath/per_annotation/<patient>_a<k>.csv` and an `old/` overlay — a layout
+> the export no longer produces. The current export ships a polygon *per region*, so
+> geometry is available everywhere the flag used to be the only option.

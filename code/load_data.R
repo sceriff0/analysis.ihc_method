@@ -55,7 +55,7 @@ clinical_data <- read_excel(here("data", "clinical_data.xlsx")) |>
 # The region counts cross-check against the export exactly — 046 three csvs and three
 # geojsons, 052 two, 5456 three, 10338 one, 15897 two, and 24086 a bare csv with no
 # annotation directory. A mismatch between the two would silently drop a region from
-# the correlation, so clinical_data.Rmd prints the reconciliation.
+# the correlation, so clinical_flowpath.Rmd prints the reconciliation.
 #
 # Values updated 2026-08-11 from the pathologist's re-read. They differ materially
 # from the previous set, so the tumour-content correlation is NOT comparable to an

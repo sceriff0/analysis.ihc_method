@@ -87,7 +87,7 @@ rather than accidents:
   correct under both: the per-region metrics intersect each file with its own polygon,
   and `all_slide_union_cells()` keys on `cell_key_cols()` (or the rounded centroid)
   before pooling. `all_slide_overlap_report()` says which shape the data on disk is, and
-  `clinical_data.Rmd` prints it on every knit.
+  `clinical_flowpath.Rmd` prints it on every knit.
 
 Membership inside a region prefers, in order: the region's own geojson (`sf` —
 the only source that knows the region's **area**, hence the only one that yields
@@ -189,12 +189,18 @@ STARE transform manifest, so it is the same measurement either way. Each backend
 
 ## Child documents
 
-The four `clinical_data` pages are thin parents over `analysis/_clinical_data_body.Rmd`.
-Two rules, both enforced by `tests/testthat/test-child-documents.R`:
+`clinical_flowpath.Rmd` and `clinical_mirage.Rmd` are thin parents over
+`analysis/_children/clinical_body.Rmd`. Two rules, both enforced by
+`tests/testthat/test-child-documents.R`:
 
-- The **leading underscore** is what keeps `render_site()` (and so workflowr) from
-  building the body as a page of its own.
-- The `child=` path must be **absolute**, via `here::here("analysis", ...)`. knitr
+- Children live in **`analysis/_children/`**, not beside their parents. An underscore
+  on the *file* only hides it from `render_site()`, which skips `^[_.]` resources;
+  it does **not** hide it from `Sys.glob()`, which is what `wflow_build("analysis/*.Rmd")`
+  expands — glob's `*` refuses a leading dot, not a leading underscore. That glob handed
+  the body to the builder as a page and the build died on the child's contract check.
+  The underscore on the *directory* hides it from `render_site()`, and a subdirectory is
+  out of reach of a non-recursive glob, so both routes are closed.
+- The `child=` path must be **absolute**, via `here::here("analysis", "_children", ...)`. knitr
   resolves it against the knit working directory, and `_workflowr.yml` sets
   `knit_root_dir: "."` — the project root — so a bare filename is looked for beside
   `_workflowr.yml` rather than beside its parent. The failure is

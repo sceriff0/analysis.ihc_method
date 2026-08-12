@@ -1,7 +1,7 @@
 # =============================================================================
 # validation_helpers.R  —  shared logic for the IHC-validation reports
-#   (clinical_data.Rmd, deconvolution.Rmd, bulkRna.Rmd, periphery.Rmd, ihc_qc.Rmd,
-#    exclusivity.Rmd, annotation_membership_qc.Rmd).
+#   (clinical_flowpath.Rmd, clinical_mirage.Rmd, clinical_membership_qc.Rmd,
+#    molecular_hot_cold.Rmd, marker_qc.Rmd).
 #
 # The single-cell IHC table is the "measurement under test". These helpers derive
 # the quantities each report validates against an independent reference

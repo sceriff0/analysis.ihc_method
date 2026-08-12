@@ -18,7 +18,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
-SLUG <- "benchmarks"
+SLUG <- "benchmark_pipeline"
 
 bench_dir  <- here("data", "benchmark")
 have_bench <- file.exists(file.path(bench_dir, "measurements.csv"))
@@ -33,7 +33,7 @@ mirage `benchmarks/analysis/plots.R`) and rendered **inline from the sweep CSVs*
 no PNGs on disk.
 
 **Registration accuracy is not on this page.** The accuracy figures read the same
-`param_matrix.csv` columns as the [registration accuracy](registration_accuracy.html)
+`param_matrix.csv` columns as the [registration accuracy](benchmark_registration.html)
 page, from the same directory, so they are rendered there once rather than on both
 pages. This page is resource, cost and segmentation.
 
@@ -192,7 +192,7 @@ if (length(bench_figs)) {
 - **Registration accuracy lives on its own page.** `reg_displacement_um_p50`,
   `reg_dice_matched` and `valis_non_rigid_D`/`_rTRE` are read by
   `code/registration_accuracy_plots.R` and rendered on
-  [registration accuracy](registration_accuracy.html), not here.
+  [registration accuracy](benchmark_registration.html), not here.
 - **Reductions are means over replicates** unless noted; SLURM isolates per-process
   resources, so `peak_rss_gb` is one process's peak, not a whole-run aggregate.
   I/O (`read_gb`/`write_gb`) is transferred **volume**, not throughput.

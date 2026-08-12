@@ -1,33 +1,48 @@
 name: ihc_method
 output_dir: ../docs
+# One navbar entry per part of the study, in the order the study is read. A part with
+# more than one page becomes a dropdown, so the top bar always has the same six items
+# no matter how many pages sit under them. Page order inside a menu is reading order,
+# not alphabetical.
 navbar:
   title: ihc_method
   left:
   - text: Home
     href: index.html
-  - text: Tumour border
-    href: periphery.html
-  - text: Membership QC
-    href: annotation_membership_qc.html
-  - text: Clinical data
-    href: clinical_data.html
-  - text: mirage phenotyping
-    href: clinical_data_mirage.html
   - text: Paper figures
     href: paper_figures.html
-  - text: Run QC
-    href: run_qc.html
-  - text: Registration arms
-    href: registration_arms.html
-  - text: Registration accuracy
-    href: registration_accuracy.html
-  - text: Benchmarks
-    href: benchmarks.html
-  - text: About
-    href: about.html
-  - text: License
-    href: license.html
+  - text: 1 · Clinical
+    menu:
+    - text: FlowPath phenotyping
+      href: clinical_flowpath.html
+    - text: mirage phenotyping
+      href: clinical_mirage.html
+    - text: '---'
+    - text: Annotation membership QC
+      href: clinical_membership_qc.html
+  - text: 2 · Molecular
+    href: molecular_hot_cold.html
+  - text: 3 · Registration
+    menu:
+    - text: Run QC — the study samples
+      href: registration_run_qc.html
+    - text: Registration arms — choosing a configuration
+      href: registration_arms.html
+  - text: 4 · Benchmarks
+    menu:
+    - text: Registration accuracy — synthetic sweep
+      href: benchmark_registration.html
+    - text: Pipeline benchmarks — resource, cost, segmentation
+      href: benchmark_pipeline.html
+  - text: Marker QC
+    href: marker_qc.html
   right:
+  - text: About
+    menu:
+    - text: About
+      href: about.html
+    - text: License
+      href: license.html
   - icon: fab fa-github
     text: Source code
     href: https://github.com/sceriff0/ihc_method

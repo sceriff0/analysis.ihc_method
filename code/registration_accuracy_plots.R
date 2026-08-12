@@ -1,6 +1,6 @@
 # =============================================================================
 # registration_accuracy_plots.R — landmark-free, in-pipeline registration
-# accuracy figures for analysis/registration_accuracy.Rmd. Twin of
+# accuracy figures for analysis/benchmark_registration.Rmd. Twin of
 # benchmark_plots.R: reads mirage paper_data CSVs from a directory (default
 # data/benchmark/) and returns a named list of house-styled ggplots, skipping
 # any figure whose CSV/columns are absent. Drop the sweep outputs in and re-knit.

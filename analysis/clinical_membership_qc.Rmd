@@ -25,7 +25,7 @@ invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
-SLUG <- "annotation_membership_qc"
+SLUG <- "clinical_membership_qc"
 ```
 
 ## Starting data and notation
@@ -137,7 +137,7 @@ if (nrow(qc) && sum(is.finite(qc$tumor_frac_flag) & is.finite(qc$tumor_frac_sf))
 - High agreement here validates the fixed `0.325` conversion for those slides; a
   slide with low agreement should either be excluded or given its own conversion.
 - This compares *membership*, not the pathologist — that concordance is in
-  `clinical_data.Rmd`.
+  `clinical_flowpath.Rmd`.
 
 ```{r export-pdfs, include=FALSE}
 # Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;

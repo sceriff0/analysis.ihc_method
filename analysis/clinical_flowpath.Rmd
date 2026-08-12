@@ -1,5 +1,5 @@
 ---
-title: "clinical_data (region-matched polygon membership)"
+title: "Clinical concordance — FlowPath phenotyping"
 author: "sceriff0"
 date: "2026-07-05"
 output: workflowr::wflow_html
@@ -27,14 +27,14 @@ source(here("code", "membership.R"))           # membership_data(): the one vari
 source(here("code", "aggregation_compare.R"))  # annotation-aggregation sensitivity grid
 source(here("code", "pdf_export.R"))           # export_pdf_figures(): plots -> output/figures/
 
-SLUG <- "clinical_data"
+SLUG <- "clinical_flowpath"
 ```
 
 ## Starting data and notation
 
 Membership is decided **geometrically**, from the pathologist's own polygons — and in
 this export, from the polygon belonging to the *same region* as the cell file it
-scores. Its companion [`clinical_data_mirage`](clinical_data_mirage.html) runs the
+scores. Its companion [`clinical_mirage`](clinical_mirage.html) runs the
 identical analysis on cells MIRAGE phenotyped itself, over the same slides and the
 same polygons, so the difference between the two pages is attributable to the
 **phenotyping method** alone.
@@ -155,5 +155,5 @@ MEMBERSHIP_NOTES <- c(
   "A patient with **no annotation directory** is entirely inside: the export layout's stated convention, marked `whole_slide` in the `source` column. That is the one case with no `area_mm2`, hence no densities.")
 ```
 
-```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}
+```{r body, child = here::here("analysis", "_children", "clinical_body.Rmd")}
 ```

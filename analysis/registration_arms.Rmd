@@ -31,8 +31,8 @@ registration accuracy and they answer different questions — this one answers
 
 | page | data | question |
 |---|---|---|
-| [Registration accuracy](registration_accuracy.html) | mirage's `benchmarks/` sweep on **synthetic** images with a known injected offset | how does cost and accuracy scale? |
-| [Run QC](run_qc.html) | **one** run on the study slides | was this cohort registered well enough to analyse? |
+| [Registration accuracy](benchmark_registration.html) | mirage's `benchmarks/` sweep on **synthetic** images with a known injected offset | how does cost and accuracy scale? |
+| [Run QC](registration_run_qc.html) | **one** run on the study slides | was this cohort registered well enough to analyse? |
 | **this page** | the study slides, **N runs**, one per arm | which configuration, and what does each knob buy? |
 
 The manuscript's registration-accuracy figure needs *this* page, not the sweep:
@@ -242,7 +242,7 @@ arm_notes <- c(
     "`reg_micro_reg < 2` and micro-registration never ran. A duplicated `non_rigid` box",
     "would instead read as 'micro bought nothing'.",
     "Read DOWN a panel: the stage meanings differ across depths, which is why this",
-    "facets rather than sharing one axis. See [run QC](run_qc.html) for the full",
+    "facets rather than sharing one axis. See [run QC](registration_run_qc.html) for the full",
     "column-and-file to stage mapping."))
 
 figs <- if (nrow(seg)) build_arm_figs(seg, read_arms_valis(arms), arms) else list()
@@ -258,7 +258,7 @@ if (!length(figs)) cat("\n_No figures — see the loader note above._\n")
 ## Notes
 
 - **This is the page the manuscript's registration figure should cite**, not
-  [registration accuracy](registration_accuracy.html). That page reads the synthetic
+  [registration accuracy](benchmark_registration.html). That page reads the synthetic
   sweep, whose moving panels are shifted copies of channel 0, so a residual measured
   there reflects a known injected offset rather than real cross-acquisition
   difficulty. The arm ranking only means what the paper wants it to mean if it was

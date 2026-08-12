@@ -1,27 +1,36 @@
 <!--
-_clinical_data_body.Rmd — the shared body of the three clinical_data reports.
+analysis/_children/clinical_body.Rmd — the shared body of the two clinical reports.
 
-Not a page: the leading underscore keeps rmarkdown's site generator (and therefore
-workflowr) from building it on its own — render_site() skips files beginning with
-`_` or `.`, which is the same rule that keeps `_site.yml` from being rendered.
+NOT A PAGE, and the directory is what says so. Two separate mechanisms have to agree
+on that, and only one of them respects a leading underscore on the FILE:
+
+  * rmarkdown::render_site() skips resources whose name begins with `_` or `.`, so an
+    underscored file next to its parents was already invisible to `wflow_build()`.
+  * Sys.glob(), which is what `wflow_build("analysis/*.Rmd")` expands, does NOT —
+    glob's `*` only refuses a leading DOT. The child was therefore handed to the
+    builder as if it were a page and the build died on the contract check below.
+
+Living under `_children/` closes both: the underscore hides the directory from
+render_site(), and a subdirectory is out of reach of a non-recursive glob.
 
 THE CHILD PATH MUST BE ABSOLUTE. knitr resolves a `child=` option against the KNIT
 WORKING DIRECTORY, not against the parent document, and `_workflowr.yml` sets
-`knit_root_dir: "."` — the project root. A bare `child = "_clinical_data_body.Rmd"`
-is therefore looked for at `<root>/_clinical_data_body.Rmd`, and the build dies
-mid-parent with `Error in file(con, "r") : cannot open the connection`, which names
-neither the child nor the missing path. Use `here::here("analysis", ...)`; it also
-keeps RStudio's Knit button working, since that knits from the document's own
-directory. tests/testthat/test-child-documents.R enforces this.
+`knit_root_dir: "."` — the project root. A path relative to the parent is therefore
+looked for under `<root>/`, and the build dies mid-parent with
+`Error in file(con, "r") : cannot open the connection`, which names neither the child
+nor the missing path. Use `here::here("analysis", "_children", ...)`; it also keeps
+RStudio's Knit button working, since that knits from the document's own directory.
+tests/testthat/test-child-documents.R enforces this.
 
 It is pulled in with a `child` chunk by
 
-  clinical_data.Rmd         cells: the all-slide export, phenotypes: FlowPath
-  clinical_data_mirage.Rmd  cells: data/mirage/, phenotypes: mirage's panel
+  clinical_flowpath.Rmd  cells: the all-slide export, phenotypes: FlowPath
+  clinical_mirage.Rmd    cells: data/mirage/, phenotypes: mirage's panel
 
 The two reports differ ONLY in who called the phenotypes — same slides, same
 polygons, same membership rule — so everything downstream of that lives here once.
 (Two flag-membership parents were removed on 2026-08-11 along with their layout.)
+
 The parent must define:
 
   mem              membership_data() result — $per_annotation, $union, $cells, $has_area
@@ -41,9 +50,9 @@ Chunk labels here must not collide with the parent's (setup, annotations).
 .absent <- setdiff(c("mem", "SLUG", "IMMUNE_HEADING", "IMMUNE_PROSE", "MEMBERSHIP_NOTES"),
                    ls(envir = knitr::knit_global()))
 if (length(.absent))
-  stop("_clinical_data_body.Rmd is a child document, not a page: its parent supplies ",
-       paste(.absent, collapse = ", "), ". Build one of clinical_data.Rmd, ",
-       "or clinical_data_mirage.Rmd — the leading underscore is what keeps ",
+  stop("analysis/_children/clinical_body.Rmd is a child document, not a page: its parent supplies ",
+       paste(.absent, collapse = ", "), ". Build one of clinical_flowpath.Rmd ",
+       "or clinical_mirage.Rmd — the _children/ directory is what keeps ",
        "workflowr from building this file on its own.", call. = FALSE)
 rm(.absent)
 ```

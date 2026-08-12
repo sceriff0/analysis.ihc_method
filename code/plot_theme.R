@@ -2,7 +2,7 @@
 # plot_theme.R  —  THE house figure style for this project.
 #
 # Every figure in analysis/*.Rmd and code/*.R goes through this file, so a plot
-# rendered by clinical_data.Rmd and one rendered by benchmarks.Rmd are visually
+# rendered by clinical_flowpath.Rmd and one rendered by benchmarks.Rmd are visually
 # indistinguishable apart from their content. It is modelled on the journal
 # figure the PI supplied as the target (Nature-style multi-panel):
 #

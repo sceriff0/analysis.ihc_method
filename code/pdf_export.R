@@ -29,7 +29,7 @@ if (isTRUE(capabilities("cairo"))) options(bitmapType = "cairo")
 
 export_pdf_figures <- function(slug, out_root = here::here("output", "figures")) {
   tryCatch({
-    fp <- knitr::opts_chunk$get("fig.path")   # e.g. "figure/clinical_data.Rmd/"
+    fp <- knitr::opts_chunk$get("fig.path")   # e.g. "figure/clinical_flowpath.Rmd/"
 
     # Candidate directories that may hold this knit's PDF figures. workflowr's
     # runtime fig.path is relative and the exact on-disk location varies by build

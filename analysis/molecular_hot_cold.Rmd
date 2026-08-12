@@ -1,0 +1,1145 @@
+---
+title: "Bulk RNA, deconvolution and the hot/cold axis"
+author: "sceriff0"
+date: "2026-08-12"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# renv: tidyverse + here (in the lockfile), sf + jsonlite for the margin geometry in
+# part 3, and immunedeconv (GitHub: omnideconv/immunedeconv, NOT Bioconductor) for
+# part 2 — see the method-configuration chunk there for the install recipe. Each part
+# degrades to a message if its optional input is absent; none of them is required.
+suppressPackageStartupMessages({
+  library(tidyverse)
+  library(here)
+  library(sf)
+})
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = 9, fig.height = 6,
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+
+# Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
+# helpers. load_data.R prints colnames() on load; silence it. validation_helpers.R pulls
+# in cell_tables.R (export-schema adapter) and plot_theme.R (house figure style, which
+# is where hotcold_cols()/hotcold_order() come from).
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
+source(here("code", "validation_helpers.R"))
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "molecular_hot_cold"
+```
+
+Everything on this page asks one question three ways: **does a bulk, cohort-level
+readout agree with what the slide shows, and does that agreement depend on whether
+the tumour is immunologically hot or cold?**
+
+| part | bulk readout | compared against | grain |
+|---|---|---|---|
+| 1 | per-gene DESeq2-normalised expression | IHC marker-positive cell fraction | marker |
+| 2 | immunedeconv cell-type scores | IHC lineage fraction | lineage |
+| 3 | — (spatial, not bulk) | clinical `HOT score` / immuno-phenotype | invasive margin |
+
+Parts 1 and 2 were separate pages (`bulkRna`, `deconvolution`) and part 3 was a third
+(`periphery`). They shared the CRF-to-slide id bridge, the clinical hot/cold lookup and
+the whole-slide `ihc_data` reduction, and re-derived all three independently — three
+places for the same mapping to drift. They are one page now, and those shared keys are
+built **once**, immediately below, by the only chunk allowed to build them.
+
+## Shared keys: the id bridge and the hot/cold call
+
+Two lookups are used by all three parts, so they are defined here and nowhere else.
+
+**The id bridge.** Bulk RNA lives in **CRF-id** space; IHC lives in **slide-id**
+space. `slide_key()` maps any id to the shared numeric slide space (strip non-digits,
+apply the verified typo fix `15879` -> `15897`); `norm_id()` upper-cases and strips
+non-alphanumerics. `crf_to_slide_map(clinical_data)` returns a named vector:
+
+```
+crf2slide[crf] = slide
+where: crf   = norm_id of `ID CRF PRESERVE`
+       slide = slide_key of `ID PATIENT`
+```
+
+It is a base-R named-vector lookup, deliberately **not** a join: a join on a
+duplicated CRF id silently multiplies rows, and this table has one row per patient.
+
+**The hot/cold call.** `clin` carries the two clinical immune columns, keyed into
+slide space so it joins onto every per-patient frame below:
+
+```
+hot_score(p)  = numeric `HOT score`        from the clinical CRF
+immuno_phe(p) = `Immuno-phenotype`         from the clinical CRF (cold / intermediate / hot)
+```
+
+`hot_score` is coerced with `as.numeric()`; a non-numeric entry becomes `NA` rather
+than stopping the page. `any_of()` means a clinical export missing either column
+yields a `clin` without it instead of an error — the hot/cold colouring then simply
+falls back to grey.
+
+```{r shared-keys}
+# ONE owner for both lookups. Parts 1-3 all consume these; none of them rebuilds them.
+crf2slide <- crf_to_slide_map(clinical_data)
+
+clin <- clinical_data |>
+  mutate(patient_id = slide_key(`ID PATIENT`)) |>
+  select(patient_id,
+         hot_score  = any_of("HOT score"),
+         immuno_phe = any_of("Immuno-phenotype")) |>
+  mutate(hot_score = suppressWarnings(as.numeric(hot_score)))
+
+cat("clinical rows:", nrow(clin),
+    "| with a numeric HOT score:", sum(is.finite(clin$hot_score)),
+    "| with an immuno-phenotype:", sum(!is.na(clin$immuno_phe)), "\n")
+```
+
+## Part 1 — Bulk RNA expression vs IHC marker positivity
+
+Marker by marker, across patients: does a marker's gene expression in bulk RNA track
+the fraction of cells the IHC gate calls positive for it? Points are coloured by the
+clinical immuno-phenotype so a marker that only agrees in hot tumours is visible.
+
+
+### Starting data and notation
+
+Every value below is derived from three inputs:
+
+- `ihc_data` — FlowPath single cells, deduplicated to **one copy per patient**
+  (whole slide, no annotation boundary). Carries per-marker `<marker>_sign` and
+  `<marker>_zscore` columns and `patient_id`.
+- `counts_data` — DESeq2-normalised **bulk RNA**, one row per RNA sample, one
+  column per gene, plus the CRF-space sample id `Sample`.
+- `crf2slide` and `clin` — the id bridge and the hot/cold call, both built once in
+  **Shared keys** above and only read here.
+
+Notation and mappings used throughout:
+
+```
+cells of a patient p = all of p's cells in `ihc_data`
+marker-positive cell (marker <marker>) = marker_pos(cell, <marker>) is TRUE
+  (is_pos accepts +, pos, positive, yes, true, 1)
+genes of a marker = marker_gene_map[<marker>]: a comma-separated gene list
+  (e.g. CD3 -> CD3D, CD3E, CD3G; PANCK -> EPCAM, KRT5, KRT8, KRT14, KRT18, KRT19);
+  multi-gene markers are averaged
+```
+
+Paired associations are Spearman correlations via `paired_spearman`.
+
+### Per-patient bulk expression of each marker's gene(s)
+
+RNA samples are keyed in CRF space; `crf2slide` bridges them to slide space.
+`counts_data` is melted long to one row per (sample, gene), with columns
+`Sample`, `crf_id = norm_id(Sample)`, `gene`, and `expr`. `gene_rows` expands
+`marker_gene_map` to one row per (marker, gene) over each marker's gene list
+(comma-split, trimmed); `marker_genes` keeps only the (marker, gene) rows whose
+gene appears in the RNA matrix:
+
+```
+available genes of a marker = its genes that are also columns of `counts_data`
+```
+
+Per marker and CRF sample, expression is the mean over that marker's available
+genes:
+
+```
+rna_expr(<marker>, s) = (sum over the marker's available genes of expr(s, gene))
+                        / (number of the marker's available genes)
+where:
+  expr(s, gene) = the DESeq2-normalised value for gene in sample s
+```
+
+The CRF id is then mapped to slide space with
+`patient_id = crf2slide[crf_id(s)]`, and rows with no crosswalk match (NA) are
+dropped.
+
+```{r rna-marker-expression}
+expr_long <- counts_data |>
+  mutate(crf_id = norm_id(Sample)) |>
+  pivot_longer(-c(Sample, crf_id), names_to = "gene", values_to = "expr")
+
+# marker -> its genes, one row per (marker, gene). Explicit $-access + strsplit
+# (no NSE) so it is robust to the base pipe / tidyr separate_rows() quirks.
+gene_rows <- do.call(rbind, Map(function(m, g)
+  data.frame(marker = m, gene = trimws(strsplit(g, ",")[[1]]), stringsAsFactors = FALSE),
+  marker_gene_map$marker, marker_gene_map$genes))
+
+missing_genes <- setdiff(gene_rows$gene, unique(expr_long$gene))
+if (length(missing_genes)) message("genes absent from RNA matrix: ", paste(missing_genes, collapse = ", "))
+
+# keep only genes present in the RNA matrix
+marker_genes <- gene_rows |> filter(gene %in% unique(expr_long$gene))
+
+# Per patient, average expression across a marker's available genes, then map the
+# CRF sample id to the IHC slide id via the crosswalk.
+marker_expr <- expr_long |>
+  inner_join(marker_genes, by = "gene", relationship = "many-to-many") |>
+  group_by(marker, crf_id) |>
+  summarise(rna_expr = mean(expr), .groups = "drop") |>
+  mutate(patient_id = unname(crf2slide[crf_id])) |>   # crf id -> slide id
+  filter(!is.na(patient_id)) |>
+  select(marker, patient_id, rna_expr)
+```
+
+### Per-patient IHC positive-cell fraction
+
+`ihc_marker_fraction(ihc_data)` groups cells by `slide_key(patient_id)` and, for
+each marker, returns the whole-slide positive fraction (mean of `is_pos` over
+non-NA sign values):
+
+```
+<marker>_posfrac(p) = (cells of p positive for <marker>) / (all cells of p)
+where:
+  positive = marker_pos(cell, marker) — TRUE only for an explicitly positive sign.
+             A cell no gate evaluated for this marker (blank / "·" sign, or a marker
+             the panel lacks) counts in the denominator as not-positive, so a
+             sparsely-gated marker reads LOW rather than dropping out. Check
+             marker_gated() before reading a near-zero posfrac as biology.
+```
+
+These `_posfrac` columns are reshaped long to `patient_id`, `marker`, and
+`ihc_posfrac`.
+
+```{r rna-ihc-fraction}
+ihc_marker_frac <- ihc_marker_fraction(ihc_data) |>
+  select(patient_id, ends_with("_posfrac")) |>
+  pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_posfrac") |>
+  mutate(marker = sub("_posfrac$", "", marker))
+
+cat("IHC patients:", dplyr::n_distinct(ihc_marker_frac$patient_id),
+    "| RNA patients:", dplyr::n_distinct(marker_expr$patient_id), "\n")
+```
+
+### Marker-by-marker concordance
+
+Inner-join `marker_expr` and `ihc_marker_frac` on `marker` and `patient_id`, keeping
+finite pairs. Per marker, over its shared patients, the statistic is the Spearman
+correlation between `ihc_posfrac` and `rna_expr` across patients (`paired_spearman`,
+via `cor.test(method = "spearman")`), reported with its p-value and the pair count
+`n`; it is `NA` when `n < 3` or either vector is constant. Rows are sorted by
+descending correlation.
+
+```{r rna-concordance}
+rna_paired <- marker_expr |>
+  inner_join(ihc_marker_frac, by = c("marker", "patient_id")) |>
+  filter(is.finite(rna_expr), is.finite(ihc_posfrac))
+
+cat("shared patients (RNA + IHC):",
+    dplyr::n_distinct(rna_paired$patient_id), "\n")
+
+rna_summary <- rna_paired |>
+  group_by(marker) |>
+  group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |>
+  ungroup() |>
+  arrange(desc(rho))
+
+knitr::kable(rna_summary, digits = 3,
+             caption = "Spearman: IHC positive-cell fraction vs bulk-RNA expression")
+```
+
+Scatter per marker: `ihc_posfrac` against `log1p(rna_expr)` (`log1p` keeps zeros),
+with an OLS fit line.
+
+```{r rna-concordance-plot, fig.height=8}
+if (nrow(rna_paired) > 0) {
+  # Colour by the clinical hot/cold call so a marker whose RNA-IHC agreement holds
+  # only in one immune stratum is visible as such. left_join, not inner_join: a
+  # patient with no immuno-phenotype must stay in the plot (grey) rather than
+  # silently shrink the panel the fit is drawn through.
+  df <- rna_paired |>
+    left_join(clin, by = "patient_id") |>
+    mutate(immuno_phe = hotcold_order(immuno_phe))
+  # log-scale expression (counts span orders of magnitude); +1 to keep zeros.
+  # The fit goes under the points and is over ALL patients, coloured or not.
+  ggplot(df, aes(ihc_posfrac, log1p(rna_expr))) +
+    geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
+    facet_wrap(~ marker, scales = "free") +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = "grey70", name = "Immuno-phenotype") +
+    labs(title = "IHC marker+ fraction vs bulk-RNA expression",
+         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients",
+         x = "IHC fraction of cells positive", y = "log1p(bulk expression)")
+}
+```
+
+Sensitivity: replace the hard-threshold positive fraction with the per-patient
+mean staining intensity (mean z-score over non-NA cells):
+
+```
+<marker>_z(p) = (sum over p's cells with a non-NA <marker>_zscore of that zscore)
+                / (cells of p with a non-NA <marker>_zscore)     (ihc_marker_fraction)
+```
+
+Then correlate `<marker>_z` against `rna_expr` per marker with the same statistic
+(Spearman correlation across patients).
+
+```{r rna-zscore-sensitivity}
+ihc_z <- ihc_marker_fraction(ihc_data) |>
+  select(patient_id, ends_with("_z")) |>
+  pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_z") |>
+  mutate(marker = sub("_z$", "", marker))
+
+paired_z <- marker_expr |>
+  inner_join(ihc_z, by = c("marker", "patient_id")) |>
+  filter(is.finite(rna_expr), is.finite(ihc_z))
+
+if (nrow(paired_z) > 0) {
+  paired_z |>
+    group_by(marker) |>
+    group_modify(~ paired_spearman(.x$ihc_z, .x$rna_expr)) |>
+    ungroup() |>
+    arrange(desc(rho)) |>
+    knitr::kable(digits = 3,
+                 caption = "Spearman: IHC mean z-score vs bulk-RNA expression")
+}
+```
+
+### Notes
+
+- Both IHC reductions use `na.rm = TRUE`: `<marker>_posfrac` and `<marker>_z`
+  average over the non-NA sign / z-score cells of a patient, so the effective
+  denominator is that count, not necessarily all of the patient's cells.
+- `rna_expr` averages only genes actually present in `counts_data` (a marker's
+  available genes); genes in a marker's list that are absent from the matrix are
+  reported by the `missing_genes` message and excluded from the mean. A marker with no
+  available genes contributes no RNA row.
+- The gene join is `relationship = "many-to-many"`, but each (sample, gene) has a
+  single `expr`, so the per-(marker, sample) mean is over distinct genes.
+- `PANCK` averages `EPCAM` + keratins; `SMA` -> `ACTA2`, `CD56` -> `NCAM1`,
+  `PDL1` -> `CD274`, `PD1` -> `PDCD1`, `FSP1` -> `S100A4`. `wrongL1CAM` is
+  excluded by construction (not in `marker_gene_map`).
+- Correlations are cross-patient and small-n; every row carries its `n`.
+
+
+## Part 2 — Deconvolution scores vs IHC lineage fractions
+
+The same question one level up: instead of a marker, a whole cell type. `immunedeconv`
+estimates cell-type abundance from the same bulk matrix; the IHC panel counts those
+cells directly. Restricted to the four lineages both sides can name (CD8T, CD4T, Treg,
+NK), and coloured by the same hot/cold call as part 1.
+
+
+### Starting data and notation
+
+Every value below is derived from two inputs, bridged by the clinical table:
+
+- `ihc_data` — FlowPath single cells deduplicated to **one copy per patient**
+  (whole slide, no annotation boundary). Each cell carries a `lineage` =
+  `phenotype_clean` collapsed via the `phenotype_lineage` table.
+- `counts_data` — DESeq2-normalized bulk RNA, one row per sample, one column per
+  gene, keyed by `Sample` (a CRF id).
+- `crf2slide` and `clin` — the id bridge and the hot/cold call, both built once in
+  **Shared keys** above and only read here.
+
+Comparison is anchored to the four comparable lineages CD8T, CD4T, Treg, NK
+(`comparable_lineages`) — the only IHC phenotype lineages with a clean
+deconvolution counterpart. `deconv_to_lineage()` maps each method's cell-type
+string to one of these (case-insensitive pattern match: `regulatory|treg` ->
+Treg, `cd8` -> CD8T, `cd4` -> CD4T, `^nk|nk cell|natural killer` -> NK),
+everything else to `NA`. All correlations are Spearman correlation via
+`paired_spearman` (rank-based; `NA` when fewer than 3 shared patients or either
+vector is constant).
+
+### Bulk-RNA expression matrix
+
+`expr_mat` is `counts_data` (sample by gene) transposed to gene by sample, cast
+double, with gene symbols as row names:
+
+```
+expr_mat[gene, sample] = counts_data[sample, gene]   (transpose)
+```
+
+```{r deconv-expr-matrix}
+expr_mat <- counts_data |>
+  column_to_rownames("Sample") |>
+  as.matrix() |>
+  t()
+
+storage.mode(expr_mat) <- "double"
+cat("expression matrix:", nrow(expr_mat), "genes x", ncol(expr_mat), "samples\n")
+```
+
+> Caveat: quanTIseq/EPIC are designed for TPM. DESeq2-normalized counts are used
+> here as a pragmatic proxy; absolute fractions are therefore approximate, but the
+> *cross-patient ranking* (what the Spearman validation uses) is robust to this.
+
+### Method configuration
+
+Each method is gated by the inputs it needs, not preference:
+
+- `methods_free` (quanTIseq, EPIC, MCPcounter, xCell, ABIS) — run on `expr_mat`
+  alone. Always enabled.
+- `methods_indication` (TIMER, ConsensusTME) — need one cancer-type code per
+  sample (`INDICATIONS`, length = `ncol(expr_mat)`). Enabled iff `INDICATIONS`
+  is non-`NULL`; here it is `NULL`, so both are skipped.
+- CIBERSORT / CIBERSORT (abs.) — license-gated `CIBERSORT.R` + `LM22.txt`, paths
+  from env vars `CIBERSORT_BINARY` / `CIBERSORT_MAT`. Run iff both are set and the
+  files exist.
+- BayesPrism — needs an scRNA-seq reference at `data/sc_reference.rds` via
+  `omnideconv`. Run iff present.
+
+```{r deconv-method-config}
+# First-generation methods that run on the bulk matrix with no extra artifacts.
+methods_free <- c("quantiseq", "epic", "mcp_counter", "xcell", "abis")
+
+# TIMER / ConsensusTME need one cancer-type code per SAMPLE (length == ncol(expr_mat),
+# same order). Set INDICATIONS to enable them, e.g. rep("READ", ncol(expr_mat)) for a
+# single-indication cohort, or a per-sample vector. NULL -> both skipped.
+INDICATIONS        <- NULL
+methods_indication <- if (!is.null(INDICATIONS)) c("timer", "consensus_tme") else character(0)
+
+# CIBERSORT is license-gated: register at cibersort.stanford.edu, download CIBERSORT.R
+# and LM22.txt, and point these at them (env vars keep the paths out of the repo).
+# Absent -> CIBERSORT and CIBERSORT (abs.) are skipped.
+CIBERSORT_BINARY <- Sys.getenv("CIBERSORT_BINARY", unset = NA)  # path to CIBERSORT.R
+CIBERSORT_MAT    <- Sys.getenv("CIBERSORT_MAT",    unset = NA)  # path to LM22.txt
+
+# BayesPrism (second-generation) needs a cell-type-annotated scRNA-seq reference,
+# read from here() below. Absent -> BayesPrism is skipped.
+SC_REFERENCE <- here("data", "sc_reference.rds")
+```
+
+### Run deconvolution methods
+
+Each enabled method produces a cell-type by sample score table, pivoted long to
+rows of (cell_type, sample, score, method). Then each row is keyed into slide
+space:
+
+```
+crf_id     = norm_id(sample)
+patient_id = crf2slide[crf_id]              (slide space)
+lineage    = deconv_to_lineage(cell_type)
+```
+
+Rows with no slide crosswalk (`patient_id` is `NA`) are dropped.
+
+```{r deconv-run}
+deconv_long <- NULL
+deconv_status <- NULL
+if (requireNamespace("immunedeconv", quietly = TRUE)) {
+  # Run one method, CAPTURING success/failure + a note (why it failed, or how many
+  # cell types it returned). possibly()'s messages are hidden by message=FALSE, so
+  # failures were previously invisible — this makes "only 3 methods ran" diagnosable.
+  run_method <- function(m) {
+    tryCatch({
+      args <- list(gene_expression = expr_mat, method = m)
+      if (m %in% c("timer", "consensus_tme")) args$indications <- INDICATIONS
+      res <- do.call(immunedeconv::deconvolute, args) |>
+        pivot_longer(-cell_type, names_to = "sample", values_to = "score") |>
+        mutate(method = m)
+      list(method = m, ok = TRUE, data = res,
+           note = sprintf("%d cell types", dplyr::n_distinct(res$cell_type)))
+    }, error = function(e) list(method = m, ok = FALSE, data = NULL,
+                                note = conditionMessage(e)))
+  }
+
+  methods_run <- c(methods_free, methods_indication)
+  # CIBERSORT (+ abs): only when the license-gated files are configured & present.
+  if (!is.na(CIBERSORT_BINARY) && !is.na(CIBERSORT_MAT) &&
+      file.exists(CIBERSORT_BINARY) && file.exists(CIBERSORT_MAT)) {
+    immunedeconv::set_cibersort_binary(CIBERSORT_BINARY)
+    immunedeconv::set_cibersort_mat(CIBERSORT_MAT)
+    methods_run <- c(methods_run, "cibersort", "cibersort_abs")
+  }
+
+  runs <- purrr::map(methods_run, run_method)
+  deconv_status <- purrr::map_dfr(runs, function(r)
+    tibble::tibble(method = r$method,
+                   status = if (r$ok) "ok" else "FAILED",
+                   detail = r$note))
+
+  ok_data <- runs |> purrr::keep(~ .x$ok) |> purrr::map("data")
+  if (length(ok_data)) {
+    deconv_long <- bind_rows(ok_data) |>
+      mutate(crf_id     = norm_id(sample),
+             patient_id = unname(crf2slide[crf_id]),   # crf id -> slide id
+             lineage    = deconv_to_lineage(cell_type))
+    n_unmapped  <- dplyr::n_distinct(deconv_long$crf_id[is.na(deconv_long$patient_id)])
+    deconv_long <- deconv_long |> filter(!is.na(patient_id))
+  } else {
+    n_unmapped <- 0L
+  }
+
+  cat("methods:", sum(deconv_status$status == "ok"), "ok of",
+      nrow(deconv_status), "attempted [",
+      paste(sort(unique(deconv_long$method)), collapse = ", "), "]",
+      "| deconvolution rows:", if (is.null(deconv_long)) 0L else nrow(deconv_long),
+      "|", n_unmapped, "RNA sample(s) had no slide crosswalk\n")
+} else {
+  message("immunedeconv not installed — install it to run this report.")
+}
+```
+
+```{r deconv-status, echo=FALSE}
+if (!is.null(deconv_status))
+  knitr::kable(deconv_status,
+    caption = paste("Deconvolution method run status. A FAILED row is why that",
+                    "method is absent downstream; the `detail` is its error message."))
+```
+
+### BayesPrism (single-cell reference; scaffolded)
+
+`immunedeconv::deconvolute()` covers only bulk-signature methods. BayesPrism is a
+second-generation method (fractions from a cell-type-annotated scRNA-seq
+reference, via `omnideconv`); this project ships no reference, so the block is a
+ready-to-run scaffold that activates only when `data/sc_reference.rds` is present
+(an `.rds` list: `counts` = gene by cell, `labels` = per-cell type, `batch` =
+per-cell sample id) and skips cleanly otherwise. Its output is mapped to
+(patient_id, lineage) by the same `norm_id` -> `crf2slide` / `deconv_to_lineage`
+pipeline as the other methods, then row-bound into `deconv_long`. Verify the
+`omnideconv` argument names against your installed version before trusting the
+numbers.
+
+```{r deconv-bayesprism}
+bayes_long <- NULL
+if (file.exists(SC_REFERENCE) && requireNamespace("omnideconv", quietly = TRUE)) {
+  ref <- readRDS(SC_REFERENCE)
+  bayes_long <- tryCatch({
+    # build_model(): learn the reference; deconvolute(): apply it to the bulk matrix.
+    model <- omnideconv::build_model(
+      single_cell_object    = ref$counts,
+      cell_type_annotations = ref$labels,
+      batch_ids             = ref$batch,
+      method                = "bayesprism",
+      bulk_gene_expression  = expr_mat)
+    frac <- omnideconv::deconvolute(
+      bulk_gene_expression  = expr_mat,
+      model                 = model,
+      single_cell_object    = ref$counts,
+      cell_type_annotations = ref$labels,
+      batch_ids             = ref$batch,
+      method                = "bayesprism")
+    as.data.frame(frac) |>
+      tibble::rownames_to_column("sample") |>            # omnideconv returns sample x cell_type
+      pivot_longer(-sample, names_to = "cell_type", values_to = "score") |>
+      mutate(method = "bayesprism")
+  }, error = function(e) { message("BayesPrism failed: ", conditionMessage(e)); NULL })
+} else {
+  message("BayesPrism skipped — needs data/sc_reference.rds + the omnideconv package.")
+}
+
+if (!is.null(bayes_long) && !is.null(deconv_long)) {
+  bayes_long <- bayes_long |>
+    mutate(crf_id     = norm_id(sample),
+           patient_id = unname(crf2slide[crf_id]),
+           lineage    = deconv_to_lineage(cell_type)) |>
+    filter(!is.na(patient_id))
+  deconv_long <- bind_rows(deconv_long, bayes_long)
+  cat("BayesPrism added:", nrow(bayes_long), "rows\n")
+}
+```
+
+### IHC lineage fractions (reference)
+
+`ihc_lineage_fraction(ihc_data)` counts cells per patient and lineage and
+normalises by the patient's total cell count (over **all** lineages, `NA`
+included), giving the whole-slide fraction:
+
+```
+ihc_frac(patient, lineage) = (cells of patient with that lineage) / (all cells of patient)
+where: the denominator is ALL cells of the patient (every lineage, NA included),
+       before restricting to the four comparable lineages.
+```
+
+Restricted to the four comparable lineages, then **completed to 0** across the
+full patient-by-lineage grid: a lineage a patient simply lacks reads as 0
+(present), not a missing row — otherwise the `inner_join` below would silently
+drop that patient from that lineage's panel.
+
+```{r deconv-ihc-lineages}
+lin_raw <- ihc_lineage_fraction(ihc_data) |>
+  filter(lineage %in% comparable_lineages) |>
+  select(patient_id, lineage, ihc_frac = frac)
+
+# Complete the patient x lineage grid: a lineage a patient simply lacks must read
+# as 0 (present), not a missing row. Otherwise the inner_join below silently drops
+# that patient from that lineage's panel — the "plot never shows all patients" bug.
+ihc_lin <- expand.grid(patient_id = unique(slide_key(ihc_data$patient_id)),
+                       lineage    = comparable_lineages,
+                       stringsAsFactors = FALSE) |>
+  left_join(lin_raw, by = c("patient_id", "lineage")) |>
+  mutate(ihc_frac = ifelse(is.na(ihc_frac), 0, ihc_frac))
+
+cat("IHC patients with lineage fractions:", dplyr::n_distinct(ihc_lin$patient_id), "\n")
+```
+
+### Method vs IHC — per-lineage concordance
+
+Per method, patient and lineage, the score sums a method's sub-types mapping to
+the same lineage (e.g. two NK sub-types):
+
+```
+score(method, patient, lineage) = sum of that method's sub-type scores mapping to the lineage
+where: the sub-types are the method's rows for that patient whose
+       deconv_to_lineage(cell_type) equals the lineage.
+```
+
+This is inner-joined to `ihc_frac(patient, lineage)` on patient and lineage,
+keeping finite pairs.
+
+```{r deconv-concordance}
+deconv_paired <- NULL
+if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
+  deconv_lin <- deconv_long |>
+    filter(!is.na(lineage)) |>
+    group_by(method, patient_id, lineage) |>
+    summarise(score = sum(score), .groups = "drop")
+
+  deconv_paired <- deconv_lin |>
+    inner_join(ihc_lin, by = c("patient_id", "lineage")) |>
+    filter(is.finite(score), is.finite(ihc_frac))
+  cat("deconv_paired (method x lineage x patient) rows:", nrow(deconv_paired), "\n")
+}
+```
+
+Per method and lineage, concordance is the cross-patient Spearman correlation
+between the method's score and the IHC fraction; method ranking averages those
+across lineages:
+
+```
+concordance(method, lineage) = Spearman correlation between score and ihc_frac across patients
+method ranking(method)       = average of those Spearman values across lineages (na.rm)
+where: n_lineages = the number of lineages with a finite Spearman value.
+```
+
+```{r deconv-concordance-table}
+if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
+  deconv_summary <- deconv_paired |>
+    group_by(method, lineage) |>
+    group_modify(~ paired_spearman(.x$score, .x$ihc_frac)) |>
+    ungroup() |>
+    arrange(lineage, desc(rho))
+  knitr::kable(deconv_summary, digits = 3,
+               caption = "Spearman IHC vs deconvolution, per method and lineage")
+
+  # Which method agrees best overall (mean rho across lineages).
+  method_rank <- deconv_summary |>
+    group_by(method) |>
+    summarise(mean_rho = mean(rho, na.rm = TRUE),
+              n_lineages = sum(is.finite(rho)), .groups = "drop") |>
+    arrange(desc(mean_rho))
+  knitr::kable(method_rank, digits = 3,
+               caption = "Method ranking by mean Spearman across lineages")
+}
+```
+
+Scatter of `ihc_frac` (x) vs `score` (y), faceted method by lineage.
+
+```{r deconv-concordance-plot}
+if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
+  # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
+  # a method that tracks IHC only in hot tumours shows up here as a colour-split
+  # cloud rather than as a middling overall rho.
+  df <- deconv_paired |>
+    left_join(clin, by = "patient_id") |>
+    mutate(immuno_phe = hotcold_order(immuno_phe))
+  ggplot(df, aes(ihc_frac, score)) +
+    geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
+    facet_grid(method ~ lineage, scales = "free") +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = "grey70", name = "Immuno-phenotype") +
+    labs(title = "IHC lineage fraction vs bulk-RNA deconvolution score",
+         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients",
+         x = "IHC fraction of all cells", y = "deconvolution score")
+}
+```
+
+### Cross-method agreement (methods vs each other and vs IHC)
+
+Treat IHC as one more "source" alongside each method, giving one value per source,
+patient and lineage: the per-lineage deconvolution score for a method, or
+`ihc_frac` for source `IHC`.
+
+```{r deconv-agreement}
+agr <- NULL
+if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
+  # per (method, patient, lineage) score, summing a method's split sub-types.
+  deconv_lin <- deconv_long |>
+    filter(!is.na(lineage)) |>
+    group_by(method, patient_id, lineage) |>
+    summarise(score = sum(score), .groups = "drop")
+
+  agree_src <- bind_rows(
+    deconv_lin |> transmute(source = method, patient_id, lineage, value = score),
+    ihc_lin    |> transmute(source = "IHC",  patient_id, lineage, value = ihc_frac)
+  )
+  agr <- pairwise_agreement(agree_src)
+}
+```
+
+`pairwise_agreement` returns a symmetric long table over every ordered source
+pair (a, b):
+
+```
+pairwise_agreement(a, b):
+  if a == b:             mean_rho = 1,   n_lineages = NA
+  if no shared patients: mean_rho = NA,  n_lineages = 0
+  otherwise:             mean_rho   = average across lineages of the per-lineage
+                                      Spearman between a and b over their shared patients
+                         n_lineages = the number of lineages with a finite Spearman value
+where: for each lineage, the per-lineage Spearman correlates a's value against
+       b's value across the patients the two sources share.
+```
+
+Rank-based throughout, so the methods' differing score scales do not matter.
+
+```{r deconv-agreement-heatmap, fig.height=6}
+if (!is.null(agr) && nrow(agr) > 0) {
+  # order sources by mean off-diagonal agreement (most-consensual first); keep IHC visible.
+  ord <- agr |>
+    filter(a != b) |>
+    group_by(a) |>
+    summarise(m = mean(mean_rho, na.rm = TRUE), .groups = "drop") |>
+    arrange(m) |>
+    pull(a)
+  agr <- agr |> mutate(a = factor(a, levels = ord), b = factor(b, levels = ord))
+
+  ggplot(agr, aes(a, b, fill = mean_rho)) +
+    geom_tile(colour = "white", linewidth = 0.3) +
+    geom_text(aes(label = ifelse(is.na(mean_rho), "·", sprintf("%.2f", mean_rho))),
+              size = pt_text(6.5)) +
+    scale_fill_div(midpoint = 0, limits = c(-1, 1), name = "mean rho", guide = guide_cbar()) +
+    coord_equal() +
+    labs(title = "Cross-source agreement (mean Spearman across lineages)",
+         subtitle = "Each deconvolution method vs every other and vs IHC; averaged over CD8T/CD4T/Treg/NK",
+         x = NULL, y = NULL) +
+    theme_paper_tile() +
+    theme(axis.text.x = element_text(angle = 40, hjust = 1))
+}
+```
+
+Per source:
+
+```
+mean_rho_vs_others(a) = average of mean_rho(a, b) over all other sources b
+rho_vs_IHC(a)         = mean_rho(a, IHC)
+```
+
+`mean_rho_vs_others` is agreement with the consensus of the others; `rho_vs_IHC`
+is agreement with IHC alone. A high vs-others but low vs-IHC source (or the
+reverse) localises where methods and IHC diverge.
+
+```{r deconv-agreement-ranks}
+if (!is.null(agr) && nrow(agr) > 0) {
+  # How much each source agrees with the consensus of the OTHERS (mean off-diagonal),
+  # and separately with IHC alone.
+  vs_ihc <- agr |> filter(b == "IHC", a != "IHC") |> select(source = a, rho_vs_IHC = mean_rho)
+  agr |>
+    filter(a != b) |>
+    group_by(source = a) |>
+    summarise(mean_rho_vs_others = mean(mean_rho, na.rm = TRUE), .groups = "drop") |>
+    left_join(vs_ihc, by = "source") |>
+    arrange(desc(mean_rho_vs_others)) |>
+    knitr::kable(digits = 3,
+      caption = "Per-source agreement with the other sources vs with IHC alone. A high vs-others but low vs-IHC source (or the reverse) flags where methods and IHC diverge.")
+}
+```
+
+### Notes
+
+- Relative-score methods (MCPcounter, xCell, CIBERSORT rel.) are rank-only; their
+  slope against IHC is not meaningful, so every statistic here is Spearman.
+  Absolute-fraction methods (quanTIseq, EPIC, CIBERSORT abs., ABIS) are the fair
+  apples-to-apples comparison but are still compared by rank for uniformity.
+- Only the four comparable lineages CD8T, CD4T, Treg, NK are compared: the IHC
+  panel has no macrophage or B-cell phenotype, so `deconv_to_lineage` returns `NA`
+  for those and they are dropped (part 1 above does a marker-level CD163/CD14
+  check instead).
+- Cross-patient Spearman needs at least 3 shared patients (and non-constant
+  vectors); sparser method-lineage or source pairs return `NA` rather than a
+  spurious correlation, and mean_rho averages over the finite lineages only.
+  With this cohort's size the agreement matrix is descriptive — read it for
+  *pattern*, not significance.
+- The CIBERSORT and BayesPrism blocks are scaffolds — verify `set_cibersort_*()`
+  and `omnideconv::build_model()/deconvolute()` argument names against your
+  installed versions before trusting their output.
+
+```{r deconv-cache-paired, include=FALSE}
+# Hand `deconv_paired` to the figure-assembly page rather than making it recompute.
+# Deconvolution needs immunedeconv, counts.RData and several minutes; the paper
+# panel is a re-cut of THIS frame, so re-deriving it there would be both slow and
+# a second place for the mapping to drift. Written only when there is something to
+# write, so a skipped deconvolution run leaves the previous cache alone instead of
+# replacing it with an empty one.
+if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
+  dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
+  saveRDS(deconv_paired, here("output", "paired_deconv.rds"))
+  cat("cached", nrow(deconv_paired), "deconv_paired rows for paper_figures.Rmd\n")
+}
+```
+
+
+## Part 3 — Invasive-margin immunity vs the hot/cold call
+
+Neither bulk readout above is spatial, and "hot" is a spatial claim: the clinical
+immuno-phenotype is a statement about where the immune cells are, not just how many
+there are. This part tests it directly — a physical band around the pathologist
+polygon, the CD45+ fraction and density inside it, and those against `HOT score` and
+`Immuno-phenotype`.
+
+This is the only part that needs real geometry (a distance band cannot come from a
+binary in-annotation flag), so it keeps `sf` and is gated on the geojson tree being
+present; parts 1 and 2 run without it.
+
+
+### Starting data and notation
+
+Inputs: `ihc_data` (whole-slide FlowPath cells, one copy per patient, with
+`centroid_x`/`centroid_y` in **microns**), the pathologist annotation **geojson**
+polygons (in **pixels**), and the clinical `HOT score` / `Immuno-phenotype`.
+
+Unlike the inside-the-annotation checks, membership here needs real geometry (a
+distance band cannot come from the binary `Out_of_annotation` flag), so this report
+keeps `sf`. Cells are placed in the polygon pixel frame by a **fixed** conversion:
+
+```
+x_px = centroid_x / 0.325
+y_px = centroid_y / 0.325           (0.325 microns per pixel)
+```
+
+So 1 pixel = 0.325 microns, which gives the two conversions used below:
+
+```
+threshold d microns  ->  d / 0.325 pixels
+pixel area A         ->  A * 0.325^2 / 1e6  square millimetres
+```
+
+### Margin and core regions
+
+For a core polygon P (the union of a patient's annotations, or each single
+annotation) and a half-width `d` microns, with `d_px = d / 0.325`:
+
+```
+margin band = (P grown by d_px)  minus  (P shrunk by d_px)
+deep core   =  P shrunk by d_px
+```
+
+(grow/shrink are `st_buffer` by +/- `d_px`; `margin_regions`.) If `d_px` exceeds
+the core's inradius the shrunk core is empty, and the margin band falls back to the
+full grown buffer. Thresholds analysed: `d` = 100, 250, 500 microns (500 is the
+consensus-Immunoscore invasive-margin half-width).
+
+```{r margin-metrics}
+THRESHOLDS_UM <- c(100, 250, 500)
+UM_PER_PX     <- 0.325
+
+# load_annotations() returns NULL when there is no geojson tree at all. This part is
+# the only one of the three that needs real polygon geometry, so the absence is
+# recorded as a flag and every chunk below carries `eval = have_margin`. Letting the
+# first filter() hit a NULL frame instead would take parts 1 and 2 down with it, and
+# those read bulk RNA and whole-slide cells — nothing to do with the annotations.
+annots      <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
+have_margin <- !is.null(annots) && nrow(annots) > 0
+
+if (!have_margin)
+  cat("No pathologist geojson under", ANNOTATION_DIR(),
+      "- the invasive-margin section is skipped.\n")
+
+if (have_margin) {
+  peri_union   <- ihc_periphery_metrics(ihc_data, annots, scope = "union",
+                                        thresholds_um = THRESHOLDS_UM, um_per_px = UM_PER_PX)
+  peri_per_ann <- ihc_periphery_metrics(ihc_data, annots, scope = "per_annotation",
+                                        thresholds_um = THRESHOLDS_UM, um_per_px = UM_PER_PX)
+
+  cat("union rows:", nrow(peri_union),
+      "| patients:", dplyr::n_distinct(peri_union$patient_id),
+      "| per-annotation rows:", nrow(peri_per_ann), "\n")
+}
+```
+
+### Per-region quantities
+
+For the cells inside a region (`st_within`), `region_ratios_area()` returns the
+membership counts (as in `clinical_flowpath.Rmd`) plus:
+
+```
+area_mm2            = region pixel area * 0.325^2 / 1e6
+dens_all_per_mm2    = n_inside      / area_mm2
+dens_cd45_per_mm2   = n_cd45_inside / area_mm2
+dens_<lineage>_per_mm2 = n_<lineage> / area_mm2    (CD8T, CD4T, Treg, NK)
+
+cd45_over_inside    = n_cd45_inside / n_inside
+```
+
+Densities are `NA` when the region is empty.
+
+```{r margin-coverage, eval = have_margin, echo=FALSE}
+peri_union |>
+  filter(threshold_um == 500) |>
+  select(patient_id, region, source, um_per_unit, area_mm2,
+         n_inside, n_cd45_inside, cd45_over_inside) |>
+  arrange(patient_id, region) |>
+  knitr::kable(digits = 3,
+    caption = "Cells and area per region at d = 500 µm (union). n_inside = 0 ⇒ empty region.")
+```
+
+### Margin immunity vs clinical HOT score
+
+Statistic: Spearman correlation (per threshold) between the margin-band value and
+the numeric `HOT score`, for both:
+
+```
+fraction = cd45_over_inside   = n_cd45_inside / n_inside
+density  = dens_cd45_per_mm2  = n_cd45_inside / area_mm2
+```
+
+```{r margin-hot-join, eval = have_margin}
+margin_union <- peri_union |>
+  filter(region == "margin") |>
+  inner_join(clin, by = "patient_id")
+
+cat("patients with margin metrics + clinical immune phenotype:",
+    dplyr::n_distinct(margin_union$patient_id), "\n")
+```
+
+```{r margin-hot-score-fraction, eval = have_margin, fig.height=4}
+df <- margin_union |>
+  filter(is.finite(cd45_over_inside), is.finite(hot_score))
+if (nrow(df) > 2) {
+  labs_tbl <- df |>
+    group_by(threshold_um) |>
+    group_modify(~ paired_spearman(.x$cd45_over_inside, .x$hot_score)) |>
+    mutate(lab = sprintf("rho = %.2f\np = %.3g (n = %d)", rho, p, n))
+  ggplot(df, aes(cd45_over_inside, hot_score)) +
+    geom_point(alpha = 0.7, size = 2) +
+    geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
+              hjust = -0.05, vjust = 1.2, inherit.aes = FALSE, size = 3) +
+    facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0("d = ", .x, " µm"))) +
+    labs(title = "Invasive-margin immune fraction vs clinical HOT score",
+         x = "CD45+ fraction in margin band", y = "clinical HOT score")
+}
+```
+
+```{r margin-hot-score-density, eval = have_margin, fig.height=4}
+df <- margin_union |>
+  filter(is.finite(dens_cd45_per_mm2), is.finite(hot_score))
+if (nrow(df) > 2) {
+  labs_tbl <- df |>
+    group_by(threshold_um) |>
+    group_modify(~ paired_spearman(.x$dens_cd45_per_mm2, .x$hot_score)) |>
+    mutate(lab = sprintf("rho = %.2f\np = %.3g (n = %d)", rho, p, n))
+  ggplot(df, aes(dens_cd45_per_mm2, hot_score)) +
+    geom_point(alpha = 0.7, size = 2) +
+    geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
+              hjust = -0.05, vjust = 1.2, inherit.aes = FALSE, size = 3) +
+    facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0("d = ", .x, " µm"))) +
+    labs(title = "Invasive-margin immune density vs clinical HOT score",
+         x = "CD45+ per mm² in margin band", y = "clinical HOT score")
+}
+```
+
+### Margin immunity by clinical immuno-phenotype
+
+Distribution of the margin-band `cd45_over_inside` within each `Immuno-phenotype`
+group (ordered cold -> intermediate -> hot), faceted by threshold.
+
+```{r margin-phenotype-boxplot, eval = have_margin, fig.height=4}
+df <- margin_union |>
+  filter(!is.na(immuno_phe), is.finite(cd45_over_inside)) |>
+  mutate(immuno_phe = hotcold_order(immuno_phe))
+if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
+  ggplot(df, aes(immuno_phe, cd45_over_inside, colour = immuno_phe)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.6) +
+    facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0("d = ", .x, " µm"))) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        name = "Immuno-phenotype") +
+    labs(title = "Invasive-margin immune fraction by clinical immuno-phenotype",
+         x = NULL, y = "CD45+ fraction in margin band") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+```
+
+### Margin-vs-core exclusion score
+
+Per patient at `d = 500` microns:
+
+```
+exclusion_frac = cd45_over_inside (margin)  -  cd45_over_inside (core)
+exclusion_dens = dens_cd45_per_mm2 (margin) -  dens_cd45_per_mm2 (core)
+```
+
+Positive means immunity is concentrated at the border.
+
+```{r margin-core, eval = have_margin}
+mc <- peri_union |>
+  filter(threshold_um == 500) |>
+  select(patient_id, region, cd45_over_inside,
+         dens_cd45_per_mm2, dens_CD8T_per_mm2, n_inside) |>
+  pivot_wider(names_from = region,
+              values_from = c(cd45_over_inside, dens_cd45_per_mm2, dens_CD8T_per_mm2, n_inside)) |>
+  mutate(
+    exclusion_frac = cd45_over_inside_margin - cd45_over_inside_core,
+    exclusion_dens = dens_cd45_per_mm2_margin - dens_cd45_per_mm2_core
+  ) |>
+  inner_join(clin, by = "patient_id")
+
+mc |>
+  select(patient_id, immuno_phe,
+         margin_cd45 = cd45_over_inside_margin, core_cd45 = cd45_over_inside_core,
+         exclusion_frac, hot_score) |>
+  arrange(desc(exclusion_frac)) |>
+  knitr::kable(digits = 3,
+    caption = "Margin-vs-core CD45+ fraction at d = 500 µm. Positive exclusion_frac ⇒ border-concentrated immunity.")
+```
+
+```{r margin-core-scatter, eval = have_margin, fig.height=4.5}
+sc <- mc |> filter(is.finite(cd45_over_inside_margin), is.finite(cd45_over_inside_core))
+if (nrow(sc) > 1) {
+  aes_col <- if ("immuno_phe" %in% names(sc) && any(!is.na(sc$immuno_phe)))
+    aes(cd45_over_inside_core, cd45_over_inside_margin, colour = hotcold_order(immuno_phe))
+  else aes(cd45_over_inside_core, cd45_over_inside_margin)
+  p <- ggplot(sc, aes_col) +
+    geom_abline(slope = 1, linetype = "dashed", colour = "grey50") +
+    geom_point(size = 3, alpha = 0.85) +
+    coord_equal() +
+    labs(title = "Margin vs core CD45+ fraction (d = 500 µm)",
+         x = "CD45+ fraction, deep core", y = "CD45+ fraction, invasive margin",
+         colour = "Immuno-phenotype")
+  if ("colour" %in% names(sc) || any(!is.na(sc$immuno_phe)))
+    p <- p + scale_colour_manual(values = hotcold_cols(levels(hotcold_order(sc$immuno_phe))),
+                                 name = "Immuno-phenotype", na.value = "grey70")
+  print(p)
+}
+```
+
+```{r margin-exclusion-by-phenotype, eval = have_margin, fig.height=4}
+df <- mc |>
+  filter(!is.na(immuno_phe), is.finite(exclusion_frac)) |>
+  mutate(immuno_phe = hotcold_order(immuno_phe))
+if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
+  ggplot(df, aes(immuno_phe, exclusion_frac, colour = immuno_phe)) +
+    geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.6) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)), name = "Immuno-phenotype") +
+    labs(title = "Margin-minus-core exclusion score by clinical phenotype (d = 500 µm)",
+         x = NULL, y = "exclusion score (margin − core CD45+ fraction)") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+```
+
+### Single annotations vs union
+
+Per-annotation margin fraction (each single-annotation core) vs the patient's union
+margin fraction, at `d = 500` microns — a stability check across a patient's
+separately drawn regions.
+
+```{r margin-per-ann-vs-union, eval = have_margin, fig.height=4.5}
+pa <- peri_per_ann |>
+  filter(region == "margin", threshold_um == 500) |>
+  select(patient_id, annotation, cd45_over_inside)
+un <- peri_union |>
+  filter(region == "margin", threshold_um == 500) |>
+  select(patient_id, union_cd45 = cd45_over_inside)
+cmp <- inner_join(pa, un, by = "patient_id") |>
+  filter(is.finite(cd45_over_inside), is.finite(union_cd45))
+if (nrow(cmp) > 1) {
+  ggplot(cmp, aes(patient_id, cd45_over_inside)) +
+    geom_line(aes(y = union_cd45, group = 1), colour = "grey60") +
+    geom_point(aes(y = union_cd45), colour = "grey40", size = 3, shape = 18) +
+    geom_jitter(aes(colour = annotation), width = 0.05, size = 2, alpha = 0.85) +
+    labs(title = "Margin immune fraction: single annotations vs union (d = 500 µm)",
+         x = "patient", y = "CD45+ fraction in margin band", colour = "annotation") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+```
+
+### Margin composition (three denominators)
+
+The same three-denominator composition used inside the tumour, applied to the
+margin band at `d = 500` microns:
+
+```
+frac_inside = n_<lineage> / n_inside         (of all cells in band)
+frac_tumor  = n_<lineage> / n_tumor_inside   (of tumour cells in band)
+frac_cd45   = n_<lineage> / n_cd45_inside    (of CD45+ cells in band)
+```
+
+```{r margin-composition, eval = have_margin, fig.height=5}
+comp <- peri_union |>
+  filter(region == "margin", threshold_um == 500) |>
+  region_composition() |>
+  pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
+               names_to = "normalization", values_to = "frac") |>
+  mutate(normalization = factor(
+           c(frac_inside = "of all cells", frac_tumor = "of tumour cells",
+             frac_cd45 = "of CD45+ cells")[normalization],
+           levels = c("of all cells", "of tumour cells", "of CD45+ cells"))) |>
+  filter(is.finite(frac))
+
+if (nrow(comp) > 0) {
+  ggplot(comp, aes(lineage, frac, fill = lineage)) +
+    geom_boxplot(outlier.shape = NA, colour = "grey30") +
+    geom_jitter(width = .15, alpha = .5, size = 1) +
+    facet_wrap(~ normalization, scales = "free_y") +
+    scale_fill_manual(values = oi, guide = "none") +
+    labs(title = "Immune composition in the invasive-margin band (d = 500 µm)",
+         x = NULL, y = "fraction") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+```
+
+### Margin cell-type fractions: hot vs cold
+
+Same margin-band composition (d = 500 µm, union), now split by the clinical
+`Immuno-phenotype`: for each lineage, the boxes contrast **hot** vs **cold** tumours.
+
+```
+group(patient) = hot / intermediate / cold   (from clinical Immuno-phenotype)
+compared per lineage and per denominator (of all cells / tumour cells / CD45+ cells)
+```
+
+```{r margin-composition-hotcold, eval = have_margin, fig.height=5}
+comp_hc <- peri_union |>
+  filter(region == "margin", threshold_um == 500) |>
+  region_composition() |>
+  inner_join(clin, by = "patient_id") |>
+  filter(!is.na(immuno_phe)) |>
+  mutate(immuno_phe = hotcold_order(immuno_phe)) |>   # cold -> intermediate -> hot
+  pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
+               names_to = "normalization", values_to = "frac") |>
+  mutate(normalization = factor(
+           c(frac_inside = "of all cells", frac_tumor = "of tumour cells",
+             frac_cd45 = "of CD45+ cells")[normalization],
+           levels = c("of all cells", "of tumour cells", "of CD45+ cells"))) |>
+  filter(is.finite(frac))
+
+if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
+  ggplot(comp_hc, aes(lineage, frac, colour = immuno_phe)) +
+    geom_boxplot(outlier.shape = NA, position = position_dodge(width = .75)) +
+    geom_point(position = position_jitterdodge(jitter.width = .12, dodge.width = .75),
+               alpha = .6, size = 1) +
+    facet_wrap(~ normalization, scales = "free_y") +
+    scale_colour_manual(values = hotcold_cols(levels(comp_hc$immuno_phe)),
+                        name = "Immuno-phenotype") +   # hot = red, cold = light blue
+    labs(title = "Invasive-margin cell-type fractions: hot vs cold (d = 500 µm)",
+         subtitle = sprintf("%d patients with a margin band and an immuno-phenotype",
+                            dplyr::n_distinct(comp_hc$patient_id)),
+         x = NULL, y = "fraction in margin band") +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+```
+
+### Notes
+
+- Band width is physical: each polygon is buffered by `d / 0.325` pixel units; the
+  `um_per_unit` column echoes the 0.325 µm/px conversion used.
+- Geojson-only: a margin band needs a real boundary, so only patients with a
+  pathologist geojson are covered (no `Out_of_annotation` fallback).
+- Fraction vs density: a thin band can read immune-rich by fraction yet sparse by
+  density (per mm²) — the Immunoscore unit.
+- Small cohort; Spearman with reported `n` throughout.
+
+
+```{r export-pdfs, include=FALSE}
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
+```

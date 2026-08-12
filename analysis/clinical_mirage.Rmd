@@ -1,5 +1,5 @@
 ---
-title: "clinical_data (mirage phenotyping)"
+title: "Clinical concordance — mirage phenotyping"
 author: "sceriff0"
 date: "2026-08-10"
 output: workflowr::wflow_html
@@ -27,13 +27,13 @@ source(here("code", "membership.R"))           # membership_data(): the one vari
 source(here("code", "aggregation_compare.R"))  # annotation-aggregation sensitivity grid
 source(here("code", "pdf_export.R"))           # export_pdf_figures(): plots -> output/figures/
 
-SLUG <- "clinical_data_mirage"
+SLUG <- "clinical_mirage"
 ```
 
 ## Starting data and notation
 
 This is the **mirage phenotyping** variant. It is the same analysis as
-[`clinical_data`](clinical_data.html) with the same polygons and the same
+[`clinical_data`](clinical_flowpath.html) with the same polygons and the same
 statistics — the only thing that changes is **who called the phenotypes**.
 `clinical_data` uses the FlowPath gate tree drawn interactively in QuPath; this page
 uses mirage's own constrained phenotyping (`bin/phenotype_cells.py`, driven by
@@ -70,7 +70,7 @@ Membership (which cells count as "inside the tumour annotation"):
 ```
 cell is INSIDE  = its centroid falls in the pathologist geojson polygon
                   (sf point-in-polygon), the same rule and the same polygons
-                  clinical_data.Rmd uses
+                  clinical_flowpath.Rmd uses
 per annotation  = inside one polygon (ANNOTATION_k)
 union           = inside the dissolved union of the patient's polygons
 
@@ -92,7 +92,7 @@ coordinates on the SEGMENT mask, i.e. the registered reference frame the QuPath
 geojson is drawn in. `cell_centroids_px()` passes them through untouched, where a
 FlowPath micron export is divided by 0.325. Applying both conversions would put
 every cell outside its annotation, so an implausibly low in-annotation count is the
-symptom to look for — see [annotation membership QC](annotation_membership_qc.html).
+symptom to look for — see [annotation membership QC](clinical_membership_qc.html).
 
 **The two tools name the same taxonomy differently.** FlowPath's tree writes
 `PANCK+Tumor`, `T helper`, `CD8+ T reg`; mirage's panel writes `PANCK_Tumor`,
@@ -150,11 +150,11 @@ knitr::kable(inv, caption = paste(
 IMMUNE_HEADING   <- "whole-slide mirage immune readout vs clinical table"
 IMMUNE_PROSE     <- "These use every mirage-phenotyped cell of every patient (whole slide, no annotation boundary) — the mirage analogue of the geojson report's whole-slide readout."
 MEMBERSHIP_NOTES <- c(
-  "Phenotypes are **mirage's own** (`bin/phenotype_cells.py` + `panel.yaml`), not FlowPath's gate tree. Membership, polygons, statistics and figures are identical to [`clinical_data`](clinical_data.html), so the difference between the two pages is the phenotyping method.",
+  "Phenotypes are **mirage's own** (`bin/phenotype_cells.py` + `panel.yaml`), not FlowPath's gate tree. Membership, polygons, statistics and figures are identical to [`clinical_data`](clinical_flowpath.html), so the difference between the two pages is the phenotyping method.",
   "Membership is **sf point-in-polygon** on the pathologist geojson, with **no fallback**: mirage carries no out-of-annotation flag, so a patient with no polygon is absent from every metric rather than counted whole-slide. Check the list above before concluding a patient is missing for a biological reason.",
   "Centroids are read as **pixels** (mirage's regionprops frame), not rescaled from microns. `area_mm2` and the `dens_*_per_mm2` columns carry real values here, as on the geojson page.",
   "mirage's `Myeloid` / `Macrophage_M2` leaves have no FlowPath counterpart and fold into `Immune_other`; its four unresolved outcomes (Unclassified, Ambiguous, Conflict, Artefact) all count as unresolved, matching FlowPath's `Unknown`.")
 ```
 
-```{r body, child = here::here("analysis", "_clinical_data_body.Rmd")}
+```{r body, child = here::here("analysis", "_children", "clinical_body.Rmd")}
 ```

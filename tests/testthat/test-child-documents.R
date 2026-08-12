@@ -72,3 +72,35 @@ test_that("a bare child path really does fail under workflowr's knit root", {
   expect_match(render_from_root("bare.Rmd"), "cannot open the connection")
   expect_equal(render_from_root("absolute.Rmd"), "ok")
 })
+
+# The regression the reorganisation was triggered by: `wflow_build("analysis/*.Rmd")`
+# crashed because Sys.glob() handed it the shared clinical body as if it were a page.
+# render_site()'s `^[_.]` rule had hidden it from the no-argument build, so the file
+# looked correctly excluded right up until someone globbed explicitly.
+test_that("no child document is reachable by the glob wflow_build expands", {
+  globbed <- basename(Sys.glob(here::here("analysis", "*.Rmd")))
+  expect_false(any(grepl("^_", globbed)),
+               info = paste("underscored file(s) reachable by analysis/*.Rmd:",
+                            paste(grep("^_", globbed, value = TRUE), collapse = ", "),
+                            "- glob's `*` refuses a leading dot, not a leading",
+                            "underscore. Move children to analysis/_children/."))
+  # And every child that a parent references really does live outside that glob.
+  for (r in parent_child_refs())
+    expect_false(basename(dirname(eval(r$expr))) == "analysis",
+                 info = paste(r$parent, "includes a child that sits directly in",
+                              "analysis/, where wflow_build(\"analysis/*.Rmd\") will",
+                              "try to build it as a page"))
+})
+
+# Every page writes its vector figures to output/figures/<SLUG>/. If SLUG drifts from
+# the filename, a renamed page silently keeps exporting under its old name and the
+# figure directory stops matching the site.
+test_that("each page's SLUG equals its own filename", {
+  for (f in Sys.glob(here::here("analysis", "*.Rmd"))) {
+    slug <- grep("^SLUG\\s*<-", readLines(f, warn = FALSE), value = TRUE)
+    if (length(slug) == 0) next            # about / license / index define none
+    expect_equal(sub('^SLUG\\s*<-\\s*"([^"]+)".*$', "\\1", slug[1]),
+                 sub("[.]Rmd$", "", basename(f)),
+                 info = paste(basename(f), "SLUG does not match its filename"))
+  }
+})

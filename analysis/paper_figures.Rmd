@@ -409,7 +409,7 @@ HOTCOLD_SOURCE <- "hot_score"
 groups <- NULL
 clin_path <- here("data", "clinical_data.xlsx")
 if (file.exists(clin_path) && have_cells) {
-  # Same idiom as periphery.Rmd: select(any_of(...)) so a clinical table missing
+  # Same idiom as molecular_hot_cold.Rmd: select(any_of(...)) so a clinical table missing
   # either column loses that column rather than aborting the chunk.
   clin <- readxl::read_excel(clin_path) |>
     dplyr::filter(!is.na(`ID PATIENT`)) |>
@@ -461,7 +461,7 @@ if (have_helpers && file.exists(paired_path)) {
   p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq")
   if (!is.null(p)) print(p)
 } else {
-  cat("_Needs `output/paired_deconv.rds`._ Knit [deconvolution](deconvolution.html)",
+  cat("_Needs `output/paired_deconv.rds`._ Knit [the molecular page](molecular_hot_cold.html)",
       "first — its last chunk caches the paired frame so this panel does not have to",
       "re-run immunedeconv.\n")
 }
@@ -512,14 +512,14 @@ if (have_helpers)
   then this is a re-cut of the table above.
 - **5 — epitope / tissue-integrity monitoring.** Per-round DAPI retention exists
   nowhere; imaging-team deliverable. For the CD8+ ⊂ CD3+ biological-consistency check,
-  the machinery is [marker exclusivity](exclusivity.html), which computes worst-case
+  the machinery is [marker QC](marker_qc.html), which computes worst-case
   conditional co-positivity per marker pair straight from the cell tables. Two things
   to note: it is **exclusivity**-shaped (it asks whether two markers co-occur *more*
   than they should) while CD8 ⊂ CD3 is an **inclusion** constraint (CD8+CD3− should be
   rare), so it needs a negated-marker pair added; and it reads the exports directly, so
   unlike mirage-side QC it works on data this project actually has.
 - **6 — computational performance.** Fully covered by
-  [pipeline benchmarks](benchmarks.html); nothing to add.
+  [pipeline benchmarks](benchmark_pipeline.html); nothing to add.
 
 ---
 

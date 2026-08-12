@@ -1,7 +1,7 @@
 # =============================================================================
 # run_qc.R  —  mirage's QC of the run on THE STUDY SAMPLES
 #
-# The benchmark pages (benchmarks.Rmd, registration_accuracy.Rmd) read the tables
+# The benchmark pages (benchmarks.Rmd, benchmark_registration.Rmd) read the tables
 # mirage's `benchmarks/` sweep produces on SYNTHETIC images: rescaled copies with a
 # known injected offset, run to measure cost and scaling. This file reads the QC the
 # pipeline emits for a NORMAL run, on the real patient slides — the numbers that say

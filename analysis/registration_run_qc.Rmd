@@ -22,7 +22,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
 source(here("code", "run_qc.R"))              # readers + build_run_qc_figs()
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
-SLUG    <- "run_qc"
+SLUG <- "registration_run_qc"
 qc_root <- RUN_QC_ROOT
 ```
 
@@ -33,11 +33,11 @@ on the real patient slides, by the pipeline, during the run that produced the ce
 the other pages analyse.
 
 That is a different question from the one the benchmark pages answer. [Pipeline
-benchmarks](benchmarks.html) and [registration accuracy](registration_accuracy.html)
+benchmarks](benchmark_pipeline.html) and [registration accuracy](benchmark_registration.html)
 read the tables mirage's `benchmarks/` sweep produces on **synthetic** images —
 rescaled copies with a known injected offset, run to measure cost and scaling. Useful
 for choosing parameters, silent about your samples. This page reads
-`data/mirage/<patient>/`, the same tree [`clinical_data_mirage`](clinical_data_mirage.html)
+`data/mirage/<patient>/`, the same tree [`clinical_mirage`](clinical_mirage.html)
 takes its cells from, so a run already copied in needs nothing further.
 
 **Where the numbers come from.**
@@ -240,7 +240,7 @@ for (nm in names(qc_figs)) {
   Only the last is a physical distance. Compare across cohorts with the first,
   quote the third.
 - **This page says nothing about cost.** Resource scaling, runtime and the
-  segmentation-method comparison live on [pipeline benchmarks](benchmarks.html),
+  segmentation-method comparison live on [pipeline benchmarks](benchmark_pipeline.html),
   which needs the sweep — it is not produced by an ordinary run.
 - mirage also writes a self-contained HTML QC report per run (`<outdir>/qc/`) with
   the preprocessing, registration and segmentation **images**. This page is the
