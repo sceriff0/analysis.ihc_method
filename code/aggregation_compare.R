@@ -334,23 +334,3 @@ plot_aggregation_heatmap <- function(stats, stat = "spearman") {
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 
-# How far apart the aggregators put a single patient: per patient, the spread
-# (max - min) of its value across the aggregators on each side. A patient with one
-# annotation has spread 0 by construction; large spreads identify the patients whose
-# annotations disagree most, which is where the aggregation choice actually bites.
-aggregation_spread <- function(pairs) {
-  if (!all(c("metric", "ihc_val", "path_frac") %in% names(pairs)) || nrow(pairs) == 0)
-    return(tibble::tibble())
-  pairs |>
-    dplyr::group_by(metric, patient_id) |>
-    dplyr::summarise(
-      n_pairs     = dplyr::n(),
-      ihc_min     = min(ihc_val),   ihc_max   = max(ihc_val),
-      ihc_spread  = max(ihc_val)   - min(ihc_val),
-      path_min    = min(path_frac), path_max  = max(path_frac),
-      path_spread = max(path_frac) - min(path_frac),
-      .groups = "drop"
-    ) |>
-    dplyr::arrange(metric, dplyr::desc(ihc_spread))
-}
-
