@@ -40,7 +40,7 @@ Every page defines `SLUG` equal to its own filename and calls
 `export_pdf_figures(SLUG)` last, so a page's vector figures always land in
 `output/figures/<page name>/`.
 
-## Building the manuscript figures
+## Building the manuscript figures TODO 
 
 - [Paper figures](paper_figures.html) — the panel assembly sheet. One panel per
   plot at publication proportions, exported as vector PDFs to
@@ -103,7 +103,7 @@ samples — part 3 does that.
 - [Registration accuracy — synthetic sweep](benchmark_registration.html) — VALIS
   feature rTRE per stage, the segmentation-overlap cross-check, accuracy vs cost, and
   an agreement view of the two estimates.
-- [Pipeline benchmarks](benchmark_pipeline.html) — resource scaling, I/O volume,
+- [Pipeline benchmarks TODO](benchmark_pipeline.html) — resource scaling, I/O volume,
   whole-pipeline cost and segmentation-method comparison.
 
 ## Marker QC (internal, no external reference)
