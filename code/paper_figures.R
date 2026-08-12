@@ -39,15 +39,24 @@ suppressPackageStartupMessages({
 # that get a distinct hue, and everything else collapses into one grey "other".
 LEGIBLE_LINEAGES <- c("Tumor", "CD8T", "CD4T", "Treg", "NK", "Immune_other", "Stroma")
 
+# The five immune populations get saturated Okabe-Ito hues; the three structural
+# classes are deliberately desaturated so they read as substrate rather than as
+# findings. The hard part is that "desaturated" used to mean three greys, and at
+# point size they blurred: Tumor vs other was dE 15.8 in CIE Lab and Tumor vs Stroma
+# 17.3, both under the ~25 a small mark needs. They are now separated on BOTH axes a
+# grey can vary in — lightness (L* 67 / 53 / 94) and hue (Tumor cool, Stroma warm) —
+# which also keeps them apart under colour-vision deficiency, where hue collapses and
+# only the lightness ladder survives. Worst pair in the whole palette is now dE 25.5.
+# Re-check with convertColor(..., "Lab") before changing any of these three.
 LINEAGE_COLS <- c(
-  Tumor        = "#B0B7BE",   # grey: the background the immune cells sit on
+  Tumor        = "#96A5B3",   # cool slate: the substrate the immune cells sit on
   CD8T         = "#D55E00",
   CD4T         = "#0072B2",
   Treg         = "#CC79A7",
   NK           = "#009E73",
   Immune_other = "#E69F00",
-  Stroma       = "#7F8C8D",
-  other        = "#DEE2E6"
+  Stroma       = "#8C7B6B",   # warm brown: same family as Tumor, opposite hue
+  other        = "#EDEFF1"    # near-white: a catch-all should recede, not read
 )
 
 # A "nice" scale-bar length: the largest of 10/25/50/100/... µm that still fits in
@@ -201,10 +210,27 @@ paper_deconv_scatter <- function(paired, method = "quantiseq",
             paste(sort(unique(paired$method)), collapse = ", "))
     return(NULL)
   }
+  # Colour by the clinical immuno-phenotype when the cached frame carries it, so this
+  # panel uses the same red-hot / blue-cold reading as 5(b) and the two can be looked
+  # at together. molecular_hot_cold.Rmd joins `clin` before caching; an older cache
+  # without the column still plots, in one neutral colour, rather than erroring.
+  has_hc <- "immuno_phe" %in% names(df) && any(!is.na(df$immuno_phe))
+  if (has_hc) df$immuno_phe <- hotcold_order(df$immuno_phe)
+
   p <- ggplot(df, aes(ihc_frac, score)) +
-    geom_point(size = 2.4, alpha = .85, colour = oi[1]) +
+    (if (has_hc) geom_point(aes(colour = immuno_phe), size = 2.4, alpha = .85)
+     else        geom_point(size = 2.4, alpha = .85, colour = oi[1])) +
     facet_wrap(~ lineage, scales = "free") +
+    # Every panel has its own x and y range, because imaging counts cells while
+    # deconvolution estimates a mixture fraction. theme_paper_panels() gives the
+    # border and the wider gutter that say the axes are not shared — without them
+    # four free-scaled panels sit edge to edge and invite a cross-panel comparison
+    # this figure cannot support.
+    theme_paper_panels() +
     labs(x = x_lab, y = y_lab %||% paste(method, "fraction"))
+  if (has_hc)
+    p <- p + scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                                 na.value = "grey70", name = "Immuno-phenotype")
   if (isTRUE(label_cases) && "patient_id" %in% names(df))
     p <- p + geom_text(aes(label = patient_id), size = pt_text(6),
                        vjust = -0.9, colour = "grey35")

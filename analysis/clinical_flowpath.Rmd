@@ -354,44 +354,6 @@ for (s in norm_specs) {
 }
 ```
 
-**Bland–Altman (union).** Per patient:
-
-```
-mean = (IHC + pathologist) / 2
-diff = IHC - pathologist
-
-bias   = average of diff over patients
-LoA    = 1.96 * standard deviation of diff
-limits = bias plus/minus LoA
-```
-
-Bland–Altman is strictly interpretable only when both quantities share the 0..1
-scale (i.e. `tumor_over_inside`); for `tumor_over_cd45` it is shown for consistency,
-but read it as descriptive since the CD45 ratio is unbounded.
-
-```{r tumor-content-bland-altman}
-plot_bland_altman <- function(df, metric, title) {
-  d <- dplyr::filter(df, is.finite(.data[[metric]]), is.finite(path_frac))
-  if (nrow(d) <= 2) return(invisible())
-  ba <- d |> transmute(mean_val = (.data[[metric]] + path_frac) / 2,
-                       diff_val = .data[[metric]] - path_frac)
-  bias <- mean(ba$diff_val); loa <- 1.96 * sd(ba$diff_val)
-  print(
-    ggplot(ba, aes(mean_val, diff_val)) +
-      geom_hline(yintercept = bias, colour = FIT_LINE) +
-      geom_hline(yintercept = bias + c(-loa, loa), linetype = "dashed", colour = REF_LINE) +
-      geom_point(alpha = 0.7, size = 2) +
-      labs(title = title,
-           subtitle = sprintf("bias = %.3f, limits of agreement +/- %.3f", bias, loa),
-           x = "mean of the two", y = "IHC − pathologist")
-  )
-}
-
-for (s in norm_specs)
-  plot_bland_altman(cc_union, s$metric,
-                    paste0("Bland–Altman (union): ", s$metric, " − pathologist"))
-```
-
 ## Aggregation strategy — how collapsing the annotations moves the answer
 
 The concordance panels above compare neoplastic cellularity at two fixed levels:
@@ -513,23 +475,6 @@ plot_aggregation_grid(agg$pairs, "tumor_over_inside")
 # tumour / cells inside, with FlowPath Outlier == TRUE and Unknown-phenotype cells
 # removed from both numerator and denominator.
 plot_aggregation_grid(agg$pairs, "tumor_over_inside_clean")
-```
-
-Finally, which patients the choice actually bites on. A patient with one annotation
-has zero spread by construction; the spread is the range a patient's value takes
-across the aggregators, so large spreads mark the patients whose annotations
-disagree most internally.
-
-```{r aggregation-spread}
-aggregation_spread(agg$pairs) |>
-  transmute(metric, patient_id, n_pairs,
-            ihc_min = round(ihc_min, 3), ihc_max = round(ihc_max, 3),
-            ihc_spread = round(ihc_spread, 3),
-            path_min = round(path_min, 3), path_max = round(path_max, 3),
-            path_spread = round(path_spread, 3)) |>
-  knitr::kable(caption = paste(
-    "Per-patient spread across the aggregators (largest IHC spread first).",
-    "Spread 0 = a single-annotation patient, where every aggregator coincides."))
 ```
 
 ### Recommendation

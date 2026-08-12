@@ -415,7 +415,7 @@ panel is the one place that must not, because its legend says so.
 
 ## 5(c) Imaging vs bulk-RNA deconvolution — **computed**
 
-```{r fig5c, fig.width=5.6, fig.height=4.6}
+```{r fig5c, fig.width=7.2, fig.height=5.6}
 paired_path <- here("output", "paired_deconv.rds")
 if (have_helpers && file.exists(paired_path)) {
   p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq")
@@ -451,25 +451,17 @@ if (have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
 }
 ```
 
-```{r addfile-4}
-if (have_helpers)
-  knitr::kable(paper_lineage_table(), caption = paste(
-    "Additional file 4 — the imaging-phenotype and deconvolution-cell-type",
-    "vocabularies, and the lineage each maps to. Generated from the same objects",
-    "the analyses join on, so it cannot drift from what was computed. The six",
-    "'(unmapped)' deconvolution types are precisely the catch-all the legend",
-    "calls Tier 3."))
-```
-
-**Additional files 1, 3, 5 and 6.**
+**Additional files 1, 3, 4, 5 and 6.**
 
 - **1 — full pipeline configuration.** `mirage/docs/parameters.md` is already the
   complete per-module table. Missing from it: the compartment-to-marker map and a
   default-versus-recommended comparison; both still have to be written.
 - **3 — Tier 2 / Tier 3 scatters.** Blocked: the tier vocabulary does not exist in
   this codebase. Its content maps onto `cd45_over_inside` (Tier 1),
-  `deconv_to_lineage()` (Tier 2) and `Immune_other` (Tier 3) — settle the naming,
-  then this is a re-cut of the table above.
+  `deconv_to_lineage()` (Tier 2) and `Immune_other` (Tier 3) — settle the naming first.
+- **4 — vocabulary mapping table.** Withdrawn. `paper_lineage_table()` in
+  `code/paper_figures.R` still generates the phenotype/cell-type-to-lineage mapping as
+  data, and is still tested, if it is ever wanted back.
 - **5 — epitope / tissue-integrity monitoring.** Per-round DAPI retention exists
   nowhere; imaging-team deliverable. For the CD8+ ⊂ CD3+ biological-consistency check,
   the machinery is [marker QC](marker_qc.html), which computes worst-case

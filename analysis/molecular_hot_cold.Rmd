@@ -773,7 +773,12 @@ if (!is.null(agr) && nrow(agr) > 0) {
 # replacing it with an empty one.
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
-  saveRDS(deconv_paired, here("output", "paired_deconv.rds"))
+  # Cached WITH the hot/cold call joined on. Figure 5(c) colours by it, and deriving
+  # it there would mean the paper page reopening the clinical table and re-deriving
+  # slide keys — a second place for that mapping to drift, which is exactly what
+  # this page exists to prevent.
+  saveRDS(left_join(deconv_paired, clin, by = "patient_id"),
+          here("output", "paired_deconv.rds"))
   cat("cached", nrow(deconv_paired), "deconv_paired rows for paper_figures.Rmd\n")
 }
 ```
