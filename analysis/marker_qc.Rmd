@@ -16,8 +16,16 @@ suppressPackageStartupMessages({
   library(here)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      fig.width = 9, fig.height = 6,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
@@ -112,7 +120,9 @@ ggplot(conc, aes(marker, phenotype_clean, fill = mean_z)) +
   scale_fill_div(midpoint = 0, name = "mean z", guide = guide_cbar()) +
   labs(title = "Phenotype vs marker: mean z-score",
        subtitle = "Expect each phenotype to peak on its defining marker(s); off-diagonal signal = mislabelled cells.",
-       x = "marker", y = "phenotype (phenotype_clean)", caption = CAP) +
+       # Both axes are categorical and their ticks name the variable already
+       # (marker symbols, phenotype labels), so a title would only repeat them.
+       x = NULL, y = NULL, caption = CAP) +
   theme_paper_tile() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
@@ -247,7 +257,7 @@ ihc_marker_long(ihc_data) |>
     scale_fill_manual(values = c("sign +" = oi[1], "sign -" = oi[2]), name = NULL) +
     labs(title = "Marker z-score by sign call",
          subtitle = "Clean channels show two separated humps; failed channels overlap or are unimodal.",
-         x = "z-score", y = "density", caption = CAP)
+         x = "Marker intensity (z-score)", y = "Density (unitless)", caption = CAP)
 ```
 
 ### Morphology by phenotype
@@ -386,7 +396,8 @@ spill |>
     scale_fill_manual(values = oi[c(1, 2)], name = NULL) +
     labs(title = "Phenotype-level leakage per patient",
          subtitle = "Fraction of a lineage's cells calling the opposite lineage's marker — lower is better.",
-         x = "patient", y = "fraction of cells", caption = CAP)
+         x = "Patient", y = "Fraction of the lineage's cells (unitless, 0-1)",
+         caption = CAP)
 ```
 
 ### Marker-pair exclusivity panel
@@ -474,7 +485,7 @@ pair_stats |>
     scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
     labs(title = "Worst-direction co-positivity per exclusive pair",
          subtitle = "max( P(B+|A+), P(A+|B+) ) — high bars = the pair most likely showing spillover.",
-         x = NULL, y = "conditional co-positivity", caption = CAP)
+         x = NULL, y = "Conditional co-positivity (unitless, 0-1)", caption = CAP)
 ```
 
 Per-patient double-positive fraction, one value per (patient, pair), over **all**
@@ -504,7 +515,7 @@ if (nrow(per_pat) > 0) {
                    name = "double-pos fraction", guide = guide_cbar()) +
     labs(title = "Marker-pair co-positivity per patient",
          subtitle = "Bright = high double-positive rate = likely spillover in that patient.",
-         x = "patient", y = NULL, caption = CAP) +
+         x = "Patient", y = NULL, caption = CAP) +
     theme_paper_tile() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }

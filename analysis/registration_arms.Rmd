@@ -13,7 +13,16 @@ suppressPackageStartupMessages({
   library(here)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))
 source(here("code", "pdf_export.R"))
 
@@ -191,7 +200,7 @@ if (nrow(seg))
     "`pair_fraction` is the trust check: read it before the ranking."))
 ```
 
-```{r figures, results="asis", fig.width=7.5, fig.height=4.8}
+```{r figures, results="asis", fig.width=fig_width("double"), fig.height=5.75}
 arm_notes <- c(
   "01_final_residual_um_by_arm" = paste(
     "**The arm ranking.** Matched-nucleus centroid residual (median per slide) at",

@@ -331,9 +331,10 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
     figs[["01_final_residual_um_by_arm"]] <-
       ggplot(d, aes(arm, disp_um_p50)) +
       geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      scale_x_discrete(labels = label_n(d$arm, sep = " ")) +
       geom_jitter(aes(colour = .arm_kind(backend, micro_reg)), width = .12, height = 0,
                   alpha = .85, size = 2.2) +
-      scale_colour_manual(values = ARM_KIND_COLS, name = NULL, drop = FALSE) +
+      scale_colour_arm() +
       coord_flip() +
       labs(title = "Residual alignment error at each arm's final transform",
            subtitle = paste("Matched-nucleus centroid residual, median per slide.",
@@ -348,13 +349,14 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
     figs[["02_final_dice_by_arm"]] <-
       ggplot(d, aes(arm, dice_matched)) +
       geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      scale_x_discrete(labels = label_n(d$arm, sep = " ")) +
       geom_jitter(aes(colour = .arm_kind(backend, micro_reg)), width = .12, height = 0,
                   alpha = .85, size = 2.2) +
-      scale_colour_manual(values = ARM_KIND_COLS, name = NULL, drop = FALSE) +
+      scale_colour_arm() +
       coord_flip() +
       labs(title = "Matched-nucleus Dice at each arm's final transform",
            subtitle = "Higher = better. Same arms and slides as the residual figure.",
-           x = NULL, y = "matched-nucleus Dice", caption = ARM_CAPTION)
+           x = NULL, y = "Matched-nucleus Dice (unitless, 0-1)", caption = ARM_CAPTION)
   }
 
   # -- 3. The stage ladder, WITHIN each arm. This is where the per-stage story is
@@ -387,13 +389,14 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       ggplot(d, aes(arm, pair_fraction)) +
       geom_hline(yintercept = 0.5, linetype = "dashed", colour = REF_LINE) +
       geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      scale_x_discrete(labels = label_n(d$arm, sep = " ")) +
       geom_jitter(width = .12, height = 0, alpha = .8, size = 2, colour = oi[3]) +
       coord_flip() + ylim(0, 1) +
       labs(title = "How much of the slide each arm could actually pair",
            subtitle = paste("Fraction of nuclei matched at the rigid anchor. Below the",
                             "dashed 0.5 line the later stages are measured on a biased",
                             "subset — check this before believing a ranking."),
-           x = NULL, y = "pair fraction", caption = ARM_CAPTION)
+           x = NULL, y = "Pair fraction (unitless, 0-1)", caption = ARM_CAPTION)
   }
 
   # -- 5. The two knobs, separated. The ranking figures order arms by outcome; this
@@ -465,6 +468,7 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       figs[["07_valis_intrinsic_by_arm"]] <-
         ggplot(vf, aes(stage, error)) +
         geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+        scale_x_discrete(labels = label_n(vf$stage)) +
         geom_jitter(width = .12, height = 0, alpha = .8, size = 1.8, colour = oi[4]) +
         geom_text(data = med, aes(label = signif(error, 3)), vjust = -1.0,
                   size = pt_text(6.5), colour = "grey15") +
@@ -537,10 +541,8 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 
 # How to colour an arm: by BACKEND, with the VALIS micro depth as the sub-level. A
 # tiled arm has no depth, so colouring by depth alone would draw it as NA and read as
-# missing data rather than as the other backend.
-ARM_KIND_COLS <- c("valis · micro 0" = "#0072B2", "valis · micro 1" = "#56B4E9",
-                   "valis · micro 2" = "#009E73", "valis"           = "#7F8C8D",
-                   "tiled (STARE)"   = "#D55E00")
+# missing data rather than as the other backend. ARM_KIND_COLS itself lives in
+# plot_theme.R with the other recurring category palettes; use scale_colour_arm().
 
 .arm_kind <- function(backend, micro_reg) {
   lab <- ifelse(backend == "tiled", "tiled (STARE)",

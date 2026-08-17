@@ -14,8 +14,16 @@ suppressPackageStartupMessages({
   library(sf)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      fig.width = 9, fig.height = 6,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 # Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
@@ -458,20 +466,20 @@ be selecting on noise — but to see **whether the choice matters at all**. A fl
 means the conclusion is robust to the aggregation; a grid with a large spread means
 any single reported correlation is partly an artefact of the collapse rule.
 
-```{r aggregation-heatmap, fig.width=8, fig.height=8}
+```{r aggregation-heatmap, fig.width=fig_width("double"), fig.height=9}
 # Reading a ROW shows how much the pathologist aggregator matters; a COLUMN, how much
 # the IHC one does. Flat = the choice is immaterial for this cohort (the hoped-for
 # outcome). Boxed cells are the matched-weighting pairs.
 plot_aggregation_heatmap(agg$stats, "spearman")
 ```
 
-```{r aggregation-scatter-raw, fig.width=11, fig.height=9}
+```{r aggregation-scatter-raw, fig.width=fig_width("double"), fig.height=7.35}
 # tumour / all cells inside. Dashed line is x = y; vertical distance from it is the
 # disagreement. Shaded panels weight both sides the same way.
 plot_aggregation_grid(agg$pairs, "tumor_over_inside")
 ```
 
-```{r aggregation-scatter-clean, fig.width=11, fig.height=9}
+```{r aggregation-scatter-clean, fig.width=fig_width("double"), fig.height=7.35}
 # tumour / cells inside, with FlowPath Outlier == TRUE and Unknown-phenotype cells
 # removed from both numerator and denominator.
 plot_aggregation_grid(agg$pairs, "tumor_over_inside_clean")
@@ -552,7 +560,8 @@ if ("hot_score" %in% names(infiltrate) &&
              label = sprintf("Spearman rho = %.2f (p = %.3g, n = %d)",
                              st$rho, st$p, st$n)) +
     labs(title = "Immune infiltrate vs clinical HOT score",
-         x = "IHC CD45+ fraction inside tumour region", y = "clinical HOT score")
+         x = "IHC CD45+ fraction inside tumour region (unitless, 0-1)",
+         y = "Clinical HOT score (unitless)")
 }
 ```
 
@@ -639,17 +648,27 @@ plot_composition <- function(region_metrics, ylab, caption, transform = identity
            value = transform(frac)) |>
     filter(is.finite(value))
   if (nrow(comp) == 0) return(invisible())
+  # scale_fill_lineage(), NOT scale_fill_manual(values = oi): `oi` is an UNNAMED
+  # vector, so ggplot hands its colours out by factor position and CD8T's hue
+  # depends on which populations this particular call happens to include. That is
+  # how this panel used to draw CD8T blue while the Fig 5(a) map drew it
+  # vermillion. The named palette in plot_theme.R pins each population's colour
+  # across every figure in the project, and covers the marker-gated labels too.
   ggplot(comp, aes(lineage, value, fill = lineage)) +
     geom_boxplot(outlier.shape = NA, colour = "grey30") +
     geom_jitter(width = .15, alpha = .5, size = 1) +
     facet_wrap(~ normalization, scales = "free_y") +
-    scale_fill_manual(values = oi, guide = "none") +
+    scale_fill_lineage(guide = "none") +
+    # n goes in the subtitle rather than the tick labels here: each facet drops a
+    # different set of patients (a denominator of zero is NA), so a single per-tick
+    # count would be wrong in two panels out of three.
     labs(title = "IHC immune composition inside the tumour region",
+         subtitle = with_n(NULL, comp$patient_id, "patients"),
          x = NULL, y = ylab, caption = caption) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 
-plot_composition(ihc_tumor_union, "fraction",
+plot_composition(ihc_tumor_union, "cell fraction (unitless, 0-1)",
                  "denominators: all cells / tumour cells / CD45+ cells inside")
 ```
 
@@ -657,7 +676,7 @@ plot_composition(ihc_tumor_union, "fraction",
 of each fraction.
 
 ```{r infiltrate-composition-arcsin, fig.height=5}
-plot_composition(ihc_tumor_union, "arcsin(sqrt(fraction))",
+plot_composition(ihc_tumor_union, "arcsin \u221afraction (radians)",
                  "arcsin-sqrt of: all cells / tumour cells / CD45+ cells inside",
                  transform = asin_sqrt)
 ```

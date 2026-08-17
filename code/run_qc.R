@@ -430,6 +430,7 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
     figs[["01_valis_error_by_stage"]] <-
       ggplot(vl, aes(stage, error)) +
       geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      scale_x_discrete(labels = label_n(vl$stage)) +
       geom_jitter(aes(colour = patient_id), width = .12, height = 0,
                   size = 1.9, alpha = .85) +
       geom_text(data = med, aes(label = signif(error, 3)),
@@ -512,13 +513,14 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
     figs[["03_overlap_dice_by_stage"]] <-
       ggplot(sq, aes(stage, dice_matched)) +
       geom_boxplot(outlier.shape = NA, width = .5) +
+      scale_x_discrete(labels = label_n(sq$stage)) +
       geom_line(aes(group = interaction(patient_id, moving), colour = patient_id), alpha = .4) +
       geom_point(aes(colour = patient_id), alpha = .8) +
       scale_colour_oi(name = "patient") +
       lab(title = "Matched-nucleus Dice by registration stage",
           subtitle = paste("Computed from DAPI segmentation overlap, NOT from the features the",
                            "registration used — the independent check. Higher = better."),
-          x = NULL, y = "matched-nucleus Dice")
+          x = NULL, y = "Matched-nucleus Dice (unitless, 0-1)")
 
     if (any(is.finite(sq$disp_um_p50)))
       figs[["03b_displacement_um_by_stage"]] <-
@@ -528,6 +530,9 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
         dplyr::filter(is.finite(um)) |>
         ggplot(aes(stage, um, colour = pct)) +
         geom_boxplot(outlier.shape = NA, width = .5, position = position_dodge(.6)) +
+        # Counted from `sq` (one row per run), NOT from the piped long frame: that
+        # frame is pivoted over median/90th and would state twice the runs per box.
+        scale_x_discrete(labels = label_n(sq$stage[is.finite(sq$disp_um_p50)])) +
         scale_colour_manual(values = oi[c(1, 2)], name = NULL) +
         lab(title = "Centroid residual displacement by stage",
             subtitle = "Physical units, so this is the number to quote as spatial resolution.",
@@ -548,7 +553,7 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
         lab(title = "Fraction of cells that paired between slides",
             subtitle = paste("The evidence base for every accuracy number. Below the dashed 0.5",
                              "line the pairing is thin and the Dice is not trustworthy."),
-            x = NULL, y = "pair fraction")
+            x = NULL, y = "Pair fraction (unitless, 0-1)")
   }
 
   # -- §4 do the intrinsic and the independent estimate agree? ------------------
@@ -585,7 +590,7 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
               subtitle = paste("One point per moving slide at the final stage. A method grading",
                                "itself can look good while nucleus overlap disagrees; that gap",
                                "is what this plots."),
-              x = ag$what[1], y = "matched-nucleus Dice")
+              x = ag$what[1], y = "Matched-nucleus Dice (unitless, 0-1)")
     }
   }
 

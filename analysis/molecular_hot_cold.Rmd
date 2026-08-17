@@ -18,8 +18,16 @@ suppressPackageStartupMessages({
   library(sf)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      fig.width = 9, fig.height = 6,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 # Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
@@ -650,7 +658,8 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
     theme_paper_panels() +
     labs(title = "IHC lineage fraction vs bulk-RNA deconvolution score",
          subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales",
-         x = "IHC fraction of all cells", y = "deconvolution score")
+         x = "IHC fraction of all cells (unitless, 0-1)",
+         y = "Deconvolution score (unitless)")
 }
 ```
 
@@ -939,7 +948,8 @@ if (nrow(df) > 2) {
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = "Invasive-margin immune fraction vs clinical HOT score",
-         x = "CD45+ fraction in margin band", y = "clinical HOT score")
+         x = "CD45+ fraction in margin band (unitless, 0-1)",
+         y = "Clinical HOT score (unitless)")
 }
 ```
 
@@ -965,7 +975,8 @@ if (nrow(df) > 2) {
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = "Invasive-margin immune density vs clinical HOT score",
-         x = "CD45+ per mm² in margin band", y = "clinical HOT score")
+         x = "CD45+ density in margin band (cells/mm²)",
+         y = "Clinical HOT score (unitless)")
 }
 ```
 
@@ -1056,7 +1067,7 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
     geom_jitter(width = 0.2, alpha = 0.6) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)), name = "Immuno-phenotype") +
     labs(title = paste0("Margin-minus-core exclusion score by clinical phenotype (d = ", D_MAIN, " µm)"),
-         x = NULL, y = "exclusion score (margin − core CD45+ fraction)") +
+         x = NULL, y = "Exclusion score: margin − core CD45+ fraction (unitless)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
@@ -1082,7 +1093,8 @@ if (nrow(cmp) > 1) {
     geom_point(aes(y = union_cd45), colour = "grey40", size = 3, shape = 18) +
     geom_jitter(aes(colour = annotation), width = 0.05, size = 2, alpha = 0.85) +
     labs(title = paste0("Margin immune fraction: single annotations vs union (d = ", D_MAIN, " µm)"),
-         x = "patient", y = "CD45+ fraction in margin band", colour = "annotation") +
+         x = "Patient", y = "CD45+ fraction in margin band (unitless, 0-1)",
+         colour = "Annotation") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
@@ -1115,9 +1127,13 @@ if (nrow(comp) > 0) {
     geom_boxplot(outlier.shape = NA, colour = "grey30") +
     geom_jitter(width = .15, alpha = .5, size = 1) +
     facet_wrap(~ normalization, scales = "free_y") +
-    scale_fill_manual(values = oi, guide = "none") +
+    # Named lineage palette, not positional `oi` — see the note on the same plot
+    # in clinical_flowpath.Rmd. These are the same populations as that figure and
+    # must therefore be the same colours.
+    scale_fill_lineage(guide = "none") +
     labs(title = paste0("Immune composition in the invasive-margin band (d = ", D_MAIN, " µm)"),
-         x = NULL, y = "fraction") +
+         subtitle = with_n(NULL, comp$patient_id, "patients"),
+         x = NULL, y = "Cell fraction (unitless, 0-1)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
@@ -1158,7 +1174,7 @@ if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
     labs(title = paste0("Invasive-margin cell-type fractions: hot vs cold (d = ", D_MAIN, " µm)"),
          subtitle = sprintf("%d patients with a margin band and an immuno-phenotype",
                             dplyr::n_distinct(comp_hc$patient_id)),
-         x = NULL, y = "fraction in margin band") +
+         x = NULL, y = "Cell fraction in margin band (unitless, 0-1)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
