@@ -13,7 +13,16 @@ suppressPackageStartupMessages({
   library(here)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
@@ -77,17 +86,23 @@ fig_notes <- c(
   "01_valis_rtre_by_stage" = paste(
     "VALIS self-reported feature error (`registration_valis_rtre.csv`: `original_rTRE`,",
     "`rigid_rTRE`, `non_rigid_rTRE`, or the `*_D` distance variants), one line per moving",
-    "slide across the stages. rTRE is relative to the image diagonal (unitless); lower = better."),
+    "slide across the stages. rTRE is relative to the image diagonal (unitless); lower = better.",
+    "The y axis is **clipped** at the per-stage Tukey fence so a single blown-up slide",
+    "cannot flatten the rest onto the axis — nothing is dropped, and the caption states",
+    "how many slides sit above the view."),
   "01b_valis_n_matches" = paste(
     "Feature-match count per slide (`n_matches`) — the evidence behind each rTRE.",
     "A slide with few matches has a low-confidence estimate."),
   "02_overlap_dice_by_stage" = paste(
     "Independent overlap check: `dice_matched` from `registration_accuracy.csv` per",
-    "stage (native → rigid → non_rigid → micro), box across slides, faint per-slide",
-    "lines. Computed from DAPI-nucleus overlap, not VALIS features; higher = better."),
+    "stage (native → rigid → non_rigid → micro), one box across slides. Computed from",
+    "DAPI-nucleus overlap, not VALIS features; higher = better. Boxes only: the per-slide",
+    "trajectory is what §1 draws, and overlaying it here buried the medians."),
   "02b_displacement_um_by_stage" = paste(
     "Matched-nucleus centroid residual in microns (`displacement_um_p50`/`_p90`) per",
-    "stage. Physical units; lower = tighter alignment. Same source table as above."),
+    "stage. Physical units; lower = tighter alignment. Same source table as above.",
+    "**Log y axis** — the residual falls by two orders of magnitude across the ladder,",
+    "so on a linear axis every registered stage collapses onto zero."),
   "03_feature_distance_reduction" = paste(
     "(Legacy) percent drop in mean matched-feature distance before → after registration",
     "(`feature_dist/*.json`); only present if a run enabled `enable_feature_error`."),
@@ -106,7 +121,7 @@ fig_notes <- c(
 Each figure is preceded by its derivation note. Figures whose CSV was not present
 in `data/benchmark/` are silently absent.
 
-```{r figures, results="asis", fig.width=9, fig.height=5.5}
+```{r figures, results="asis", fig.width=fig_width("double"), fig.height=5.5}
 if (length(reg_figs)) {
   for (nm in names(reg_figs)) {
     title <- gsub("_", " ", sub("^[0-9]+[a-z]?_", "", nm))

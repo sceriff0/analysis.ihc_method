@@ -14,7 +14,16 @@ suppressPackageStartupMessages({
   library(readxl)     # not attached by tidyverse; the clinical table is .xlsx
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 source(here("code", "pdf_export.R"))
 
@@ -278,7 +287,7 @@ equivalent:
 This chunk prefers (1) and falls back to (2), and says which it used — because
 which one produced the figure changes what the figure is allowed to claim.
 
-```{r fig4bc, fig.width=7.5, fig.height=4.8}
+```{r fig4bc, fig.width=panel_width(150), fig.height=panel_height(96)}
 reg_dir  <- here("data", "benchmark")
 arm_figs <- list(); arm_source <- NULL
 
@@ -345,7 +354,7 @@ if (identical(arm_source, "real")) {
 
 `paper_phenotype_map()`, one panel per case. Exported one PDF per case.
 
-```{r fig5a, fig.width=5.4, fig.height=4.6}
+```{r fig5a, fig.width=panel_width(108), fig.height=panel_height(92)}
 if (have_cells) {
   for (pid in sort(unique(as_cells$patient_id))) {
     p <- paper_phenotype_map(as_cells, patient_id = pid, annots = as_polys,
@@ -399,7 +408,7 @@ if (file.exists(clin_path) && have_cells) {
 if (!is.null(groups)) knitr::kable(groups, caption = "Cases as grouped for panel 5(b).")
 ```
 
-```{r fig5b, fig.width=3.4, fig.height=3.6}
+```{r fig5b, fig.width=panel_width(68), fig.height=panel_height(72)}
 if (!is.null(groups) && nrow(as_union) > 0) {
   p <- paper_immune_fraction_hotcold(as_union, groups)
   if (!is.null(p)) print(p)
@@ -415,7 +424,7 @@ panel is the one place that must not, because its legend says so.
 
 ## 5(c) Imaging vs bulk-RNA deconvolution — **computed**
 
-```{r fig5c, fig.width=7.2, fig.height=5.6}
+```{r fig5c, fig.width=panel_width(144), fig.height=panel_height(112)}
 paired_path <- here("output", "paired_deconv.rds")
 if (have_helpers && file.exists(paired_path)) {
   p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq")

@@ -329,7 +329,7 @@ plot_aggregation_heatmap <- function(stats, stat = "spearman") {
     scale_fill_div(midpoint = 0, limits = c(-1, 1), name = stat, guide = guide_cbar()) +
     labs(title = paste0("Aggregation sensitivity of the IHC-vs-pathologist ", stat),
          subtitle = "boxed cells weight both sides the same way",
-         x = "pathologist aggregator", y = "IHC aggregator") +
+         x = "Pathologist aggregator", y = "IHC aggregator") +
     theme_paper_tile() +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }

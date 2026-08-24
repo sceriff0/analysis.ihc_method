@@ -18,8 +18,16 @@ suppressPackageStartupMessages({
   library(sf)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      fig.width = 9, fig.height = 6,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 # Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
@@ -242,26 +250,68 @@ knitr::kable(rna_summary, digits = 3,
 Scatter per marker: `ihc_posfrac` against `log1p(rna_expr)` (`log1p` keeps zeros),
 with an OLS fit line.
 
-```{r rna-concordance-plot, fig.height=8}
-if (nrow(rna_paired) > 0) {
+**Split into two figures.** `marker_gene_map` carries 19 markers, and 19 free-scale
+facets on one double-column figure gives each panel about 35mm — too small to read a
+fit line off. The first figure takes the ten lineage and structural markers the panel
+was designed around; the second takes the remaining nine. The split is by *reading
+order*, not by quality: no marker is dropped, and the Spearman table above still
+covers all of them together.
+
+```{r rna-concordance-plot-setup}
+# The ten checked first. Ordered as listed, not alphabetically, so the facet grid
+# reads down the immune lineage (CD45 -> CD3 -> CD8/CD4 -> GZMB/FOXP3 -> CD56) and
+# then the structural markers (SMA, PANCK, VIMENTIN).
+rna_primary_markers <- c("CD45", "CD3", "CD8", "GZMB", "FOXP3",
+                         "CD4", "CD56", "SMA", "PANCK", "VIMENTIN")
+
+# One scatter-by-marker figure over `markers`. Split out of the chunk body because
+# both figures below are the same plot over a different marker set, and a second
+# copy of it is how the two would drift apart.
+plot_rna_concordance <- function(rna_paired, clin, markers, title) {
   # Colour by the clinical hot/cold call so a marker whose RNA-IHC agreement holds
   # only in one immune stratum is visible as such. left_join, not inner_join: a
   # patient with no immuno-phenotype must stay in the plot (grey) rather than
   # silently shrink the panel the fit is drawn through.
   df <- rna_paired |>
+    filter(marker %in% markers) |>
     left_join(clin, by = "patient_id") |>
-    mutate(immuno_phe = hotcold_order(immuno_phe))
+    mutate(immuno_phe = hotcold_order(immuno_phe),
+           # Keep the given order as the facet order; intersect() drops any marker
+           # this export did not gate rather than drawing an empty panel for it.
+           marker = factor(marker, levels = intersect(markers, unique(marker))))
+  if (nrow(df) == 0) return(invisible())
   # log-scale expression (counts span orders of magnitude); +1 to keep zeros.
   # The fit goes under the points and is over ALL patients, coloured or not.
   ggplot(df, aes(ihc_posfrac, log1p(rna_expr))) +
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_wrap(~ marker, scales = "free") +
+    # Panels are titled by the population counted, not by the column that carried
+    # it, so a strip here and a strip on the clinical page name the same thing.
+    facet_wrap(~ marker, scales = "free", labeller = flowpath_labeller()) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
-    labs(title = "IHC marker+ fraction vs bulk-RNA expression",
-         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients",
-         x = "IHC fraction of cells positive", y = "log1p(bulk expression)")
+    labs(title = title,
+         subtitle = with_n("points coloured by the clinical immuno-phenotype; the fit is over all patients",
+                           df$patient_id, "patients"),
+         x = "FlowPath positive-cell fraction (unitless, 0-1)",
+         y = "bulk RNA expression (log1p DESeq2-normalised counts)")
+}
+```
+
+```{r rna-concordance-plot, fig.height=7}
+if (nrow(rna_paired) > 0)
+  plot_rna_concordance(rna_paired, clin, rna_primary_markers,
+                       "FlowPath marker+ fraction vs bulk-RNA expression")
+```
+
+The remaining markers — everything in `marker_gene_map` the figure above does not
+cover, in the order the map declares them:
+
+```{r rna-concordance-plot-rest, fig.height=7}
+if (nrow(rna_paired) > 0) {
+  rna_other_markers <- setdiff(ihc_markers, rna_primary_markers)
+  plot_rna_concordance(rna_paired, clin, rna_other_markers,
+                       "FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)")
 }
 ```
 
@@ -650,7 +700,8 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
     theme_paper_panels() +
     labs(title = "IHC lineage fraction vs bulk-RNA deconvolution score",
          subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales",
-         x = "IHC fraction of all cells", y = "deconvolution score")
+         x = "IHC fraction of all cells (unitless, 0-1)",
+         y = "Deconvolution score (unitless)")
 }
 ```
 
@@ -939,7 +990,8 @@ if (nrow(df) > 2) {
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = "Invasive-margin immune fraction vs clinical HOT score",
-         x = "CD45+ fraction in margin band", y = "clinical HOT score")
+         x = "CD45+ fraction in margin band (unitless, 0-1)",
+         y = "Clinical HOT score (unitless)")
 }
 ```
 
@@ -965,7 +1017,8 @@ if (nrow(df) > 2) {
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = "Invasive-margin immune density vs clinical HOT score",
-         x = "CD45+ per mm² in margin band", y = "clinical HOT score")
+         x = "CD45+ density in margin band (cells/mm²)",
+         y = "Clinical HOT score (unitless)")
 }
 ```
 
@@ -1056,7 +1109,7 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) > 1 && nrow(df) > 3) {
     geom_jitter(width = 0.2, alpha = 0.6) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)), name = "Immuno-phenotype") +
     labs(title = paste0("Margin-minus-core exclusion score by clinical phenotype (d = ", D_MAIN, " µm)"),
-         x = NULL, y = "exclusion score (margin − core CD45+ fraction)") +
+         x = NULL, y = "Exclusion score: margin − core CD45+ fraction (unitless)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
@@ -1082,7 +1135,8 @@ if (nrow(cmp) > 1) {
     geom_point(aes(y = union_cd45), colour = "grey40", size = 3, shape = 18) +
     geom_jitter(aes(colour = annotation), width = 0.05, size = 2, alpha = 0.85) +
     labs(title = paste0("Margin immune fraction: single annotations vs union (d = ", D_MAIN, " µm)"),
-         x = "patient", y = "CD45+ fraction in margin band", colour = "annotation") +
+         x = "Patient", y = "CD45+ fraction in margin band (unitless, 0-1)",
+         colour = "Annotation") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
@@ -1115,9 +1169,13 @@ if (nrow(comp) > 0) {
     geom_boxplot(outlier.shape = NA, colour = "grey30") +
     geom_jitter(width = .15, alpha = .5, size = 1) +
     facet_wrap(~ normalization, scales = "free_y") +
-    scale_fill_manual(values = oi, guide = "none") +
+    # Named lineage palette, not positional `oi` — see the note on the same plot
+    # in clinical_flowpath.Rmd. These are the same populations as that figure and
+    # must therefore be the same colours.
+    scale_fill_lineage(guide = "none") +
     labs(title = paste0("Immune composition in the invasive-margin band (d = ", D_MAIN, " µm)"),
-         x = NULL, y = "fraction") +
+         subtitle = with_n(NULL, comp$patient_id, "patients"),
+         x = NULL, y = "Cell fraction (unitless, 0-1)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```
@@ -1158,7 +1216,7 @@ if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
     labs(title = paste0("Invasive-margin cell-type fractions: hot vs cold (d = ", D_MAIN, " µm)"),
          subtitle = sprintf("%d patients with a margin band and an immuno-phenotype",
                             dplyr::n_distinct(comp_hc$patient_id)),
-         x = NULL, y = "fraction in margin band") +
+         x = NULL, y = "Cell fraction in margin band (unitless, 0-1)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }
 ```

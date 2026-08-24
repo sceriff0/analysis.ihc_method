@@ -58,13 +58,23 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
         dplyr::filter(is.finite(rTRE))
       if (nrow(long)) {
         n_slide <- dplyr::n_distinct(long[[id_col]])
+        # A handful of slides register badly enough to set the y range for all of
+        # them, flattening every other line onto the axis. coord_cartesian CROPS
+        # rather than filters, so a bad slide's line still leaves the top of the
+        # panel and the caption says how many did — nothing is deleted here.
+        ylim <- clip_upper_ylim(long$rTRE, by = long$stage)
         figs[["01_valis_rtre_by_stage"]] <-
           ggplot(long, aes(stage, rTRE, group = .data[[id_col]], colour = .data[[id_col]])) +
           geom_line(alpha = .8) + geom_point() +
           scale_colour_manual(values = rep_len(oi_ext, n_slide), guide = "none") +
+          coord_cartesian(ylim = ylim) +
           labs(title = "VALIS registration error by stage",
-               subtitle = "Self-reported feature error per moving slide; lower = better.",
-               x = NULL, y = metric_lab, caption = REG_CAPTION)
+               subtitle = paste("Self-reported feature error per moving slide; lower = better.",
+                                n_note(long[[id_col]], "slides")),
+               x = NULL, y = metric_lab,
+               caption = caption_with(REG_CAPTION,
+                                      clip_upper_note(long$rTRE, ylim, "slides",
+                                                      id = long[[id_col]])))
       }
     }
     if ("n_matches" %in% names(vs) && any(is.finite(vs$n_matches)) && !is.na(id_col)) {
@@ -83,16 +93,18 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     ra <- ra %>%
       dplyr::mutate(stage = factor(stage, levels = STAGE_LEVELS_OVERLAP)) %>%
       dplyr::filter(!is.na(stage))
-    has_slide <- "moving" %in% names(ra)
-    dice_p <- ggplot(ra, aes(stage, dice_matched)) +
-      geom_boxplot(outlier.shape = NA, width = .5)
-    if (has_slide)
-      dice_p <- dice_p + geom_line(aes(group = moving), alpha = .25)
-    figs[["02_overlap_dice_by_stage"]] <- dice_p +
-      geom_jitter(width = .10, alpha = .5) +
+    # Boxes only. The per-slide connecting lines and the jittered points made this
+    # panel unreadable once the sweep grew past a handful of runs: the spaghetti
+    # crossed every box and the dots hid the median line that is the actual reading.
+    # The per-slide trajectory is not lost — 01_valis_rtre_by_stage draws exactly
+    # that, one line per moving slide, which is why it does not need drawing twice.
+    figs[["02_overlap_dice_by_stage"]] <-
+      ggplot(ra, aes(stage, dice_matched)) +
+      geom_boxplot(outlier.shape = NA, width = .5) +
+      scale_x_discrete(labels = label_n(ra$stage)) +
       labs(title = "Nucleus-overlap Dice by registration stage",
            subtitle = "Independent check via DAPI segmentation overlap (not VALIS features); higher = better.",
-           x = NULL, y = "matched-nucleus Dice", caption = REG_CAPTION)
+           x = NULL, y = "Matched-nucleus Dice (unitless, 0-1)", caption = REG_CAPTION)
 
     if (all(c("displacement_um_p50", "displacement_um_p90") %in% names(ra))) {
       disp_long <- ra %>%
@@ -100,14 +112,25 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
                             names_to = "pct", values_to = "um") %>%
         dplyr::mutate(pct = dplyr::recode(pct,
           displacement_um_p50 = "median", displacement_um_p90 = "90th pct")) %>%
-        dplyr::filter(is.finite(um))
+        # log10 below needs a strictly positive residual. A matched-centroid
+        # distance of exactly 0 um does not occur in practice, but filtering here
+        # states the requirement rather than letting scale_y_log10() drop the row
+        # with a warning nobody reads in a knit log.
+        dplyr::filter(is.finite(um), um > 0)
       figs[["02b_displacement_um_by_stage"]] <-
         ggplot(disp_long, aes(stage, um, colour = pct)) +
         geom_boxplot(outlier.shape = NA, width = .5, position = position_dodge(.6)) +
+        # Residual spans orders of magnitude across stages — native is tens of um,
+        # micro is sub-um — so on a linear axis every registered stage collapses
+        # onto zero and the improvement that matters is invisible.
+        scale_y_log10() +
+        # Count one percentile only. disp_long is pivoted long over median/90th,
+        # so counting every row would report twice the number of runs.
+        scale_x_discrete(labels = label_n(disp_long$stage[disp_long$pct == "median"])) +
         scale_colour_manual(values = oi[c(1, 2)], name = NULL) +
         labs(title = "Centroid residual displacement by stage",
              subtitle = "Matched-nucleus centroid distance in physical units; lower = tighter alignment.",
-             x = NULL, y = "displacement (µm)", caption = REG_CAPTION)
+             x = NULL, y = "displacement (µm, log10)", caption = REG_CAPTION)
     }
   }
 
@@ -151,6 +174,13 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     }
   }
 
+  # Human labels for the two interchangeable VALIS error columns. They are NOT the
+  # same quantity: rTRE is normalised by the image diagonal (unitless), D is a raw
+  # pixel distance, so a figure that prints one label for both would misstate the axis.
+  VALIS_ERR_LABS <- c(
+    valis_non_rigid_rTRE = "VALIS relative TRE (unitless, fraction of image diagonal)",
+    valis_non_rigid_D    = "VALIS mean feature distance (px)")
+
   # -- §5 agreement of the two independent estimates ---------------------------
   # The paper's thesis: VALIS's own feature error and the segmentation-overlap Dice are computed by
   # DIFFERENT methods yet should track per run. Both are pre-joined in param_matrix.csv, so this is a
@@ -163,9 +193,16 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
         figs[["05_valis_vs_overlap_agreement"]] <-
           ggplot(ag, aes(.data[[valis_col]], reg_dice_matched)) +
           geom_point(size = 3, alpha = .8, colour = oi[1]) +
+          # x used to be `valis_col` itself, i.e. the literal column name printed on
+          # the axis. Which of the two columns was picked also changes the UNIT — rTRE
+          # is a fraction of the image diagonal, D is a pixel distance — so the label
+          # has to be looked up, not reused.
           labs(title = "Registration accuracy: VALIS vs segmentation-overlap",
-               subtitle = "Independent estimates per run — VALIS feature error (x) vs matched-nucleus Dice (y). They should track.",
-               x = valis_col, y = "matched-nucleus Dice (reg_dice_matched)", caption = REG_CAPTION)
+               subtitle = paste("Independent estimates per run — VALIS feature error (x) vs",
+                                "matched-nucleus Dice (y). They should track.",
+                                n_note(nrow(ag), "runs")),
+               x = VALIS_ERR_LABS[[valis_col]],
+               y = "Matched-nucleus Dice (unitless, 0-1)", caption = REG_CAPTION)
       }
     }
   }
@@ -197,6 +234,9 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
         geom_boxplot(outlier.shape = NA, width = .55, colour = "grey35") +
         geom_jitter(width = .12, height = 0, alpha = .75, size = 2) +
         scale_colour_manual(values = c(configuration = oi[1], baseline = oi[2]), name = NULL) +
+        # sep = " " because coord_flip() puts these ticks beside a horizontal box,
+        # where the default newline would double the left margin for no gain.
+        scale_x_discrete(labels = label_n(d$arm, sep = " ")) +
         coord_flip() +
         labs(title = "Registration error by configuration",
              subtitle = paste("VALIS target registration error per arm, with the",
@@ -217,11 +257,14 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
         geom_boxplot(outlier.shape = NA, width = .55, colour = "grey35") +
         geom_jitter(width = .12, height = 0, alpha = .75, size = 2) +
         scale_colour_manual(values = c(configuration = oi[1], baseline = oi[2]), name = NULL) +
+        # sep = " " because coord_flip() puts these ticks beside a horizontal box,
+        # where the default newline would double the left margin for no gain.
+        scale_x_discrete(labels = label_n(d$arm, sep = " ")) +
         coord_flip() +
         labs(title = "DAPI-nucleus overlap Dice by configuration",
              subtitle = paste("Segmentation-overlap Dice per arm, same arms as the TRE",
                               "figure. Independent of VALIS's features. Higher = better."),
-             x = NULL, y = "matched-nucleus Dice", caption = REG_CAPTION)
+             x = NULL, y = "Matched-nucleus Dice (unitless, 0-1)", caption = REG_CAPTION)
     }
   }
 

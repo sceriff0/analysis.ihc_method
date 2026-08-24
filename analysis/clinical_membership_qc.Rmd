@@ -14,8 +14,16 @@ suppressPackageStartupMessages({
   library(sf)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      fig.width = 8, fig.height = 5,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 # Loaders (gives neoplastic_data + the helpers). load_data.R prints colnames(); silence it.
@@ -125,8 +133,9 @@ if (nrow(qc) && sum(is.finite(qc$tumor_frac_flag) & is.finite(qc$tumor_frac_sf))
              label = sprintf("Pearson r = %.2f\nSpearman rho = %.2f\nKendall tau = %.2f\n(n = %d)",
                              cc$pearson, cc$spearman, cc$kendall, cc$n)) +
     labs(title = "Tumour fraction inside: flag vs sf point-in-polygon",
-         x = "tumour fraction (Out_of_annotation flag)",
-         y = "tumour fraction (sf / 0.325)", colour = "patient")
+         x = "Tumour fraction, export flag (unitless, 0-1)",
+         y = "Tumour fraction, polygon membership (unitless, 0-1)",
+         colour = "Patient")
 }
 ```
 

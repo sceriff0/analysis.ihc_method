@@ -41,7 +41,14 @@ CAPTION <- "Mirage benchmark sweep · mean over replicate runs · SLURM-isolated
 # Collect each figure into a named list of ggplot objects. benchmarks.Rmd sources
 # this file and renders them INLINE from the data (no PNG files on disk).
 bench_figs <- list()
-save_fig <- function(p, name, w = 8, h = 5) {
+# NOTE — no width/height arguments, deliberately. This used to be
+# `save_fig(p, name, w = 8, h = 5)` and every call site passed a size (8x5, 11x8,
+# 12x8...), but the body never read them: the figures are collected into a list
+# and drawn by the Rmd chunk, so the size that actually applies is the chunk's
+# fig.width/fig.height. Twelve call sites therefore documented sizes that were not
+# the sizes, and "make this figure wider" edits here did nothing. The real knob is
+# fig_width() in analysis/benchmark_pipeline.Rmd.
+save_fig <- function(p, name) {
   bench_figs[[name]] <<- p + labs(caption = CAPTION)
   invisible(NULL)
 }
@@ -98,17 +105,17 @@ powerlaw_plot <- function(df, ycol, point_col, title, ylab) {
 
 # ── 1. MEMORY SCALING per process (the headline) — peak RSS vs input, power law (linear axes) ──
 save_fig(powerlaw_plot(m, "peak_rss_gb", oi[1], "Peak memory scaling per process (power law)",
-                       "peak RSS (GiB)"), "01_memory_scaling_per_process", 11, 8)
+                       "peak RSS (GiB)"), "01_memory_scaling_per_process")
 
 # ── 2. TIME SCALING per process — realtime vs input, power law (linear axes) ──
 save_fig(powerlaw_plot(m, "realtime_s", oi[3], "Runtime scaling per process (power law)",
-                       "realtime (s)"), "02_time_scaling_per_process", 11, 8)
+                       "realtime (s)"), "02_time_scaling_per_process")
 
 # ── 2b. I/O VOLUME SCALING per process — bytes moved (read+write) vs input, power law ──
 if (has_io && any(is.finite(m$total_io_gb) & m$total_io_gb > 0)) {
   io_fig <- powerlaw_plot(m, "total_io_gb", oi[6],
                           "I/O volume scaling per process (power law)", "read + write (GiB)")
-  if (!is.null(io_fig)) save_fig(io_fig, "02b_io_volume_scaling", 11, 8)
+  if (!is.null(io_fig)) save_fig(io_fig, "02b_io_volume_scaling")
 }
 
 # ── 4. N-IMAGE REGISTRATION — REGISTER cost vs number of slides ──
@@ -122,8 +129,9 @@ if (nrow(reg) > 0) {
     scale_colour_ordinal(name = "size (px)") +
     labs(title = "N-image registration: peak RAM vs slide count",
          subtitle = "Co-registering more slides to one reference; coloured by image size.",
-         x = "n_register_images (1 reference + N-1 moving)", y = "peak RSS (GiB)")
-  save_fig(p4, "04_nimage_registration_ram", 9, 5)
+         x = "Slides co-registered (n; 1 reference + N-1 moving)",
+         y = "Peak RSS (GiB)")
+  save_fig(p4, "04_nimage_registration_ram")
 }
 
 # ── 5. OFAT KNOB EFFECTS — one panel per single-knob axis ──
@@ -156,7 +164,7 @@ if (nrow(knob_df) > 0) {
          subtitle = "Mean realtime (s) per knob value; each panel is one knob, free y-scale.",
          x = NULL, y = "realtime (s)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
-  save_fig(p5, "05_ofat_knob_effects", 12, 8)
+  save_fig(p5, "05_ofat_knob_effects")
 }
 
 # ── 6. REPLICATE VARIANCE — mean +/- sd from the repeats ──
@@ -172,7 +180,7 @@ if (file.exists(stats_path)) {
                         ymax = peak_rss_gb_mean + peak_rss_gb_std), width = .3) +
       coord_flip() +
       labs(title = "Peak RSS by process (mean +/- sd across repeats)", x = NULL, y = "peak RSS (GiB)")
-    save_fig(p6, "06_replicate_variance", 8, 6)
+    save_fig(p6, "06_replicate_variance")
   }
 }
 
@@ -185,7 +193,7 @@ p7 <- m %>% filter(varied_axis %in% size_axes, n_channels == 2, n_register_image
   labs(title = "Where the memory goes",
        subtitle = "Peak RSS by stage x image size (log colour). Darker = the memory bottleneck at that size.",
        x = "image size (px)", y = NULL)
-save_fig(p7, "07_stage_memory_heatmap", 9, 6)
+save_fig(p7, "07_stage_memory_heatmap")
 
 # ── 7b. I/O VOLUME by stage — mean bytes read vs written per process (which stage is I/O-heavy) ──
 if (has_io) {
@@ -203,7 +211,7 @@ if (has_io) {
       labs(title = "I/O volume by stage",
            subtitle = "Mean bytes read/written per process (trace rchar/wchar) — the I/O bottleneck, stacked read + write.",
            x = NULL, y = "I/O volume (GiB)")
-    save_fig(p7b, "07b_stage_io_split", 8, 6)
+    save_fig(p7b, "07b_stage_io_split")
   }
 }
 
@@ -215,7 +223,7 @@ p8 <- m %>% filter(varied_axis %in% size_axes, is.finite(input_gb), input_gb > 0
   facet_wrap(~ proc, scales = "free") +
   scale_colour_manual(values = oi[c(1,2)], name = "channels") +
   labs(title = "Channel-count effect on memory scaling", x = "input (GiB)", y = "peak RSS (GiB)")
-save_fig(p8, "08_channel_effect", 10, 7)
+save_fig(p8, "08_channel_effect")
 
 # ── 9. SEGMENTATION METHODS — each backend with its own parameter sweep ──
 seg <- m %>% filter(str_starts(varied_axis, "segmentation_grid"), proc == "SEGMENT")
@@ -223,12 +231,13 @@ if (nrow(seg) > 0) {
   p9 <- seg %>%
     ggplot(aes(seg_method, realtime_s, colour = seg_method)) +
     geom_boxplot(outlier.shape = NA, width = .5) +
+    scale_x_discrete(labels = label_n(seg$seg_method)) +
     geom_jitter(width = .12, alpha = .5, size = 1) +
     scale_colour_manual(values = oi, guide = "none") +
     labs(title = "Segmentation methods compared",
          subtitle = "Box = IQR across each method's own parameter sweep; points = individual configs.",
          x = NULL, y = "SEGMENT realtime (s)")
-  save_fig(p9, "09_segmentation_methods", 8, 5)
+  save_fig(p9, "09_segmentation_methods")
 
   # StarDist tile grid effect (its own params)
   sd <- seg %>% filter(seg_method == "stardist")
@@ -238,8 +247,9 @@ if (nrow(seg) > 0) {
       ggplot(aes(factor(seg_n_tiles_x), factor(seg_n_tiles_y), fill = peak_rss_gb)) +
       geom_tile(colour = "white", linewidth = 0.3) +
       scale_fill_seq(name = "peak RSS (GiB)", guide = guide_cbar()) +
-      labs(title = "StarDist tiling: peak RSS vs tile grid", x = "seg_n_tiles_x", y = "seg_n_tiles_y")
-    save_fig(p9b, "09b_stardist_tile_grid", 6, 5)
+      labs(title = "StarDist tiling: peak RSS vs tile grid",
+           x = "Tiles across image width (n)", y = "Tiles across image height (n)")
+    save_fig(p9b, "09b_stardist_tile_grid")
   }
 }
 
@@ -276,18 +286,20 @@ if (!is.null(sc) && nrow(sc) > 0) {
   if ("seg_method" %in% names(sc)) {
     p12 <- ggplot(sc, aes(seg_method, n_cells, colour = seg_method)) +
       geom_boxplot(outlier.shape = NA, width = .5) + geom_jitter(width = .12, alpha = .5) +
+      scale_x_discrete(labels = label_n(sc$seg_method)) +
       scale_colour_manual(values = oi, guide = "none") +
       labs(title = "Segmentation: cells detected per method",
            subtitle = "Spread = each method's own parameter sweep. Large gaps = methods disagree on cell count.",
-           x = NULL, y = "cells detected (max mask label)")
+           x = NULL, y = "Cells detected (n, max mask label)")
   } else {
     p12 <- ggplot(sc, aes("all runs", n_cells)) +
       geom_boxplot(outlier.shape = NA, width = .4) + geom_jitter(width = .1, alpha = .5) +
+      scale_x_discrete(labels = label_n(rep("all runs", nrow(sc)))) +
       labs(title = "Segmentation: cells detected",
            subtitle = "seg_method unavailable — pooled distribution.",
-           x = NULL, y = "cells detected (max mask label)")
+           x = NULL, y = "Cells detected (n, max mask label)")
   }
-  save_fig(p12, "12_segmentation_cell_counts", 8, 5)
+  save_fig(p12, "12_segmentation_cell_counts")
 }
 agree <- read_opt("segmentation_agreement.csv")
 if (!is.null(agree) && "instance_f1" %in% names(agree)) {
@@ -298,8 +310,8 @@ if (!is.null(agree) && "instance_f1" %in% names(agree)) {
     ylim(0, 1) +
     labs(title = "Segmentation cross-method agreement (instance F1)",
          subtitle = "IoU-matched per-cell F1 between methods (1 = agree on every cell); label = cell-count ratio.",
-         x = NULL, y = "instance F1 (IoU-matched)")
-  save_fig(p12b, "12b_segmentation_agreement", 8, 5)
+         x = NULL, y = "Instance F1, IoU-matched (unitless, 0-1)")
+  save_fig(p12b, "12b_segmentation_agreement")
 }
 
 # ── 13. END-TO-END COST — CPU-hours (and wall-clock) vs image size ──
@@ -317,8 +329,8 @@ if (!is.null(cost) && "target_px" %in% names(cost)) {
         labels = c(cpu_hours = "CPU-hours", wall_clock_h = "wall-clock (h)"), name = NULL) +
       labs(title = "End-to-end pipeline cost vs image size",
            subtitle = "Total compute (CPU-hours) and wall-clock per slide.",
-           x = "image size (px)", y = "hours")
-    save_fig(p13, "13_end_to_end_cost", 8, 5)
+           x = "Image size (px)", y = "Time (hours)")
+    save_fig(p13, "13_end_to_end_cost")
   }
 }
 
@@ -333,8 +345,8 @@ if (!is.null(cost) && all(c("bottleneck_stage", "target_px") %in% names(cost))) 
       scale_y_continuous(labels = percent_format()) +
       labs(title = "Pipeline bottleneck by image size",
            subtitle = "Share of runs whose slowest single process is each stage — the bottleneck shifts with size.",
-           x = "image size (px)", y = "share of runs")
-    save_fig(p14, "14_bottleneck_by_size", 8, 5)
+           x = "Image size (px)", y = "Share of runs (unitless, 0-1)")
+    save_fig(p14, "14_bottleneck_by_size")
   }
 }
 

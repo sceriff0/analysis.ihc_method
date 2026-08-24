@@ -25,11 +25,18 @@
 # `theme_minimal()` in an analysis. Add bare `theme(...)` for per-plot tweaks,
 # which layers on top of the house theme instead of discarding it.
 #
-# SIZING FOR PRINT. The Rmds render at fig.width = 9in so the workflowr site is
-# readable. A 9in-wide PDF placed in a 183mm (7.2in) double-column slot shrinks
-# by 0.8x, so the 10pt base type lands at ~8pt — inside the 5-8pt journal range.
-# For a single 89mm column, re-knit that chunk at fig.width = 4.5 rather than
-# shrinking a wide figure, or the type drops below 5pt.
+# SIZING FOR PRINT. Do not hand-pick fig.width. What holds type at one size across
+# the whole figure set is a constant SHRINK FACTOR from rendered width to printed
+# column, not a constant fig.width — so ask fig_width() for the number:
+#
+#   ```{r fig-name, fig.width = fig_width("double"), fig.height = fig_height("double")}
+#
+# "single" (85mm) = 4.25in, "oneandhalf" (114mm) = 5.7in, "double" (180mm) = 9in.
+# All three shrink by 0.787 and land the 10pt base type at 7.9pt on paper, inside
+# the 5-8pt journal range. Rendering wider than the target column is deliberate: it
+# also gives the workflowr site a readable raster. Picking 11in "because the panel
+# is busy" does not make the panel bigger — it makes that figure's type 6.5pt while
+# its neighbour's is 9.6pt. Split a busy panel or move to a facet instead.
 #
 # Dependencies: ggplot2 + grid only (no tidyverse/here), so benchmark_plots.R,
 # validation_helpers.R and any bare Rscript can all source it.
@@ -301,6 +308,300 @@ guide_cbar <- function(title = waiver(), width = 72, height = 6, ...) {
     args$barheight <- unit(height, "pt")
   }
   do.call(guide_colourbar, args)
+}
+
+# --- semantic categorical palettes -------------------------------------------
+# These live HERE, not next to the figures that use them, and that placement is
+# the whole point. A named palette defined inside code/paper_figures.R can only be
+# obeyed by paper_figures.R; a second file drawing the same categories reaches for
+# `oi` instead and assigns colours BY POSITION, so a lineage's hue silently depends
+# on which levels happen to be present in that file's data frame. That is how CD8T
+# came to be vermillion in Fig 3 and green in the composition panel. Anything that
+# names a recurring category belongs in this file, and every call site uses the
+# scale_*_() wrapper rather than passing the vector to scale_*_manual() by hand.
+#
+# The rule for adding one: it must be NAMED (level -> colour). Naming is what makes
+# the colour independent of which levels a given panel happens to contain, and it
+# also settles the `drop` question that an unnamed palette makes fraught. With an
+# unnamed vector, dropping an unused level shifts every colour after it, so you are
+# forced into drop = FALSE; with a named one, drop cannot move a single colour and
+# only decides which legend KEYS are drawn. So these scales drop by default — an
+# unused level otherwise leaves a labelled key with no swatch beside it, which reads
+# as a rendering fault. Pass drop = FALSE deliberately when a figure SET needs one
+# identical legend across panels (a whole-slide map and its inset, say).
+
+# Cell lineages. A map with fourteen colours reads as noise at figure size, so the
+# taxonomy is collapsed to the seven populations the paper argues about plus one
+# catch-all; `lineage_legible()` does the collapsing.
+#
+# The five immune populations get saturated Okabe-Ito hues; the three structural
+# classes are deliberately desaturated so they read as substrate rather than as
+# findings. The hard part is that "desaturated" used to mean three greys, and at
+# point size they blurred: Tumor vs other was dE 15.8 in CIE Lab and Tumor vs Stroma
+# 17.3, both under the ~25 a small mark needs. They are now separated on BOTH axes a
+# grey can vary in — lightness (L* 67 / 53 / 94) and hue (Tumor cool, Stroma warm) —
+# which also keeps them apart under colour-vision deficiency, where hue collapses and
+# only the lightness ladder survives. Worst pair in the whole palette is now dE 25.5.
+# Re-check with convertColor(..., "Lab") before changing any of these three.
+LEGIBLE_LINEAGES <- c("Tumor", "CD8T", "CD4T", "Treg", "NK", "Immune_other", "Stroma")
+
+LINEAGE_COLS <- c(
+  Tumor        = "#96A5B3",   # cool slate: the substrate the immune cells sit on
+  CD8T         = "#D55E00",
+  CD4T         = "#0072B2",
+  Treg         = "#CC79A7",
+  NK           = "#009E73",
+  Immune_other = "#E69F00",
+  Stroma       = "#8C7B6B",   # warm brown: same family as Tumor, opposite hue
+  other        = "#EDEFF1"    # near-white: a catch-all should recede, not read
+)
+
+# What each lineage is CALLED in a legend. The keys are the analysis vocabulary and
+# must stay as they are — cell_lineage() emits them and the tests assert them — but
+# "Immune_other" is a column code, not a label a reader should meet in a figure.
+LINEAGE_LABELS <- c(
+  Tumor = "Tumour", CD8T = "CD8 T", CD4T = "CD4 T", Treg = "Treg", NK = "NK",
+  Immune_other = "Immune (other)", Stroma = "Stroma", other = "Other",
+  Unknown = "Unknown", Unclassified = "Unclassified")
+
+# Marker-GATED populations (CD45+, CD3+ CD45+, GZMB+ NK) are not lineages — they
+# are thresholded readouts that overlap the lineages — so they must not borrow a
+# lineage hue and imply they are a disjoint population. They get achromatic greys
+# on the same lightness ladder, which also groups them visually as "the gated set".
+GATED_COLS <- c("CD45+" = "grey25", "CD3+ CD45+" = "grey50", "GZMB+ NK" = "grey72")
+
+# Every category this project colours by lineage, in one lookup: the lineages,
+# their gated companions, and the display spellings the two upstream tools use.
+# `cell_lineage()` should normalise before we get here, but a scale that silently
+# drops an unmapped level is worse than one that still draws it.
+LINEAGE_PALETTE <- c(LINEAGE_COLS, GATED_COLS,
+                     Unknown = "grey85", Unclassified = "grey85")
+
+# Registration arms. Ordered so the valis micro-registration ladder (0 -> 1 -> 2)
+# reads as a progression in the blue-green direction, with the two non-ladder arms
+# in contrasting grey and vermillion.
+ARM_KIND_COLS <- c("valis · micro 0" = "#0072B2", "valis · micro 1" = "#56B4E9",
+                   "valis · micro 2" = "#009E73", "valis"           = "#7F8C8D",
+                   "tiled (STARE)"   = "#D55E00")
+
+# Collapse a raw lineage column to the legible subset, as an ORDERED factor with
+# the full level set present (drop = FALSE then keeps colours stable across
+# panels that happen to be missing a population).
+lineage_legible <- function(x) {
+  x <- as.character(x)
+  x[is.na(x) | !x %in% LEGIBLE_LINEAGES] <- "other"
+  factor(x, levels = c(LEGIBLE_LINEAGES, "other"))
+}
+
+# `labels` defaults to the display names but stays overridable: a marker-gated panel
+# passes its own, and the gated labels ("CD45+") are already reader-facing.
+.lineage_labels <- function(breaks) {
+  b <- as.character(breaks)
+  ifelse(b %in% names(LINEAGE_LABELS), LINEAGE_LABELS[b], b)
+}
+scale_colour_lineage <- function(..., drop = TRUE, name = NULL, labels = .lineage_labels)
+  scale_colour_manual(values = LINEAGE_PALETTE, drop = drop, name = name,
+                      labels = labels, na.value = "grey85", ...)
+scale_fill_lineage <- function(..., drop = TRUE, name = NULL, labels = .lineage_labels)
+  scale_fill_manual(values = LINEAGE_PALETTE, drop = drop, name = name,
+                    labels = labels, na.value = "grey85", ...)
+scale_color_lineage <- scale_colour_lineage
+
+scale_colour_arm <- function(..., drop = TRUE, name = NULL)
+  scale_colour_manual(values = ARM_KIND_COLS, drop = drop, name = name, ...)
+scale_fill_arm <- function(..., drop = TRUE, name = NULL)
+  scale_fill_manual(values = ARM_KIND_COLS, drop = drop, name = name, ...)
+scale_color_arm <- scale_colour_arm
+
+# --- FlowPath panel titles ---------------------------------------------------
+# Facet strips used to print the COLUMN name, which is three different spellings
+# of one population across three pages: the clinical page counts CD45+ cells into
+# `cd45_over_inside`, the molecular page counts the same cells into
+# `CD45_posfrac`, and a reader comparing the two figures had to know that. Every
+# FlowPath panel is titled by WHAT WAS COUNTED instead — "FlowPath CD45+ cells" —
+# so the two strips read identically.
+#
+# The map only needs the names that are not already a bare marker; anything else
+# falls through to "<name>+", which is what a `<MARKER>_posfrac` column means.
+# An unmapped name is therefore still drawn, not turned into NA: a blank strip is
+# a worse failure than a slightly wrong one, because it looks like a rendering bug
+# rather than a missing entry.
+FLOWPATH_PANEL_POPULATIONS <- c(
+  cd45_over_inside    = "CD45+",
+  cd3cd45_over_inside = "CD3+ CD45+",
+  gzmb_nk_over_inside = "GZMB+ NK",
+  frac_CD8T           = "CD8 T",
+  frac_CD4T           = "CD4 T",
+  frac_Treg           = "Treg",
+  frac_NK             = "NK",
+  Immune_other        = "immune (other)")
+
+flowpath_panel_label <- function(x) {
+  b   <- as.character(x)
+  pop <- ifelse(b %in% names(FLOWPATH_PANEL_POPULATIONS),
+                FLOWPATH_PANEL_POPULATIONS[b],
+                paste0(sub("_(posfrac|z)$", "", b), "+"))
+  stats::setNames(paste0("FlowPath ", pop, " cells"), b)
+}
+
+# The same thing as a ggplot2 labeller, so a call site reads
+# `facet_wrap(~ marker, labeller = flowpath_labeller())` rather than repeating
+# the as_labeller() wrapping at every one of the six call sites.
+flowpath_labeller <- function() ggplot2::as_labeller(flowpath_panel_label)
+
+# --- view clipping ------------------------------------------------------------
+# "Remove the outliers" has two meanings and only one of them is honest here.
+# Dropping the rows recomputes the boxes, the medians and the stated n, so the
+# figure then disagrees with the summary table printed beside it — and a reader has
+# no way to see that it does. These two crop the VIEW instead: every statistic is
+# still computed over every observation, the axis just stops before the tail.
+#
+# A clipped axis that does not say how many points are outside it is a lie by
+# omission, so the note is a separate function rather than optional: a call site
+# that clips and forgets the caption is a diff you can spot.
+#
+# `by` is the grouping the figure already draws on its x axis, and passing it is
+# not optional cosmetics. A registration ladder's stages differ by an order of
+# magnitude BY DESIGN — native is tens of microns, micro is sub-micron — so a fence
+# computed over the pooled vector calls the entire `native` stage an outlier and
+# crops away the very comparison the figure exists to make. Computing the fence
+# WITHIN each stage and taking the widest keeps every stage's bulk on screen while
+# still cropping the one slide that blew up.
+#
+# The cut is Tukey's upper fence (Q3 + k*IQR), i.e. the same definition the boxplot
+# beside it already uses to decide what counts as an outlier — so "clipped" and
+# "drawn as an outlier point" agree instead of being two different thresholds. The
+# view then ends on a real observation rather than on a quantile that may land in
+# the middle of the gap.
+clip_upper_ylim <- function(x, by = NULL, k = 1.5) {
+  keep <- is.finite(x)
+  x <- x[keep]
+  if (!length(x)) return(NULL)
+  g <- if (is.null(by)) rep("", length(x)) else as.character(by)[keep]
+  fence <- function(v) {
+    # Under four observations there is no distribution to call anything an outlier
+    # against, so that group asks for its full range and the max below ignores it.
+    if (length(v) < 4) return(max(v))
+    q <- unname(stats::quantile(v, c(.25, .75)))
+    inside <- v[v <= q[[2]] + k * (q[[2]] - q[[1]])]
+    if (!length(inside)) max(v) else max(inside)
+  }
+  hi <- max(vapply(split(x, g), fence, numeric(1)))
+  lo <- min(x)
+  if (!is.finite(hi) || hi >= max(x)) return(NULL)   # nothing outside any fence
+  c(lo, hi + 0.05 * (hi - lo))                       # pad so the top point clears the edge
+}
+
+# `id` is what one unit of `unit` IS. Without it the count is rows, and on any
+# figure where a slide contributes one row per stage that reads "3 slides above the
+# view" for a single slide seen three times — a number a reader can check against
+# the stated n and find wrong.
+clip_upper_note <- function(x, ylim, unit = "points", id = NULL) {
+  if (is.null(ylim)) return(NULL)
+  above <- is.finite(x) & x > ylim[[2]]
+  n <- if (is.null(id)) sum(above) else length(unique(id[above]))
+  if (n == 0) return(NULL)
+  # "1 slides above the view" is the kind of thing a reviewer circles.
+  unit <- if (n == 1) sub("s$", "", unit) else unit
+  sprintf("y axis clipped: %d %s above the view; every box, median and n is computed over all of them",
+          n, unit)
+}
+
+# Join a figure's standing caption to whatever notes this particular render earned.
+# NULLs drop out, so a call site can pass clip_upper_note() unconditionally.
+caption_with <- function(...) {
+  parts <- Filter(nzchar, unlist(list(...)))
+  if (!length(parts)) return(NULL)
+  paste(parts, collapse = " · ")
+}
+
+# --- print sizing ------------------------------------------------------------
+# What keeps type the SAME SIZE on paper across figures is not a constant
+# fig.width — it is a constant SHRINK FACTOR between the rendered figure and the
+# column it is placed in:
+#
+#     scale = target_column_mm / (fig.width_in * 25.4)
+#
+# The repo's established double-column convention is fig.width = 9in placed in a
+# 180mm slot, i.e. scale = 0.787, which lands the 10pt base type at 7.9pt — inside
+# the 5-8pt journal range. FIG_SCALE pins that factor, and the widths below are
+# DERIVED from it, so a single-column figure is not simply "a narrower 9in figure"
+# (which would print its type ~2x too large) but the width that shrinks by the
+# same 0.787.
+#
+# Rendering wider than the target is deliberate: it also gives the workflowr site
+# a readable raster, so one chunk serves both the website and the manuscript.
+FIG_SCALE <- 0.787
+
+# Journal column widths in mm (Nature-style: 85 single, 180 double).
+FIG_COLUMN_MM <- c(single = 85, oneandhalf = 114, double = 180)
+
+# Width in INCHES for a knitr chunk targeting the given column. Round to 0.05in so
+# the numbers that end up in the Rmds stay readable.
+fig_width <- function(column = c("double", "single", "oneandhalf")) {
+  column <- match.arg(column)
+  round(FIG_COLUMN_MM[[column]] / FIG_SCALE / 25.4 / 0.05) * 0.05
+}
+
+# Height for a target aspect ratio (height/width). Capped at the 230mm ceiling a
+# figure may not exceed on a printed page, expressed at the same shrink factor.
+fig_height <- function(column = c("double", "single", "oneandhalf"), aspect = 0.62) {
+  w   <- fig_width(column)
+  cap <- 230 / FIG_SCALE / 25.4
+  round(min(w * aspect, cap) / 0.05) * 0.05
+}
+
+# A panel that will be PLACED BY HAND (paper_figures.R emits one PDF per panel and
+# the figure is assembled in Affinity) has no column width to snap to, so the ladder
+# above cannot help it. Declare the width the panel will occupy in the finished
+# figure instead, in mm, and this returns the inches to render it at:
+#
+#   ```{r fig5b, fig.width = panel_width(68), fig.height = panel_height(72)}
+#
+# Two panels sharing a 180mm row declare 110 and 66; a full-width panel declares
+# 180. Because FIG_SCALE * 25.4 is almost exactly 20, the conversion is "mm / 20",
+# which makes a mismatched panel visible at a glance in the chunk header. This is
+# the ONLY way to keep type uniform in a hand-assembled figure: an inch literal
+# encodes a placement nobody wrote down, so nothing can check it.
+panel_width <- function(mm) round(mm / FIG_SCALE / 25.4 / 0.05) * 0.05
+panel_height <- panel_width
+
+# --- reporting n -------------------------------------------------------------
+# Every figure has to state its n somewhere. Two helpers, because there are two
+# situations and they want different answers.
+#
+# `label_n(x)` is for a CATEGORICAL AXIS: it returns a labeller that appends the
+# per-level count to each tick, so an unbalanced design is visible in the figure
+# rather than buried in the caption.
+#
+#     scale_x_discrete(labels = label_n(df$lineage))
+#
+# It counts from the vector handed to it (the plotted data), not from the breaks,
+# so it reports what was actually drawn. Levels present as a break but absent from
+# the data are labelled without a count instead of "(n = NA)".
+label_n <- function(x, sep = "\n") {
+  counts <- table(as.character(x[!is.na(x)]))
+  function(breaks) {
+    n <- as.integer(counts[as.character(breaks)])
+    ifelse(is.na(n) | !nzchar(as.character(breaks)),
+           as.character(breaks),
+           sprintf("%s%s(n = %d)", breaks, sep, n))
+  }
+}
+
+# `n_note()` is the fallback for a figure with NO categorical axis (a scatter, a
+# density, a heatmap): a phrase to paste into the subtitle. Naming the unit is
+# required, because "n = 24" is ambiguous in this project — 24 patients, 24 slides
+# and 24 runs are all plausible and mean different things.
+n_note <- function(n, unit = "patients") {
+  n <- if (length(n) > 1L) length(unique(n[!is.na(n)])) else as.integer(n)
+  sprintf("n = %s %s", format(n, big.mark = ","), unit)
+}
+
+# Append `n_note()` to a subtitle, keeping the subtitle readable when it is NULL.
+with_n <- function(subtitle, n, unit = "patients") {
+  note <- n_note(n, unit)
+  if (is.null(subtitle) || !nzchar(subtitle)) note else paste0(subtitle, " · ", note)
 }
 
 # --- geom defaults -----------------------------------------------------------

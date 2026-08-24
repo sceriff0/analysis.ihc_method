@@ -13,7 +13,16 @@ suppressPackageStartupMessages({
   library(here)
 })
 
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
 # This page reads ONLY the QC artifacts mirage published for the run, so it does not
@@ -174,7 +183,10 @@ fig_notes <- c(
     "`*_D` distances instead. **Intrinsic** — VALIS scoring its own feature matches.",
     "The four stages come from three columns across two files: `non_rigid` from the",
     "pre-micro summary, `micro` from the final one (same column, micro composed in).",
-    "A missing `micro` box means `reg_micro_reg < 2` and micro-registration never ran."),
+    "A missing `micro` box means `reg_micro_reg < 2` and micro-registration never ran.",
+    "The y axis is **clipped** at the per-stage Tukey fence: the boxes, the printed",
+    "medians and the per-stage n are still computed over every slide, and the caption",
+    "says how many slides fall above the view."),
   "01b_valis_n_matches" = paste(
     "`n_matches`: how many correspondences each rTRE above is based on. A slide with",
     "few matches has a low-confidence estimate no matter how good the number looks."),
@@ -194,12 +206,15 @@ fig_notes <- c(
     "warping each slide's natively-segmented DAPI nuclei and measuring overlap — it does",
     "not use the features the registration was fitted on, which is what makes it the",
     "independent check. Correspondences are fixed at the rigid anchor, so a change",
-    "between stages is geometry, not a different set of pairs."),
+    "between stages is geometry, not a different set of pairs. Boxes only — the",
+    "per-slide ladder is §1's figure, and drawing it again here crossed every box."),
   "03b_displacement_um_by_stage" = paste(
     "Matched-nucleus centroid residual in **microns** (`displacement_um_p50`/`_p90`).",
     "Physical units, so this is the figure to quote as the pipeline's spatial",
     "resolution on this cohort — and to compare against cell diameter when deciding",
-    "whether per-cell marker assignment across cycles is trustworthy."),
+    "whether per-cell marker assignment across cycles is trustworthy. **Log y axis**:",
+    "the residual falls by two orders of magnitude from `native` to `micro`, which a",
+    "linear axis renders as three stages stacked on zero."),
   "03c_pair_fraction" = paste(
     "The fraction of cells that paired between the two slides, per moving slide. Every",
     "Dice and displacement above is computed over this subset. Below the dashed 0.5 line",
@@ -218,7 +233,7 @@ fig_notes <- c(
 Each figure is preceded by its derivation note. A figure whose artifact this run did
 not produce is simply absent — a VALIS run has no §2, a tiled run has no §1.
 
-```{r figures, results="asis", fig.width=9, fig.height=5.5}
+```{r figures, results="asis", fig.width=fig_width("double"), fig.height=5.5}
 for (nm in names(qc_figs)) {
   title <- gsub("_", " ", sub("^[0-9]+[a-z]?_", "", nm))
   cat("\n\n### ", title, "\n\n", sep = "")

@@ -33,31 +33,9 @@ suppressPackageStartupMessages({
 })
 
 # --- Spatial phenotype map (Fig 3d, Fig 5a) ----------------------------------
-# A "legible subset of the tree" is the legend's phrase and it is load-bearing: a
-# map with fourteen colours reads as noise at figure size. LEGIBLE_LINEAGES is that
-# subset, ordered so the immune populations the paper argues about are the ones
-# that get a distinct hue, and everything else collapses into one grey "other".
-LEGIBLE_LINEAGES <- c("Tumor", "CD8T", "CD4T", "Treg", "NK", "Immune_other", "Stroma")
-
-# The five immune populations get saturated Okabe-Ito hues; the three structural
-# classes are deliberately desaturated so they read as substrate rather than as
-# findings. The hard part is that "desaturated" used to mean three greys, and at
-# point size they blurred: Tumor vs other was dE 15.8 in CIE Lab and Tumor vs Stroma
-# 17.3, both under the ~25 a small mark needs. They are now separated on BOTH axes a
-# grey can vary in — lightness (L* 67 / 53 / 94) and hue (Tumor cool, Stroma warm) —
-# which also keeps them apart under colour-vision deficiency, where hue collapses and
-# only the lightness ladder survives. Worst pair in the whole palette is now dE 25.5.
-# Re-check with convertColor(..., "Lab") before changing any of these three.
-LINEAGE_COLS <- c(
-  Tumor        = "#96A5B3",   # cool slate: the substrate the immune cells sit on
-  CD8T         = "#D55E00",
-  CD4T         = "#0072B2",
-  Treg         = "#CC79A7",
-  NK           = "#009E73",
-  Immune_other = "#E69F00",
-  Stroma       = "#8C7B6B",   # warm brown: same family as Tumor, opposite hue
-  other        = "#EDEFF1"    # near-white: a catch-all should recede, not read
-)
+# LEGIBLE_LINEAGES, LINEAGE_COLS and lineage_legible() now live in plot_theme.R,
+# so the composition panels on the clinical page colour CD8T the same vermillion
+# this map does. Reach for scale_colour_lineage(), never scale_colour_manual().
 
 # A "nice" scale-bar length: the largest of 10/25/50/100/... µm that still fits in
 # a sixth of the field. Picking a round number MATTERS — a 137 µm bar is unreadable
@@ -98,10 +76,10 @@ paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
   df  <- tibble::tibble(x = xy$x, y = xy$y, lineage = lin) |>
     dplyr::filter(is.finite(x), is.finite(y)) |>
     # An unmapped label is a vocabulary gap, not a cell type; it must not get a hue
-    # and be read as a population. It joins "other" with everything else off-subset.
-    dplyr::mutate(lineage = factor(ifelse(is.na(lineage) | !lineage %in% LEGIBLE_LINEAGES,
-                                          "other", lineage),
-                                   levels = c(LEGIBLE_LINEAGES, "other")))
+    # and be read as a population. lineage_legible() joins it to "other" with
+    # everything else off-subset, keeping the full level set so drop = FALSE holds
+    # the colours steady across a map and its inset.
+    dplyr::mutate(lineage = lineage_legible(lineage))
   if (!is.null(zoom)) {
     stopifnot(length(zoom) == 4)
     df <- dplyr::filter(df, x >= zoom[1], x <= zoom[2], y >= zoom[3], y <= zoom[4])
@@ -117,8 +95,12 @@ paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
 
   p <- ggplot(df, aes(x, y, colour = lineage)) +
     geom_point(size = point_size, shape = 16, alpha = .85) +
-    scale_colour_manual(values = LINEAGE_COLS, drop = FALSE, name = NULL,
-                        guide = guide_legend(override.aes = list(size = 2.5))) +
+    # Unused levels are dropped. It is tempting to keep them so a map and its inset
+    # carry identical legends, but the named palette ALREADY guarantees a population
+    # is the same colour in both, and a kept-but-empty level draws a labelled key
+    # with no swatch beside it — on a manuscript panel that reads as a broken figure.
+    # A legend listing only the populations actually present is the accurate one.
+    scale_colour_lineage(guide = guide_legend(override.aes = list(size = 2.5))) +
     scale_y_reverse() +
     coord_fixed() +
     labs(title = title %||% (if (!is.null(patient_id)) paste("Patient", patient_id) else NULL),
@@ -166,7 +148,7 @@ paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
 paper_immune_fraction_hotcold <- function(metrics, groups,
                                           value_col = "cd45_over_inside",
                                           group_col = "group",
-                                          y_lab = "mIF CD45+ / all cells") {
+                                          y_lab = "mIF CD45+ / all cells (unitless, 0-1)") {
   stopifnot(value_col %in% names(metrics))
   df <- metrics |>
     dplyr::mutate(.pid = slide_key(patient_id)) |>
@@ -180,16 +162,37 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
     return(NULL)
   }
 
-  ggplot(df, aes(group, .data[[value_col]], colour = group)) +
+  # A BOX OR A MEDIAN BAR, DECIDED BY n. This panel is the proof-of-concept with
+  # three cases a side, and a boxplot over three points draws quartiles computed
+  # from two intervals — it renders a distribution shape the data cannot support,
+  # and a reviewer reads the hinges as if they meant something. Below 10 per group
+  # the summary collapses to a plain median crossbar, which claims only what it can
+  # (a central value) and leaves the points as the evidence, exactly as the figure
+  # legend says. The box comes back on its own if the cohort ever reaches 10 a side.
+  min_n   <- min(table(df$group)[table(df$group) > 0])
+  summary_layer <- if (min_n >= 10) {
     geom_boxplot(outlier.shape = NA, width = .45, colour = "grey35",
-                 linewidth = pt_line(0.6)) +
+                 linewidth = pt_line(0.6))
+  } else {
+    # errorbar with min == max == median draws exactly one horizontal rule and no
+    # whiskers. geom_crossbar(fatten = 0) is the obvious spelling but `fatten` is
+    # deprecated in ggplot2 4.0 and prints a warning into every knit of this page;
+    # this form is silent on both sides of that version boundary.
+    stat_summary(fun = median, fun.min = median, fun.max = median,
+                 geom = "errorbar", width = .38, colour = "grey35",
+                 linewidth = pt_line(0.6))
+  }
+
+  ggplot(df, aes(group, .data[[value_col]], colour = group)) +
+    summary_layer +
     geom_point(size = 2.6, alpha = .9,
                position = position_jitter(width = .07, height = 0, seed = 1)) +
     scale_colour_manual(values = hotcold_cols(levels(df$group)), guide = "none") +
+    # n rides on the tick labels rather than a subtitle: the groups are unbalanced
+    # by design and the reader needs the count attached to the group it describes.
+    scale_x_discrete(labels = label_n(df$group)) +
     labs(x = NULL, y = y_lab,
-         subtitle = sprintf("n = %s", paste(sprintf("%d %s", table(df$group),
-                                                    names(table(df$group))),
-                                            collapse = ", ")))
+         subtitle = if (min_n >= 10) NULL else "bar = median; every case shown")
 }
 
 # --- Imaging vs deconvolution (Fig 5c) ---------------------------------------
@@ -201,7 +204,7 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
 # absolute-agreement reading the legend explicitly disclaims. Ranking is the claim;
 # `free` scales per facet are what let ranking be read.
 paper_deconv_scatter <- function(paired, method = "quantiseq",
-                                 x_lab = "imaging fraction (of all cells)",
+                                 x_lab = "Imaging fraction of all cells (unitless, 0-1)",
                                  y_lab = NULL, label_cases = FALSE) {
   stopifnot(all(c("method", "lineage", "ihc_frac", "score") %in% names(paired)))
   df <- dplyr::filter(paired, tolower(.data$method) == tolower(!!method))
