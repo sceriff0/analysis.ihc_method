@@ -230,7 +230,10 @@ arm_notes <- c(
     "**Did a stage make it worse?** Residual minus the rigid stage's. Above zero",
     "means that stage degraded the alignment. mirage catches-and-continues a failed",
     "micro-registration, so this regression is silent by design — this is where it",
-    "surfaces."),
+    "surfaces. The y axis is **symmetric-log**: linear within ±0.1 µm of zero (below",
+    "the pixel size) and logarithmic in both tails, so an improvement and a regression",
+    "of the same size sit the same distance from the zero line. A plain log axis would",
+    "have dropped every negative value, i.e. every slide the stage improved."),
   "08_stare_intrinsic_tre_px" = paste(
     "**STARE grading itself**, before and after mesh refinement. In **pixels** — this",
     "is deliberately a separate figure from the VALIS rTRE above, because the two are",

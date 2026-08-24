@@ -427,6 +427,12 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
       dplyr::summarise(error = stats::median(error, na.rm = TRUE),
                        n = dplyr::n(), .groups = "drop")
     micro_ran <- "micro" %in% as.character(vl$stage)
+    # A slide or two register badly enough to set the y range for every stage,
+    # squashing the boxes onto the axis. coord_cartesian CROPS rather than filters:
+    # the boxes, the medians printed on them and the per-stage n are all still
+    # computed over every slide, and the caption says how many sit above the view.
+    # (Dropping the rows instead would silently move the medians this figure prints.)
+    ylim <- clip_upper_ylim(vl$error, by = vl$stage)
     figs[["01_valis_error_by_stage"]] <-
       ggplot(vl, aes(stage, error)) +
       geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
@@ -436,19 +442,25 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
       geom_text(data = med, aes(label = signif(error, 3)),
                 vjust = -1.1, size = pt_text(7), colour = "grey15") +
       scale_colour_oi(name = "patient") +
-      lab(title = "VALIS registration error by stage",
-          subtitle = paste0(
-            "VALIS grading itself from its own feature matches; lower = better. ",
-            "Label = median. VALIS has no micro column — micro-registration updates the ",
-            "non-rigid field, so the stage axis comes from which FILE a value is in. ",
-            if (micro_ran)
-              paste("`non_rigid` is the pre-micro summary; `micro` is the same",
-                    "`non_rigid_D` column in the final one.")
-            else
-              paste("No `micro` box: this run wrote no pre-micro summary, so",
-                    "reg_micro_reg < 2 and micro-registration never ran. A blank stage",
-                    "means it did not run, not that it bought nothing.")),
-          x = NULL, y = vl$metric[1])
+      coord_cartesian(ylim = ylim) +
+      # labs(), not the lab() shorthand: this is the one figure whose caption is not
+      # just RUN_QC_CAPTION, because a clipped axis has to declare itself.
+      labs(caption = caption_with(RUN_QC_CAPTION,
+                                  clip_upper_note(vl$error, ylim, "slides",
+                                                  id = paste(vl$patient_id, vl$slide))),
+           title = "VALIS registration error by stage",
+           subtitle = paste0(
+             "VALIS grading itself from its own feature matches; lower = better. ",
+             "Label = median. VALIS has no micro column — micro-registration updates the ",
+             "non-rigid field, so the stage axis comes from which FILE a value is in. ",
+             if (micro_ran)
+               paste("`non_rigid` is the pre-micro summary; `micro` is the same",
+                     "`non_rigid_D` column in the final one.")
+             else
+               paste("No `micro` box: this run wrote no pre-micro summary, so",
+                     "reg_micro_reg < 2 and micro-registration never ran. A blank stage",
+                     "means it did not run, not that it bought nothing.")),
+           x = NULL, y = vl$metric[1])
     if ("n_matches" %in% names(tables$valis)) {
       # Label each bar with the slide VALIS named, falling back to the summary file
       # plus a row index when the build wrote no name column.
@@ -510,13 +522,15 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
   # -- §3 the independent cross-check: DAPI-nucleus overlap ---------------------
   sq <- tables$seg_qc
   if (nrow(sq)) {
+    # Boxes only. The per-(patient, moving) connecting lines and their points made
+    # this panel unreadable as soon as a run carried more than a couple of moving
+    # slides: the spaghetti crossed every box and the dots sat on the median line
+    # that is the actual reading. The per-slide ladder is not lost — that is what
+    # 01_valis_error_by_stage and §3c are for.
     figs[["03_overlap_dice_by_stage"]] <-
       ggplot(sq, aes(stage, dice_matched)) +
       geom_boxplot(outlier.shape = NA, width = .5) +
       scale_x_discrete(labels = label_n(sq$stage)) +
-      geom_line(aes(group = interaction(patient_id, moving), colour = patient_id), alpha = .4) +
-      geom_point(aes(colour = patient_id), alpha = .8) +
-      scale_colour_oi(name = "patient") +
       lab(title = "Matched-nucleus Dice by registration stage",
           subtitle = paste("Computed from DAPI segmentation overlap, NOT from the features the",
                            "registration used — the independent check. Higher = better."),
@@ -527,16 +541,25 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
         sq |>
         tidyr::pivot_longer(c(disp_um_p50, disp_um_p90), names_to = "pct", values_to = "um") |>
         dplyr::mutate(pct = dplyr::recode(pct, disp_um_p50 = "median", disp_um_p90 = "90th pct")) |>
-        dplyr::filter(is.finite(um)) |>
+        # log10 below needs a strictly positive residual; filtering here states that
+        # rather than letting scale_y_log10() drop rows with a knit-log warning.
+        dplyr::filter(is.finite(um), um > 0) |>
         ggplot(aes(stage, um, colour = pct)) +
         geom_boxplot(outlier.shape = NA, width = .5, position = position_dodge(.6)) +
+        # Residual spans orders of magnitude across the stage ladder — native is
+        # tens of um, micro is sub-um — so on a linear axis every registered stage
+        # collapses onto zero and the improvement that matters is invisible.
+        scale_y_log10() +
         # Counted from `sq` (one row per run), NOT from the piped long frame: that
         # frame is pivoted over median/90th and would state twice the runs per box.
-        scale_x_discrete(labels = label_n(sq$stage[is.finite(sq$disp_um_p50)])) +
+        # ... and over the rows the log axis actually draws, so the stated n does not
+        # include a run the `um > 0` filter above removed.
+        scale_x_discrete(labels = label_n(
+          sq$stage[is.finite(sq$disp_um_p50) & sq$disp_um_p50 > 0])) +
         scale_colour_manual(values = oi[c(1, 2)], name = NULL) +
         lab(title = "Centroid residual displacement by stage",
             subtitle = "Physical units, so this is the number to quote as spatial resolution.",
-            x = NULL, y = "displacement (µm)")
+            x = NULL, y = "displacement (µm, log10)")
 
     # Pair fraction is the sanity gate on every number above it: a low fraction means
     # the Dice was computed over a thin, and probably biased, subset of cells.

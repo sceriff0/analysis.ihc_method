@@ -84,6 +84,9 @@ suppressPackageStartupMessages({
   library(fs)
   library(purrr)
   library(tibble)
+  # `scales` for pseudo_log_trans() on the signed delta figure. It is a hard
+  # dependency of ggplot2, so this only makes the use declared, not conditional.
+  library(scales)
 })
 
 source(here::here("code", "run_qc.R"))    # the readers, and QC_STAGE_LEVELS
@@ -430,17 +433,39 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   # is where it surfaces. A POSITIVE displacement delta is worse.
   dv <- dplyr::filter(seg, is.finite(d_disp_um_vs_rigid), stage != "rigid")
   if (nrow(dv)) {
+    # SYMMETRIC log, not log10. The delta is signed on purpose: negative means the
+    # stage improved on the rigid anchor, positive means it regressed, and the zero
+    # line between them is the whole reading. A plain scale_y_log10() would drop
+    # every negative value — i.e. exactly the runs where micro-registration worked —
+    # and leave a figure showing only failures. pseudo_log_trans is linear within
+    # ±sigma of zero and logarithmic in both tails, so the small deltas near zero
+    # stay separable and a 100 µm blow-up no longer sets the range for all of them.
+    #
+    # sigma is in µm: 0.1 µm is well below the ~0.5 µm pixel size these residuals
+    # are measured at, so the linear window covers "indistinguishable from no
+    # change" and nothing wider.
+    delta_trans  <- scales::pseudo_log_trans(sigma = 0.1)
+    delta_breaks <- c(-100, -10, -1, -0.1, 0, 0.1, 1, 10, 100)
     figs[["06_delta_vs_rigid_anchor"]] <-
       ggplot(dplyr::mutate(dv, arm = .arm_f(arm)),
              aes(stage, d_disp_um_vs_rigid, colour = arm)) +
       geom_hline(yintercept = 0, colour = REF_LINE) +
       geom_jitter(width = .15, height = 0, alpha = .8, size = 2) +
       scale_colour_manual(values = rep_len(oi_ext, dplyr::n_distinct(dv$arm)), name = NULL) +
+      scale_y_continuous(trans = delta_trans, breaks = delta_breaks) +
+      scale_x_discrete(labels = label_n(dv$stage)) +
       labs(title = "Change against the rigid anchor, per stage",
-           subtitle = paste("Residual minus the rigid stage's.",
-                            "ABOVE the zero line means that stage made alignment WORSE",
-                            "— the failure mode micro-registration hides."),
-           x = NULL, y = "Δ residual vs rigid (µm)", caption = ARM_CAPTION)
+           # Explicit line break: the two sentences together overrun a double-column
+           # panel, and a clipped subtitle is the one figure defect a reader cannot
+           # work around.
+           subtitle = paste0(
+             paste("Residual minus the rigid stage's.",
+                   "ABOVE the zero line means that stage made alignment WORSE",
+                   "— the failure mode micro-registration hides."),
+             "\n",
+             paste("Axis is symmetric-log: linear within ±0.1 µm of zero (below the",
+                   "pixel size), logarithmic in both tails.")),
+           x = NULL, y = "Δ residual vs rigid (µm, symlog)", caption = ARM_CAPTION)
   }
 
   # -- 7. VALIS grading itself, ONE figure: the stage axis, faceted by arm.

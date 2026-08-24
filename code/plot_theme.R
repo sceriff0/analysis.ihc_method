@@ -413,6 +413,108 @@ scale_fill_arm <- function(..., drop = TRUE, name = NULL)
   scale_fill_manual(values = ARM_KIND_COLS, drop = drop, name = name, ...)
 scale_color_arm <- scale_colour_arm
 
+# --- FlowPath panel titles ---------------------------------------------------
+# Facet strips used to print the COLUMN name, which is three different spellings
+# of one population across three pages: the clinical page counts CD45+ cells into
+# `cd45_over_inside`, the molecular page counts the same cells into
+# `CD45_posfrac`, and a reader comparing the two figures had to know that. Every
+# FlowPath panel is titled by WHAT WAS COUNTED instead — "FlowPath CD45+ cells" —
+# so the two strips read identically.
+#
+# The map only needs the names that are not already a bare marker; anything else
+# falls through to "<name>+", which is what a `<MARKER>_posfrac` column means.
+# An unmapped name is therefore still drawn, not turned into NA: a blank strip is
+# a worse failure than a slightly wrong one, because it looks like a rendering bug
+# rather than a missing entry.
+FLOWPATH_PANEL_POPULATIONS <- c(
+  cd45_over_inside    = "CD45+",
+  cd3cd45_over_inside = "CD3+ CD45+",
+  gzmb_nk_over_inside = "GZMB+ NK",
+  frac_CD8T           = "CD8 T",
+  frac_CD4T           = "CD4 T",
+  frac_Treg           = "Treg",
+  frac_NK             = "NK",
+  Immune_other        = "immune (other)")
+
+flowpath_panel_label <- function(x) {
+  b   <- as.character(x)
+  pop <- ifelse(b %in% names(FLOWPATH_PANEL_POPULATIONS),
+                FLOWPATH_PANEL_POPULATIONS[b],
+                paste0(sub("_(posfrac|z)$", "", b), "+"))
+  stats::setNames(paste0("FlowPath ", pop, " cells"), b)
+}
+
+# The same thing as a ggplot2 labeller, so a call site reads
+# `facet_wrap(~ marker, labeller = flowpath_labeller())` rather than repeating
+# the as_labeller() wrapping at every one of the six call sites.
+flowpath_labeller <- function() ggplot2::as_labeller(flowpath_panel_label)
+
+# --- view clipping ------------------------------------------------------------
+# "Remove the outliers" has two meanings and only one of them is honest here.
+# Dropping the rows recomputes the boxes, the medians and the stated n, so the
+# figure then disagrees with the summary table printed beside it — and a reader has
+# no way to see that it does. These two crop the VIEW instead: every statistic is
+# still computed over every observation, the axis just stops before the tail.
+#
+# A clipped axis that does not say how many points are outside it is a lie by
+# omission, so the note is a separate function rather than optional: a call site
+# that clips and forgets the caption is a diff you can spot.
+#
+# `by` is the grouping the figure already draws on its x axis, and passing it is
+# not optional cosmetics. A registration ladder's stages differ by an order of
+# magnitude BY DESIGN — native is tens of microns, micro is sub-micron — so a fence
+# computed over the pooled vector calls the entire `native` stage an outlier and
+# crops away the very comparison the figure exists to make. Computing the fence
+# WITHIN each stage and taking the widest keeps every stage's bulk on screen while
+# still cropping the one slide that blew up.
+#
+# The cut is Tukey's upper fence (Q3 + k*IQR), i.e. the same definition the boxplot
+# beside it already uses to decide what counts as an outlier — so "clipped" and
+# "drawn as an outlier point" agree instead of being two different thresholds. The
+# view then ends on a real observation rather than on a quantile that may land in
+# the middle of the gap.
+clip_upper_ylim <- function(x, by = NULL, k = 1.5) {
+  keep <- is.finite(x)
+  x <- x[keep]
+  if (!length(x)) return(NULL)
+  g <- if (is.null(by)) rep("", length(x)) else as.character(by)[keep]
+  fence <- function(v) {
+    # Under four observations there is no distribution to call anything an outlier
+    # against, so that group asks for its full range and the max below ignores it.
+    if (length(v) < 4) return(max(v))
+    q <- unname(stats::quantile(v, c(.25, .75)))
+    inside <- v[v <= q[[2]] + k * (q[[2]] - q[[1]])]
+    if (!length(inside)) max(v) else max(inside)
+  }
+  hi <- max(vapply(split(x, g), fence, numeric(1)))
+  lo <- min(x)
+  if (!is.finite(hi) || hi >= max(x)) return(NULL)   # nothing outside any fence
+  c(lo, hi + 0.05 * (hi - lo))                       # pad so the top point clears the edge
+}
+
+# `id` is what one unit of `unit` IS. Without it the count is rows, and on any
+# figure where a slide contributes one row per stage that reads "3 slides above the
+# view" for a single slide seen three times — a number a reader can check against
+# the stated n and find wrong.
+clip_upper_note <- function(x, ylim, unit = "points", id = NULL) {
+  if (is.null(ylim)) return(NULL)
+  above <- is.finite(x) & x > ylim[[2]]
+  n <- if (is.null(id)) sum(above) else length(unique(id[above]))
+  if (n == 0) return(NULL)
+  # "1 slides above the view" is the kind of thing a reviewer circles.
+  unit <- if (n == 1) sub("s$", "", unit) else unit
+  sprintf("y axis clipped: %d %s above the view; every box, median and n is computed over all of them",
+          n, unit)
+}
+
+# Join a figure's standing caption to whatever notes this particular render earned.
+# NULLs drop out, so a call site can pass clip_upper_note() unconditionally.
+caption_with <- function(...) {
+  parts <- Filter(nzchar, unlist(list(...)))
+  if (!length(parts)) return(NULL)
+  paste(parts, collapse = " · ")
+}
+
 # --- print sizing ------------------------------------------------------------
 # What keeps type the SAME SIZE on paper across figures is not a constant
 # fig.width — it is a constant SHRINK FACTOR between the rendered figure and the

@@ -86,17 +86,23 @@ fig_notes <- c(
   "01_valis_rtre_by_stage" = paste(
     "VALIS self-reported feature error (`registration_valis_rtre.csv`: `original_rTRE`,",
     "`rigid_rTRE`, `non_rigid_rTRE`, or the `*_D` distance variants), one line per moving",
-    "slide across the stages. rTRE is relative to the image diagonal (unitless); lower = better."),
+    "slide across the stages. rTRE is relative to the image diagonal (unitless); lower = better.",
+    "The y axis is **clipped** at the per-stage Tukey fence so a single blown-up slide",
+    "cannot flatten the rest onto the axis — nothing is dropped, and the caption states",
+    "how many slides sit above the view."),
   "01b_valis_n_matches" = paste(
     "Feature-match count per slide (`n_matches`) — the evidence behind each rTRE.",
     "A slide with few matches has a low-confidence estimate."),
   "02_overlap_dice_by_stage" = paste(
     "Independent overlap check: `dice_matched` from `registration_accuracy.csv` per",
-    "stage (native → rigid → non_rigid → micro), box across slides, faint per-slide",
-    "lines. Computed from DAPI-nucleus overlap, not VALIS features; higher = better."),
+    "stage (native → rigid → non_rigid → micro), one box across slides. Computed from",
+    "DAPI-nucleus overlap, not VALIS features; higher = better. Boxes only: the per-slide",
+    "trajectory is what §1 draws, and overlaying it here buried the medians."),
   "02b_displacement_um_by_stage" = paste(
     "Matched-nucleus centroid residual in microns (`displacement_um_p50`/`_p90`) per",
-    "stage. Physical units; lower = tighter alignment. Same source table as above."),
+    "stage. Physical units; lower = tighter alignment. Same source table as above.",
+    "**Log y axis** — the residual falls by two orders of magnitude across the ladder,",
+    "so on a linear axis every registered stage collapses onto zero."),
   "03_feature_distance_reduction" = paste(
     "(Legacy) percent drop in mean matched-feature distance before → after registration",
     "(`feature_dist/*.json`); only present if a run enabled `enable_feature_error`."),

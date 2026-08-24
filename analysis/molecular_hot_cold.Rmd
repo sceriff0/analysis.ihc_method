@@ -250,26 +250,68 @@ knitr::kable(rna_summary, digits = 3,
 Scatter per marker: `ihc_posfrac` against `log1p(rna_expr)` (`log1p` keeps zeros),
 with an OLS fit line.
 
-```{r rna-concordance-plot, fig.height=8}
-if (nrow(rna_paired) > 0) {
+**Split into two figures.** `marker_gene_map` carries 19 markers, and 19 free-scale
+facets on one double-column figure gives each panel about 35mm — too small to read a
+fit line off. The first figure takes the ten lineage and structural markers the panel
+was designed around; the second takes the remaining nine. The split is by *reading
+order*, not by quality: no marker is dropped, and the Spearman table above still
+covers all of them together.
+
+```{r rna-concordance-plot-setup}
+# The ten checked first. Ordered as listed, not alphabetically, so the facet grid
+# reads down the immune lineage (CD45 -> CD3 -> CD8/CD4 -> GZMB/FOXP3 -> CD56) and
+# then the structural markers (SMA, PANCK, VIMENTIN).
+rna_primary_markers <- c("CD45", "CD3", "CD8", "GZMB", "FOXP3",
+                         "CD4", "CD56", "SMA", "PANCK", "VIMENTIN")
+
+# One scatter-by-marker figure over `markers`. Split out of the chunk body because
+# both figures below are the same plot over a different marker set, and a second
+# copy of it is how the two would drift apart.
+plot_rna_concordance <- function(rna_paired, clin, markers, title) {
   # Colour by the clinical hot/cold call so a marker whose RNA-IHC agreement holds
   # only in one immune stratum is visible as such. left_join, not inner_join: a
   # patient with no immuno-phenotype must stay in the plot (grey) rather than
   # silently shrink the panel the fit is drawn through.
   df <- rna_paired |>
+    filter(marker %in% markers) |>
     left_join(clin, by = "patient_id") |>
-    mutate(immuno_phe = hotcold_order(immuno_phe))
+    mutate(immuno_phe = hotcold_order(immuno_phe),
+           # Keep the given order as the facet order; intersect() drops any marker
+           # this export did not gate rather than drawing an empty panel for it.
+           marker = factor(marker, levels = intersect(markers, unique(marker))))
+  if (nrow(df) == 0) return(invisible())
   # log-scale expression (counts span orders of magnitude); +1 to keep zeros.
   # The fit goes under the points and is over ALL patients, coloured or not.
   ggplot(df, aes(ihc_posfrac, log1p(rna_expr))) +
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_wrap(~ marker, scales = "free") +
+    # Panels are titled by the population counted, not by the column that carried
+    # it, so a strip here and a strip on the clinical page name the same thing.
+    facet_wrap(~ marker, scales = "free", labeller = flowpath_labeller()) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
-    labs(title = "IHC marker+ fraction vs bulk-RNA expression",
-         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients",
-         x = "IHC fraction of cells positive", y = "log1p(bulk expression)")
+    labs(title = title,
+         subtitle = with_n("points coloured by the clinical immuno-phenotype; the fit is over all patients",
+                           df$patient_id, "patients"),
+         x = "FlowPath positive-cell fraction (unitless, 0-1)",
+         y = "bulk RNA expression (log1p DESeq2-normalised counts)")
+}
+```
+
+```{r rna-concordance-plot, fig.height=7}
+if (nrow(rna_paired) > 0)
+  plot_rna_concordance(rna_paired, clin, rna_primary_markers,
+                       "FlowPath marker+ fraction vs bulk-RNA expression")
+```
+
+The remaining markers — everything in `marker_gene_map` the figure above does not
+cover, in the order the map declares them:
+
+```{r rna-concordance-plot-rest, fig.height=7}
+if (nrow(rna_paired) > 0) {
+  rna_other_markers <- setdiff(ihc_markers, rna_primary_markers)
+  plot_rna_concordance(rna_paired, clin, rna_other_markers,
+                       "FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)")
 }
 ```
 

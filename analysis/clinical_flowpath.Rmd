@@ -566,47 +566,91 @@ if ("hot_score" %in% names(infiltrate) &&
 ```
 
 Grouped by `Immuno-phenotype` (ordered cold -> intermediate -> hot); each box is
-the distribution of the IHC fraction within a phenotype group. Metrics now include
-the marker-gated CD45+, CD3+CD45+ and GZMB+ NK readouts.
+the distribution of the IHC fraction within a phenotype group.
 
-```{r infiltrate-phenotype}
-# The metrics carried into every immuno-phenotype comparison (all are 0..1
-# fractions of the cells inside the tumour region, so the arcsin panel below can
-# transform them all).
-infiltrate_metrics <- c("cd45_over_inside", "cd3cd45_over_inside", "gzmb_nk_over_inside",
+**CD45+ is drawn on its own.** It is the *total* immune fraction and the other six
+metrics are subsets of it, so it runs an order of magnitude higher than any of them.
+Sharing one facet grid therefore forces a choice between a common scale nothing else
+reaches and a seventh free-scale panel the eye reads as just another subset. Split in
+two, each figure asks a single scale question. The same split is repeated under the
+arcsin transform below, so there are four figures here.
+
+```{r infiltrate-phenotype-cd45, fig.width = fig_width("single"), fig.height = fig_height("single")}
+# The metrics carried into every immuno-phenotype comparison (all are 0..1 fractions
+# of the cells inside the tumour region, so the arcsin panels below can transform
+# them all), split into the total and its subsets — see the note above.
+infiltrate_cd45    <- "cd45_over_inside"
+infiltrate_subsets <- c("cd3cd45_over_inside", "gzmb_nk_over_inside",
                         "frac_CD8T", "frac_CD4T", "frac_Treg", "frac_NK")
 
-# One boxplot-by-phenotype figure; `transform` is applied to the fraction so the
-# same code draws the raw and the arcsin-sqrt panels (see next chunk).
-plot_infiltrate_phenotype <- function(infiltrate, ylab, transform = identity) {
+# One boxplot-by-phenotype figure over `metrics`; `transform` is applied to the
+# fraction so the same code draws the raw and the arcsin-sqrt panels, and `metrics`
+# so it draws the CD45+ figure and the subset figure.
+plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = identity) {
   if (!("immuno_phe" %in% names(infiltrate)) ||
       dplyr::n_distinct(na.omit(infiltrate$immuno_phe)) <= 1) return(invisible())
+  metrics <- intersect(metrics, names(infiltrate))
+  if (!length(metrics)) return(invisible())
   df <- infiltrate |>
-    pivot_longer(all_of(infiltrate_metrics), names_to = "ihc_metric", values_to = "frac") |>
+    pivot_longer(all_of(metrics), names_to = "ihc_metric", values_to = "frac") |>
     filter(!is.na(immuno_phe), is.finite(frac)) |>
-    mutate(immuno_phe = hotcold_order(immuno_phe), value = transform(frac)) |>
+    mutate(immuno_phe = hotcold_order(immuno_phe), value = transform(frac),
+           # Facet order is the DECLARED order, not the alphabetical order of the
+           # column names: the two marker-gated readouts belong beside each other
+           # and ahead of the four phenotype lineages, which is not what sorting
+           # `cd3cd45_over_inside` against `frac_CD4T` produces.
+           ihc_metric = factor(ihc_metric, levels = metrics)) |>
     filter(is.finite(value))
-  ggplot(df, aes(immuno_phe, value, colour = immuno_phe)) +
+  if (nrow(df) == 0) return(invisible())
+  p <- ggplot(df, aes(immuno_phe, value, colour = immuno_phe)) +
     geom_boxplot(outlier.shape = NA) +
     geom_jitter(width = 0.2, alpha = 0.6) +
-    facet_wrap(~ ihc_metric, scales = "free_y") +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         name = "Immuno-phenotype") +
-    labs(title = "IHC infiltrate metrics by clinical immuno-phenotype",
-         x = NULL, y = ylab, colour = "Immuno-phenotype") +
+    labs(x = NULL, y = ylab, colour = "Immuno-phenotype") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  if (length(metrics) == 1) {
+    # One metric means one panel, and that panel's title IS the figure title, so the
+    # facet strip would only repeat it. With a single panel no patient can be present
+    # in one facet and absent from another, so the n belongs on the ticks.
+    p + scale_x_discrete(labels = label_n(df$immuno_phe)) +
+      labs(title = paste0(unname(flowpath_panel_label(metrics)),
+                          " by clinical immuno-phenotype"))
+  } else {
+    # Across facets a per-tick count would be wrong: a non-finite fraction drops a
+    # different set of patients in each metric, so the n goes in the subtitle and
+    # names its unit, as in the composition figure below.
+    p + facet_wrap(~ ihc_metric, scales = "free_y", labeller = flowpath_labeller()) +
+      labs(title = "FlowPath immune subsets by clinical immuno-phenotype",
+           subtitle = with_n(NULL, df$patient_id, "patients"))
+  }
 }
 
-plot_infiltrate_phenotype(infiltrate, "fraction inside tumour region")
+plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
+                          "cell fraction inside tumour region (unitless, 0-1)")
 ```
 
-**Arcsin-transformed.** The same metrics under the arcsine square-root transform
+The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and GZMB+ NK
+readouts, and the four phenotype lineages — on a free y scale per panel:
+
+```{r infiltrate-phenotype-subsets}
+plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
+                          "cell fraction inside tumour region (unitless, 0-1)")
+```
+
+**Arcsin-transformed.** The same two figures under the arcsine square-root transform
 (`asin(sqrt(fraction))`), which stabilises the variance of a proportion by
 stretching the crowded 0/1 tails — read the boxes as the transformed scale, not raw
 fractions.
 
-```{r infiltrate-phenotype-arcsin}
-plot_infiltrate_phenotype(infiltrate, "arcsin(sqrt(fraction))", transform = asin_sqrt)
+```{r infiltrate-phenotype-cd45-arcsin, fig.width = fig_width("single"), fig.height = fig_height("single")}
+plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
+                          "arcsin \u221afraction (radians)", transform = asin_sqrt)
+```
+
+```{r infiltrate-phenotype-subsets-arcsin}
+plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
+                          "arcsin \u221afraction (radians)", transform = asin_sqrt)
 ```
 
 ### Composition under three denominators
