@@ -11,7 +11,14 @@ editor_options:
 # renv: tidyverse + scales + here (in the lockfile). Figure logic is a vendored fork
 # of mirage's benchmarks/analysis/plots.R — see code/benchmark_plots.R.
 suppressPackageStartupMessages({
-  library(tidyverse)
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(purrr)
+  library(ggplot2)
+  library(stringr)
+  library(forcats)
   library(here)
 })
 # The house style is sourced HERE, unconditionally and before opts_chunk$set:

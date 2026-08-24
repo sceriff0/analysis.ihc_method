@@ -18,13 +18,15 @@
 # a micron export). The exporter's own out-of-annotation flag is the fallback for
 # patients with no geojson. code/membership.R builds on both.
 #
-# renv: needs sf, jsonlite (+ tidyverse, here, fs already in the lockfile).
+# renv: needs sf, jsonlite (+ the dplyr/tidyr/readr/stringr/purrr/tibble/ggplot2
+#   set, here, fs — see .need below).
 #   renv::install(c("sf", "jsonlite")); renv::snapshot()
 # =============================================================================
 
 # Declared package by package rather than via the tidyverse metapackage, so this
 # file can be sourced (and unit-tested) without attaching the whole of it. The Rmds
-# still library(tidyverse) in their own setup, so nothing changes for an analysis.
+# now declare the same packages one by one in their own setup chunks, so the
+# metapackage is no longer attached anywhere in the project.
 .need <- c("dplyr", "tidyr", "readr", "stringr", "purrr", "tibble", "ggplot2",
            "here", "fs")
 .missing <- .need[!vapply(.need, requireNamespace, logical(1), quietly = TRUE)]

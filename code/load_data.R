@@ -17,7 +17,14 @@
 # membership.R, and the cell-table schema in cell_tables.R. Nothing here reduces
 # or reshapes: this file only loads.
 # =============================================================================
-library(tidyverse)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(readr)
+library(purrr)
+library(ggplot2)
+library(stringr)
+library(forcats)
 library(DESeq2)
 library(here)
 library(readxl)

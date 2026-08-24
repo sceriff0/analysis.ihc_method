@@ -9,7 +9,14 @@ editor_options:
 
 ```{r setup, include=FALSE}
 suppressPackageStartupMessages({
-  library(tidyverse)
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(purrr)
+  library(ggplot2)
+  library(stringr)
+  library(forcats)
   library(here)
   library(sf)
 })

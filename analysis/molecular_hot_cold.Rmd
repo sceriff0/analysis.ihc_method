@@ -13,7 +13,14 @@ editor_options:
 # part 2 — see the method-configuration chunk there for the install recipe. Each part
 # degrades to a message if its optional input is absent; none of them is required.
 suppressPackageStartupMessages({
-  library(tidyverse)
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(purrr)
+  library(ggplot2)
+  library(stringr)
+  library(forcats)
   library(here)
   library(sf)
 })
