@@ -50,14 +50,20 @@ MIRAGE_FILES <- c(phenotypes = "phenotyping/phenotypes.csv",
                   morphology = "cell_properties/morphology.csv",
                   quant      = "quantification/merged_quant.csv")
 
-# Is this directory a phenotyped patient? Structure, not name: a mirage outdir has
+# Is this directory a patient? Structure, not name: a mirage outdir has
 # cohort-level directories sitting next to the patient ones — `phenotyping/` (the
 # compiled panel from COMPILE_PANEL), `qc/`, `size_logs/`, `_UNROUTED_PUBLISH/` —
-# and treating those as broken patients would warn four times on every knit. The
-# presence of phenotypes.csv is what makes a directory a patient, so data/mirage can
-# point straight at (or symlink) a raw outdir.
+# and treating those as broken patients would warn four times on every knit.
+#
+# ANY of the three tables marks a patient, not phenotypes.csv alone. Phenotyping
+# is an OPTIONAL pipeline stage: mirage ships it as a separate feature and a run
+# built without it emits quantification/ and cell_properties/ but no
+# phenotyping/. Gating on phenotypes.csv classified every such patient as "not a
+# patient" — silently, since a non-patient directory is skipped without comment —
+# and the whole cohort surfaced as one "no patient directories" warning that
+# reads like an empty dataset rather than a pipeline built to a different spec.
 is_mirage_patient_dir <- function(dir) {
-  file.exists(file.path(dir, MIRAGE_FILES[["phenotypes"]]))
+  any(file.exists(file.path(dir, MIRAGE_FILES)))
 }
 
 # One patient. Returns a 0-row tibble and warns — rather than aborting the cohort
@@ -69,26 +75,34 @@ read_mirage_patient <- function(dir, patient_id = fs::path_file(dir)) {
 
   if (!is_mirage_patient_dir(dir)) return(tibble::tibble())   # not a patient; silent
   if (!file.exists(paths[["morphology"]])) {
-    warning("mirage: skipping ", patient_id, " — has ", MIRAGE_FILES[["phenotypes"]],
-            " but no ", MIRAGE_FILES[["morphology"]], ", so its cells have no ",
-            "coordinates and cannot be placed in an annotation")
+    warning("mirage: skipping ", patient_id, " — no ", MIRAGE_FILES[["morphology"]],
+            ", so its cells have no coordinates and cannot be placed in an annotation")
     return(tibble::tibble())
   }
 
-  pheno <- read_cell_csv(paths[["phenotypes"]])
   morph <- read_cell_csv(paths[["morphology"]], required = "label")
-  if (nrow(pheno) == 0 || nrow(morph) == 0) return(tibble::tibble())
+  if (nrow(morph) == 0) return(tibble::tibble())
+  morph <- dplyr::rename(morph, x_px = x, y_px = y)
 
-  # morphology carries no phenotype, so read_cell_csv leaves phenotype_clean NA on
-  # it; drop that column before the join or it would overwrite the real one.
-  morph <- morph |>
-    dplyr::select(-dplyr::any_of("phenotype_clean")) |>
-    dplyr::rename(x_px = x, y_px = y)
-
-  cells <- dplyr::inner_join(pheno, morph, by = "label")
-  if (nrow(cells) < nrow(pheno))
-    warning("mirage: ", patient_id, " — ", nrow(pheno) - nrow(cells),
-            " phenotyped cell(s) have no morphology row and were dropped")
+  if (file.exists(paths[["phenotypes"]])) {
+    pheno <- read_cell_csv(paths[["phenotypes"]])
+    if (nrow(pheno) == 0) return(tibble::tibble())
+    # morphology carries no phenotype, so read_cell_csv leaves phenotype_clean NA on
+    # it; drop that column before the join or it would overwrite the real one.
+    cells <- dplyr::inner_join(
+      pheno, dplyr::select(morph, -dplyr::any_of("phenotype_clean")), by = "label")
+    if (nrow(cells) < nrow(pheno))
+      warning("mirage: ", patient_id, " — ", nrow(pheno) - nrow(cells),
+              " phenotyped cell(s) have no morphology row and were dropped")
+  } else {
+    # No phenotyping stage in this run. Keep the cells: their coordinates are what
+    # the membership metrics need, and phenotype is a STRATIFIER over those metrics,
+    # not an input to them — counts, areas and densities are all still exact. What
+    # is lost is the per-type breakdown, and phenotype_clean stays NA, which
+    # is_unresolved_phenotype() already treats as unresolved so every downstream
+    # denominator stays honest. load_mirage_cells() says so once for the cohort.
+    cells <- morph
+  }
 
   if (file.exists(paths[["quant"]])) {
     quant <- read_cell_csv(paths[["quant"]], required = "label")
@@ -111,9 +125,26 @@ load_mirage_cells <- function(root = MIRAGE_DIR) {
   patients <- dirs[vapply(dirs, is_mirage_patient_dir, logical(1))]
   if (!length(patients)) {
     warning("mirage: no patient directories under ", root,
-            " (a patient directory is one containing ", MIRAGE_FILES[["phenotypes"]], ")")
+            " (a patient directory is one containing any of: ",
+            paste(MIRAGE_FILES, collapse = ", "), ")")
     return(tibble::tibble())
   }
+
+  # Say it once, for the cohort, rather than once per patient. A run built without
+  # the phenotyping stage is a legitimate configuration, not a broken copy — but a
+  # panel that silently shows every cell as unresolved is indistinguishable from a
+  # panel where phenotyping ran and failed, so the distinction is stated here.
+  n_pheno <- sum(file.exists(file.path(patients, MIRAGE_FILES[["phenotypes"]])))
+  if (n_pheno == 0)
+    warning("mirage: no ", MIRAGE_FILES[["phenotypes"]], " under ", root,
+            " — this pipeline run had no phenotyping stage. Cells, coordinates and ",
+            "densities are exact; every cell is unresolved, so per-type panels will ",
+            "be empty and phenotype shares are not interpretable.")
+  else if (n_pheno < length(patients))
+    warning("mirage: ", length(patients) - n_pheno, " of ", length(patients),
+            " patient(s) have no ", MIRAGE_FILES[["phenotypes"]],
+            " — their cells load unresolved")
+
   purrr::map_dfr(patients, read_mirage_patient)
 }
 

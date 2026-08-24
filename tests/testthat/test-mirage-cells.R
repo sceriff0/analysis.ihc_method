@@ -5,17 +5,22 @@ source(here::here("code", "cell_tables.R"))
 source(here::here("code", "validation_helpers.R"))
 source(here::here("code", "mirage_cells.R"))
 
-mirage_tree <- function(patients = list(`046` = 6), quant = TRUE, morphology = TRUE) {
+mirage_tree <- function(patients = list(`046` = 6), quant = TRUE, morphology = TRUE,
+                        phenotypes = TRUE) {
   root <- file.path(tempdir(), paste0("mirage-", as.integer(Sys.time()), "-", sample(1e6, 1)))
   for (pid in names(patients)) {
     n <- patients[[pid]]
     d <- file.path(root, pid)
-    dir.create(file.path(d, "phenotyping"), recursive = TRUE, showWarnings = FALSE)
-    readr::write_csv(tibble::tibble(
-      label       = seq_len(n),
-      phenotype   = rep_len(c("PANCK_Tumor", "T_cytotoxic", "Unclassified"), n),
-      `sign:CD3`  = rep_len(c("1", "0", "·"), n),
-      `state:PD1` = rep_len(c(1L, -1L, 0L), n)), file.path(d, "phenotyping", "phenotypes.csv"))
+    dir.create(d, recursive = TRUE, showWarnings = FALSE)
+    if (phenotypes) {
+      dir.create(file.path(d, "phenotyping"), recursive = TRUE, showWarnings = FALSE)
+      readr::write_csv(tibble::tibble(
+        label       = seq_len(n),
+        phenotype   = rep_len(c("PANCK_Tumor", "T_cytotoxic", "Unclassified"), n),
+        `sign:CD3`  = rep_len(c("1", "0", "·"), n),
+        `state:PD1` = rep_len(c(1L, -1L, 0L), n)),
+        file.path(d, "phenotyping", "phenotypes.csv"))
+    }
     if (morphology) {
       dir.create(file.path(d, "cell_properties"), recursive = TRUE, showWarnings = FALSE)
       readr::write_csv(tibble::tibble(
@@ -108,4 +113,68 @@ test_that("cohort-level directories in a raw outdir are skipped silently", {
   expect_no_warning(cells <- load_mirage_cells(root))
   expect_equal(unique(cells$patient_id), "046")
   expect_false(is_mirage_patient_dir(file.path(root, "phenotyping")))
+})
+
+
+# ---------------------------------------------------------------------------
+# Runs built WITHOUT the phenotyping stage
+# ---------------------------------------------------------------------------
+# mirage ships phenotyping as a separate, optional feature. A pipeline built
+# without it emits quantification/ and cell_properties/ and no phenotyping/.
+# is_mirage_patient_dir() used to gate on phenotypes.csv alone, so every such
+# patient was classified "not a patient" and skipped without comment — the whole
+# cohort then surfaced as a single "no patient directories" warning that reads
+# like an empty dataset rather than a differently-built pipeline.
+
+test_that("a patient with no phenotyping stage is still a patient", {
+  root <- mirage_tree(list(`046` = 6), phenotypes = FALSE)
+  expect_true(is_mirage_patient_dir(file.path(root, "046")))
+})
+
+test_that("cells load without phenotypes, keeping coordinates and intensities", {
+  root <- mirage_tree(list(`046` = 6, `052` = 3), phenotypes = FALSE)
+  cells <- suppressWarnings(load_mirage_cells(root))
+  expect_equal(nrow(cells), 9)
+  expect_setequal(unique(cells$patient_id), c("046", "052"))
+  # coordinates survive under the names the membership metrics use, unrescaled
+  expect_true(all(c("x_px", "y_px", "area") %in% names(cells)))
+  expect_equal(sort(cells$x_px[cells$patient_id == "052"]), c(20, 40, 60))
+  # quantification still joins
+  expect_true("CD3: Cytoplasm: Median" %in% names(cells))
+  # and every cell is unresolved rather than silently typed, so the inventory's
+  # denominators stay honest instead of reporting a 100%-resolved cohort
+  expect_true(all(is_unresolved_phenotype(cells$phenotype_clean)))
+  inv <- mirage_cells_inventory(cells)
+  expect_equal(sum(inv$n_resolved), 0)
+  expect_equal(sum(inv$n_cells), 9)
+})
+
+test_that("a cohort with no phenotyping says so once, and says what is still exact", {
+  root <- mirage_tree(list(`046` = 6, `052` = 3), phenotypes = FALSE)
+  w <- testthat::capture_warnings(load_mirage_cells(root))
+  hit <- grep("no phenotyping stage", w, value = TRUE)
+  expect_length(hit, 1)                       # once for the cohort, not per patient
+  expect_match(hit, "densities are exact")
+})
+
+test_that("a partially phenotyped cohort names the count", {
+  root <- mirage_tree(list(`046` = 6))        # phenotyped
+  d <- file.path(root, "052")                 # not
+  dir.create(file.path(d, "cell_properties"), recursive = TRUE, showWarnings = FALSE)
+  readr::write_csv(tibble::tibble(
+    label = 1:3, y = c(10, 20, 30), x = c(20, 40, 60),
+    area = 100, eccentricity = .5, perimeter = 40, convex_area = 110,
+    axis_major_length = 12, axis_minor_length = 8, solidity = .9),
+    file.path(d, "cell_properties", "morphology.csv"))
+  w <- testthat::capture_warnings(load_mirage_cells(root))
+  expect_match(paste(w, collapse = " "), "1 of 2 patient\\(s\\) have no")
+})
+
+test_that("a patient with only quantification is a patient, but is skipped loudly", {
+  # It has no coordinates, so its cells cannot be placed in an annotation. That is
+  # a broken patient rather than a non-patient, and the difference must be audible.
+  root <- mirage_tree(list(`046` = 6), phenotypes = FALSE, morphology = FALSE)
+  expect_true(is_mirage_patient_dir(file.path(root, "046")))
+  expect_warning(cells <- load_mirage_cells(root), "no cell_properties/morphology.csv")
+  expect_equal(nrow(cells), 0)
 })
