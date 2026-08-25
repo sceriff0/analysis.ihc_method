@@ -1,0 +1,11 @@
+# Generated figure output. The SCRIPTS are the source of truth and are tracked;
+# what they emit is not, for two reasons. It is rebuilt by one command, and — the
+# reason that matters — a Fig4.pdf built from the synthetic sweep or from stand-in
+# data is indistinguishable by filename from one built from the study slides. Not
+# committing them means the copy in this directory is always the one YOU just made
+# from the data YOU have mounted.
+*.pdf
+*.tiff
+*.tif
+*.png
+panels/*.rds

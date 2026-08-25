@@ -8,11 +8,18 @@
 # new science — each function is a re-cut of a quantity some analysis page already
 # computes, in the shape the legend asks for.
 #
-# ONE PANEL PER PLOT, NEVER A COMPOSITE. There is no patchwork/cowplot in the
-# lockfile, and that is the right constraint here rather than a limitation: a
-# whole-slide map and its inset are two PDFs, and the person assembling the figure
-# places, scales and labels them. A composite baked in R would have to be taken
-# apart again.
+# ONE PANEL PER PLOT, NEVER A COMPOSITE — still true of THIS file, for a reason that
+# has changed. It used to be that there was no patchwork in the lockfile and figures
+# were assembled by hand in Affinity. They are now assembled in code, by
+# figures/fig4.R and figures/fig5.R, which is where patchwork lives.
+#
+# The rule survives the change because the split moved rather than disappeared: these
+# functions own WHAT A PANEL SHOWS and the figures/ scripts own HOW PANELS SIT
+# TOGETHER. Keeping them apart is what lets the same object be the website panel and
+# the manuscript panel — analysis/paper_figures.Rmd prints these directly, titles and
+# all, while figures/*.R strips the titles and lays them out. Bake a composite in here
+# and the website gets a figure it cannot caption and the assembly scripts get a
+# panel they cannot place.
 #
 # WHY THESE FUNCTIONS AND NOT OTHERS. The legends ask for four things no analysis
 # page currently draws:
