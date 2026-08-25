@@ -612,8 +612,6 @@ plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = ide
   p <- ggplot(df, aes(immuno_phe, value, colour = immuno_phe)) +
     geom_boxplot(outlier.shape = NA) +
     geom_jitter(width = 0.2, alpha = 0.6) +
-    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
-                        name = "Immuno-phenotype") +
     labs(x = NULL, y = ylab, colour = "Immuno-phenotype") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
   if (length(metrics) == 1) {
@@ -622,7 +620,7 @@ plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = ide
     # in one facet and absent from another, so the n belongs on the ticks.
     p + scale_x_discrete(labels = label_n(df$immuno_phe)) +
       labs(title = paste0(unname(flowpath_panel_label(metrics)),
-                          " by clinical immuno-phenotype"))
+                          ""))
   } else {
     # Across facets a per-tick count would be wrong: a non-finite fraction drops a
     # different set of patients in each metric, so the n goes in the subtitle and
@@ -634,7 +632,7 @@ plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = ide
 }
 
 plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
-                          "cell fraction inside tumour region (unitless, 0-1)")
+                          "Cell fraction inside \ntumour region")
 ```
 
 The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and GZMB+ NK

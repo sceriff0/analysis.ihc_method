@@ -434,7 +434,7 @@ phenotyping</h1>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
 <span class="glyphicon glyphicon-list" aria-hidden="true"></span>
-workflowr <span class="glyphicon glyphicon-ok text-success"
+workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger"
 aria-hidden="true"></span>
 </button>
 </p>
@@ -445,8 +445,8 @@ aria-hidden="true"></span>
 </li>
 <li>
 <a data-toggle="tab" href="#checks"> Checks <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
-</a>
+class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> </a>
 </li>
 <li>
 <a data-toggle="tab" href="#versions">Past versions</a>
@@ -459,9 +459,9 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 </p>
 <p>
 <strong>Checks:</strong> <span
-class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6
 <span class="glyphicon glyphicon-exclamation-sign text-danger"
-aria-hidden="true"></span> 0
+aria-hidden="true"></span> 1
 </p>
 <p>
 <strong>Knit directory:</strong> <code>ihc_method/</code> <span
@@ -484,18 +484,21 @@ versions</em> tab lists the development history.
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
-<span class="glyphicon glyphicon-ok text-success"
-aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
-</a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges">
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted
+changes </a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguptodate"
+<div id="strongRMarkdownfilestronguncommittedchanges"
 class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great! Since the R Markdown file has been committed to the Git
-repository, you know the exact version of the code that produced these
-results.</p>
+<p>The R Markdown file has unstaged changes. To know which version of
+the R Markdown file created these results, you’ll want to first commit
+it to the Git repo. If you’re still working on the analysis, you can
+ignore this warning. When you’re finished, you can run
+<code>wflow_publish</code> to commit the R Markdown file and build the
+HTML.</p>
 </div>
 </div>
 </div>
@@ -586,15 +589,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree2e3059204f9a9ff2c9322226b52f610e8fbfdaa2targetblank2e30592a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree3ad97a4d9460f4ef505cdea81da516f49cc93e8atargetblank3ad97a4a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/2e3059204f9a9ff2c9322226b52f610e8fbfdaa2" target="_blank">2e30592</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/3ad97a4d9460f4ef505cdea81da516f49cc93e8a" target="_blank">3ad97a4</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree2e3059204f9a9ff2c9322226b52f610e8fbfdaa2targetblank2e30592a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree3ad97a4d9460f4ef505cdea81da516f49cc93e8atargetblank3ad97a4a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -604,7 +607,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/2e3059204f9a9ff2c9322226b52f610e8fbfdaa2" target="_blank">2e30592</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/3ad97a4d9460f4ef505cdea81da516f49cc93e8a" target="_blank">3ad97a4</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -624,6 +627,9 @@ Ignored files:
     Ignored:    output/figures/
     Ignored:    renv/library/
     Ignored:    renv/staging/
+
+Unstaged changes:
+    Modified:   analysis/clinical_flowpath.Rmd
 
 </code></pre>
 <p>
@@ -669,6 +675,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/clinical_flowpath.html" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+<td>
+:wrench: improving plots
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1531,6 +1554,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-1.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -1589,6 +1623,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-2.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-2.png" target="_blank">6fba266</a>
@@ -1651,6 +1696,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-3.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-3.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -1709,6 +1765,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-4.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-4.png" target="_blank">6fba266</a>
@@ -1771,6 +1838,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-5.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-5.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -1829,6 +1907,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-6.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-6.png" target="_blank">6fba266</a>
@@ -1891,6 +1980,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-7.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-7.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -1949,6 +2049,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-8.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/tumor-content-plot-8.png" target="_blank">6fba266</a>
@@ -2627,6 +2738,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/aggregation-heatmap-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/aggregation-heatmap-1.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -2690,6 +2812,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/aggregation-scatter-raw-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/aggregation-scatter-raw-1.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -2751,6 +2884,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/aggregation-scatter-clean-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/aggregation-scatter-clean-1.png" target="_blank">6fba266</a>
@@ -2890,6 +3034,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-hotscore-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/infiltrate-hotscore-1.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -2975,7 +3130,7 @@ plot_infiltrate_phenotype &lt;- function(infiltrate, metrics, ylab, transform = 
     # in one facet and absent from another, so the n belongs on the ticks.
     p + scale_x_discrete(labels = label_n(df$immuno_phe)) +
       labs(title = paste0(unname(flowpath_panel_label(metrics)),
-                          &quot; by clinical immuno-phenotype&quot;))
+                          &quot;&quot;))
   } else {
     # Across facets a per-tick count would be wrong: a non-finite fraction drops a
     # different set of patients in each metric, so the n goes in the subtitle and
@@ -2987,14 +3142,88 @@ plot_infiltrate_phenotype &lt;- function(infiltrate, metrics, ylab, transform = 
 }
 
 plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
-                          &quot;cell fraction inside tumour region (unitless, 0-1)&quot;)</code></pre>
+                          &quot;Cell fraction inside tumour region&quot;)</code></pre>
 <p><img src="figure/clinical_flowpath.Rmd/infiltrate-phenotype-cd45-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-infiltrate-phenotype-cd45-1">
+Past versions of infiltrate-phenotype-cd45-1.png
+</button>
+</p>
+<div id="fig-infiltrate-phenotype-cd45-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-phenotype-cd45-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and
 GZMB+ NK readouts, and the four phenotype lineages — on a free y scale
 per panel:</p>
 <pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           &quot;cell fraction inside tumour region (unitless, 0-1)&quot;)</code></pre>
 <p><img src="figure/clinical_flowpath.Rmd/infiltrate-phenotype-subsets-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-infiltrate-phenotype-subsets-1">
+Past versions of infiltrate-phenotype-subsets-1.png
+</button>
+</p>
+<div id="fig-infiltrate-phenotype-subsets-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-phenotype-subsets-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Arcsin-transformed.</strong> The same two figures under the
 arcsine square-root transform (<code>asin(sqrt(fraction))</code>), which
 stabilises the variance of a proportion by stretching the crowded 0/1
@@ -3002,9 +3231,83 @@ tails — read the boxes as the transformed scale, not raw fractions.</p>
 <pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
                           &quot;arcsin \u221afraction (radians)&quot;, transform = asin_sqrt)</code></pre>
 <p><img src="figure/clinical_flowpath.Rmd/infiltrate-phenotype-cd45-arcsin-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-infiltrate-phenotype-cd45-arcsin-1">
+Past versions of infiltrate-phenotype-cd45-arcsin-1.png
+</button>
+</p>
+<div id="fig-infiltrate-phenotype-cd45-arcsin-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-phenotype-cd45-arcsin-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           &quot;arcsin \u221afraction (radians)&quot;, transform = asin_sqrt)</code></pre>
 <p><img src="figure/clinical_flowpath.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-infiltrate-phenotype-subsets-arcsin-1">
+Past versions of infiltrate-phenotype-subsets-arcsin-1.png
+</button>
+</p>
+<div id="fig-infiltrate-phenotype-subsets-arcsin-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div id="composition-under-three-denominators" class="section level3">
 <h3>Composition under three denominators</h3>
 <p>Same population counts, three denominators (each <code>NA</code> when
@@ -3087,6 +3390,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-composition-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/infiltrate-composition-1.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -3150,6 +3464,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/infiltrate-composition-arcsin-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/infiltrate-composition-arcsin-1.png" target="_blank">6fba266</a>
@@ -3281,6 +3606,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/blood-immunity-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/blood-immunity-1.png" target="_blank">6fba266</a>
 </td>
 <td>
@@ -3359,6 +3695,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/clinical_flowpath.Rmd/response-1.png" target="_blank">3ad97a4</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-24
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/ihc_method/blob/6fba2662978613caf5825e16cb8dfbad530582cb/docs/figure/clinical_flowpath.Rmd/response-1.png" target="_blank">6fba266</a>
