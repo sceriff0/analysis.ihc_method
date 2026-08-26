@@ -255,11 +255,20 @@ Three rules, the first two enforced by `tests/testthat/test-child-documents.R`:
   splices children into their parents exactly as knitr does, so a gate defined in a
   parent's setup and used in a child's chunk is checked as one page.
 
-**The accepted cost:** workflowr prints *"Warning! The custom fig.path you set was
-ignored by workflowr."* on every plot inside a child. `wflow_hook_plot_md()` compares
-the chunk's `fig.path` — still the *parent's* — against a path it derives from
-`knitr::current_input()`, which is the *child*, so the two never agree. Nothing is
-actually ignored and no figure moves, but the warning is real text on the page.
+**The `child =` chunk option is BANNED; bodies are spliced with
+`knit_child(text = readLines(here::here(...)))`.** workflowr's `fig.path` option hook
+does `options$fig.path <- create_figure_path(knitr::current_input())`, and inside a
+`child =` chunk `current_input()` returns the **child** — so all three clinical
+parents would write their plots to `figure/clinical_body/`, one shared directory, and
+whichever page knitted last would silently overwrite the other two.
+`export_pdf_figures(SLUG)` then copies those same files into all three
+`output/figures/<slug>/`, so a panel labelled massimo1 would show massimo2's cells
+with nothing on the page to say so. `knit_child(text = ...)` has no input file of its
+own, so `current_input()` stays the PARENT: figures land in `figure/<parent>/`, and
+workflowr's *"custom fig.path was ignored"* warning stops firing as a side effect —
+that warning was the visible symptom of the collision, never the problem itself.
+
+`tests/testthat/test-child-documents.R` pins the idiom and fails on any `child =`.
 
 ## Sweep QC vs run QC
 

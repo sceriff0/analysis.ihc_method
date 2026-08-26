@@ -61,7 +61,27 @@ neoplastic <- neoplastic_for(ARM)
 > `ANNOTATION_2` here is not `ANNOTATION_2` on the other pages — compare them by
 > PATIENT, never region by region. `code/arms.R` states the rule in full.
 
-```{r body, child = here::here("analysis", "_children", "clinical_body.Rmd")}
+```{r body, results = "asis", echo = FALSE}
+# THE BODY IS SPLICED WITH knit_child(text = ...), NOT THE `child =` CHUNK OPTION.
+#
+# That is not a style choice. workflowr's fig.path option hook does
+#   options$fig.path <- create_figure_path(knitr::current_input())
+# and inside a `child =` chunk knitr::current_input() returns the CHILD. So every
+# arm's figures would land in figure/clinical_body/ — ONE directory shared by all
+# three parents — and whichever page knitted last would silently overwrite the
+# others. export_pdf_figures(SLUG) then copies those same overwritten files into
+# all three output/figures/<slug>/ directories, so a panel labelled massimo1 would
+# show massimo2's cells with nothing to indicate it.
+#
+# knit_child(text = readLines(...)) has no input file of its own, so
+# current_input() stays the PARENT: figures go to figure/<parent>/ as they should,
+# and workflowr's "custom fig.path was ignored" warning disappears too — that
+# warning was the visible symptom of the collision, not the problem itself.
+# tests/testthat/test-child-documents.R pins this idiom.
+cat(knitr::knit_child(
+      text  = readLines(here::here("analysis", "_children", "clinical_body.Rmd")),
+      quiet = TRUE),
+    sep = "\n")
 ```
 
 ```{r export-pdfs, include=FALSE}

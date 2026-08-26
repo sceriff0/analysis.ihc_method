@@ -27,8 +27,13 @@
     e   <- s + which(L[(s + 1):length(L)] == "```")[1]
     hdr <- L[s]
     code <- if (e > s + 1) L[(s + 1):(e - 1)] else character(0)
-    if (grepl("child\\s*=", hdr)) {
-      kid <- sub('.*_children",\\s*"([^"]+)".*', "\\1", hdr)
+    # A body spliced with knit_child(text = readLines(here::here(...))) — the chunk
+    # BODY names the child, not the header, because the `child =` chunk option is
+    # banned (it makes workflowr derive fig.path from the child, so the three arms
+    # collide on one figure directory; see test-child-documents.R).
+    kidline <- grep('_children"', code, value = TRUE)
+    if (length(kidline)) {
+      kid <- sub('.*_children",\\s*"([^"]+)".*', "\\1", kidline[1])
       kp  <- here::here("analysis", "_children", kid)
       if (file.exists(kp)) { out <- c(out, .rmd_chunks(kp)); next }
     }

@@ -1,14 +1,27 @@
-# A `child=` chunk path is resolved by knitr against the KNIT WORKING DIRECTORY, not
-# against the parent document. workflowr sets that to the project root
-# (_workflowr.yml: knit_root_dir: "."), so a bare "_body.Rmd" written next to its
-# parent in analysis/ is looked for at <root>/_body.Rmd and the build dies with
-#   Error in file(con, "r") : cannot open the connection
-# partway through the parent — readLines()'s internal call, with nothing naming the
-# child. Every child reference must therefore be absolute via here::here().
+# CHILD DOCUMENTS: the six per-arm pages share two bodies in analysis/_children/.
+#
+# THE `child =` CHUNK OPTION IS BANNED HERE, and not for style. workflowr's fig.path
+# option hook does
+#     options$fig.path <- create_figure_path(knitr::current_input())
+# and inside a `child =` chunk knitr::current_input() returns the CHILD. So all three
+# clinical parents would write their plots to figure/clinical_body/ — one directory,
+# shared — and whichever page knitted last would silently overwrite the other two.
+# export_pdf_figures(SLUG) then copies those same files into all three
+# output/figures/<slug>/ directories, so a panel labelled massimo1 would show
+# massimo2's cells with nothing on the page to indicate it.
+#
+# knit_child(text = readLines(...)) has no input file of its own, so current_input()
+# stays the PARENT: figures go to figure/<parent>/, and workflowr's "custom fig.path
+# was ignored" warning stops firing as a side effect — that warning was the visible
+# symptom of the collision, never the problem itself.
+#
+# The path must still be absolute via here::here(): readLines() resolves against the
+# knit working directory, which _workflowr.yml sets to the project root
+# (knit_root_dir: "."), while RStudio's Knit button uses the document's own directory.
+# here::here() is correct from both.
 
-# Parse the chunk header as R rather than regexing it: the child path is commonly a
-# call with its own commas (here::here("analysis", "x.Rmd")), which a comma-splitting
-# regex truncates into a syntax error.
+# Parse the chunk header as R rather than regexing it: an option value is commonly a
+# call with its own commas, which a comma-splitting regex truncates into a syntax error.
 parent_child_refs <- function() {
   refs <- list()
   for (f in list.files(here::here("analysis"), pattern = "[.]Rmd$", full.names = TRUE)) {
@@ -23,9 +36,41 @@ parent_child_refs <- function() {
   refs
 }
 
-test_that("every child= path resolves from the knit root, not the parent's directory", {
-  refs <- parent_child_refs()
-  skip_if(length(refs) == 0, "no child chunks in analysis/")
+# Every readLines(here::here("analysis", "_children", ...)) reference in a page.
+knit_child_refs <- function() {
+  refs <- list()
+  for (f in list.files(here::here("analysis"), pattern = "[.]Rmd$", full.names = TRUE)) {
+    txt <- paste(readLines(f, warn = FALSE), collapse = "\n")
+    for (m in regmatches(txt, gregexpr('readLines\\(\\s*here::here\\([^)]*\\)\\s*\\)', txt))[[1]]) {
+      e <- tryCatch(parse(text = m)[[1]], error = function(e) NULL)
+      if (!is.null(e)) refs[[length(refs) + 1]] <- list(parent = basename(f), expr = e[[2]])
+    }
+  }
+  refs
+}
+
+test_that("NO page uses the `child =` chunk option", {
+  # The regression guard. With `child =`, workflowr derives fig.path from the CHILD,
+  # so all three arms share one figure directory and overwrite each other silently.
+  offenders <- vapply(parent_child_refs(), function(r) r$parent, character(1))
+  expect_equal(unique(offenders), character(0),
+               info = paste0("\nThese pages use `child =` and would collide on ",
+                             "figure/<child>/:\n  ",
+                             paste(unique(offenders), collapse = "\n  "),
+                             "\nUse knit_child(text = readLines(here::here(...))) instead."))
+})
+
+test_that("the six per-arm pages each splice a body with knit_child(text = ...)", {
+  pages <- list.files(here::here("analysis"), pattern = "^(clinical|molecular)_massimo.*[.]Rmd$")
+  expect_equal(length(pages), 6)
+  parents <- vapply(knit_child_refs(), function(r) r$parent, character(1))
+  for (pg in pages)
+    expect_true(pg %in% parents, info = paste(pg, "does not splice a child body"))
+})
+
+test_that("every spliced body path resolves from the knit root", {
+  refs <- knit_child_refs()
+  skip_if(length(refs) == 0, "no spliced bodies in analysis/")
   # Resolve exactly as knitr would: evaluate the option, then read it with the
   # working directory set to the knit root.
   withr::with_dir(here::here(), {
@@ -38,11 +83,11 @@ test_that("every child= path resolves from the knit root, not the parent's direc
   })
 })
 
-test_that("child paths are absolute, so the parent also knits from analysis/", {
+test_that("spliced body paths are absolute, so the parent also knits from analysis/", {
   # RStudio's Knit button uses the document's own directory. A path that happens to
   # work from the project root ("analysis/_body.Rmd") would break there; here::here()
   # works from both.
-  for (r in parent_child_refs())
+  for (r in knit_child_refs())
     expect_match(deparse1(r$expr), "here::here|here\\(",
                  info = paste(r$parent, "child path is not anchored with here::here()"))
 })
