@@ -40,6 +40,12 @@ source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
 SLUG <- "marker_qc"
+# WHICH ARM THIS PAGE IS ABOUT. Three arms phenotype the same slides three ways
+# (code/arms.R) and load_data.R deliberately defines NO bare `ihc_data`: a page that
+# forgot to name its arm would otherwise produce a figure indistinguishable from a
+# figure about a different arm. Change this one constant to re-point the page.
+ARM      <- "massimo2"
+ihc_data <- ihc_for(ARM)
 CAP  <- "ihc_method internal QC · FlowPath marker & lineage QC"
 ```
 

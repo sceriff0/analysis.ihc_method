@@ -46,7 +46,7 @@ Every page defines `SLUG` equal to its own filename and calls
   plot at publication proportions, exported as vector PDFs to
   `output/figures/paper_figures/` for assembly in Affinity, plus a named slot with
   acquisition instructions for every panel that has to be a screenshot or a
-  microscope crop. Reads the all-slide export (`data/all_slide/`); knit it to see
+  microscope crop. Reads one phenotyping arm (`data/massimo2/` by default); knit it to see
   which panels are ready and which are still missing their input.
 
 ## Part 1 — Clinical data and neoplastic concordance

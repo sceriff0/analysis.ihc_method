@@ -37,7 +37,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-# Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
+# Loaders (dds, clinical_data, the per-arm neoplastic_* / ihc_* objects, counts_data)
 # helpers. load_data.R prints colnames() on load; silence it. validation_helpers.R pulls
 # in cell_tables.R (export-schema adapter) and plot_theme.R (house figure style, which
 # is where hotcold_cols()/hotcold_order() come from).
@@ -46,6 +46,13 @@ source(here("code", "validation_helpers.R"))
 source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
 
 SLUG <- "molecular_hot_cold"
+# WHICH ARM THIS PAGE IS ABOUT. Three arms phenotype the same slides three ways
+# (code/arms.R) and load_data.R deliberately defines NO bare `ihc_data`: a page that
+# forgot to name its arm would otherwise produce a figure indistinguishable from a
+# figure about a different arm. Change this one constant to re-point the page.
+ARM      <- "massimo2"
+ihc_data <- ihc_for(ARM)
+neoplastic <- neoplastic_for(ARM)
 ```
 
 Everything on this page asks one question three ways: **does a bulk, cohort-level
@@ -905,17 +912,20 @@ UM_PER_PX     <- 0.325
 # captions that can disagree with the data they label.
 D_MAIN        <- max(THRESHOLDS_UM)
 
-# load_annotations() returns NULL when there is no geojson tree at all. This part is
+# arm_annotations() returns NULL when there is no geojson tree at all. This part is
 # the only one of the three that needs real polygon geometry, so the absence is
 # recorded as a flag and every chunk below carries `eval = have_margin`. Letting the
 # first filter() hit a NULL frame instead would take parts 1 and 2 down with it, and
 # those read bulk RNA and whole-slide cells — nothing to do with the annotations.
-annots      <- load_annotations(patient_ids = neoplastic_data$SAMPLE)
+# The polygons come from the SAME arm as the cells: the arms' regions are drawn
+# independently, so an invasive margin measured from one arm's boundary against
+# another arm's cells would be a distance to a line those cells were never scored on.
+annots      <- arm_annotations(arm_spec(ARM), "region", patient_ids = neoplastic$SAMPLE)
 have_margin <- !is.null(annots) && nrow(annots) > 0
 
 if (!have_margin)
-  cat("No pathologist geojson under", ANNOTATION_DIR(),
-      "- the invasive-margin section is skipped.\n")
+  cat("No pathologist geojson for arm", ARM, "under",
+      arm_annotation_dir(ARM), "- the invasive-margin section is skipped.\n")
 
 if (have_margin) {
   peri_union   <- ihc_periphery_metrics(ihc_data, annots, scope = "union",

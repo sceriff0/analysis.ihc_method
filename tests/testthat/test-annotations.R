@@ -114,18 +114,34 @@ test_that("a missing or empty annotation directory returns NULL, not an error", 
   expect_null(load_annotations(empty))
 })
 
-test_that("only two membership modes survive", {
+test_that("the surviving membership modes are the three arms plus mirage", {
   source(here::here("code", "membership.R"))
-  expect_setequal(MEMBERSHIP_MODES, c("all_slide", "mirage"))
+  expect_setequal(MEMBERSHIP_MODES,
+                  c("massimo1", "massimo1_inverted", "massimo2", "mirage"))
   # The removed modes must not be silently accepted by match.arg's partial matching.
   expect_error(membership_data("flag", tibble::tibble()), "should be one of")
   expect_error(membership_data("geojson", tibble::tibble()), "should be one of")
+  # "all_slide" was RENAMED to "massimo2" when the second and third arms arrived.
+  # It must fail loudly rather than partial-matching onto something plausible: a
+  # page left on the old name would otherwise keep knitting against whichever mode
+  # match.arg happened to reach.
+  expect_error(membership_data("all_slide", tibble::tibble()), "should be one of")
 })
 
-test_that("all_slide refuses an externally supplied annotation set", {
+test_that("an arm mode refuses an externally supplied annotation set", {
   source(here::here("code", "membership.R"))
-  # Its polygons are paired to its cell files region by region, so an outside set
-  # would not line up. Erroring beats ignoring the argument.
-  expect_error(membership_data("all_slide", tibble::tibble(), annots = "anything"),
-               "reads its own polygons")
+  # Each arm's polygons are paired to its own cell files region by region, and the
+  # arms' regions are drawn INDEPENDENTLY of one another — so an outside set would
+  # score one arm's cells against another arm's regions. Erroring beats ignoring
+  # the argument.
+  for (m in c("massimo1", "massimo1_inverted", "massimo2"))
+    expect_error(membership_data(m, tibble::tibble(), annots = "anything"),
+                 "reads its own polygons")
+})
+
+test_that("mirage still requires the annots it cannot read for itself", {
+  source(here::here("code", "membership.R"))
+  # The mirror image of the rule above: mirage's cells and polygons come from
+  # different trees, so it is the one mode that MUST be handed a polygon set.
+  expect_error(membership_data("mirage", tibble::tibble()), "needs `annots`")
 })

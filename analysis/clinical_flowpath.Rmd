@@ -33,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
                       fig.width = fig_width("double"), fig.height = fig_height("double"),
                       dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
 
-# Loaders (dds, clinical_data, neoplastic_data, counts_data, ihc_data) and the shared
+# Loaders (dds, clinical_data, the per-arm neoplastic_* / ihc_* objects, counts_data)
 # helpers. load_data.R prints colnames() on load; silence it. validation_helpers.R pulls in
 # cell_tables.R (export-schema adapter) and plot_theme.R (house figure style).
 invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
@@ -43,6 +43,16 @@ source(here("code", "aggregation_compare.R"))  # annotation-aggregation sensitiv
 source(here("code", "pdf_export.R"))           # export_pdf_figures(): plots -> output/figures/
 
 SLUG <- "clinical_flowpath"
+
+# WHICH ARM THIS PAGE IS ABOUT. Three arms phenotype the same slides three ways
+# (code/arms.R), and their regions are drawn INDEPENDENTLY of one another — so the
+# cells, the polygons AND the pathologist table all have to come from the same arm
+# or the page correlates one arm's tumour content against another arm's regions.
+# There is no default anywhere in the loaders precisely so this constant cannot be
+# left unset: change it here and the whole page follows.
+ARM        <- "massimo2"
+ihc_data   <- ihc_for(ARM)
+neoplastic <- neoplastic_for(ARM)
 ```
 
 ## Starting data and notation
@@ -58,16 +68,19 @@ FlowPath is the only phenotyping on the site.
 
 Every value below is derived from three inputs:
 
-- `ihc_data` — single cells from the all-slide export,
-  `data/all_slide/csv/<patient>/<patient>_<A|B|C>.csv`: **one csv per annotation
-  region**, each covering the whole slide. `ihc_data` is the de-duplicated union of a
-  patient's region files (one row per physical cell), so cohort-level fractions are not
-  computed over an inflated denominator. Carries `phenotype`, per-marker sign columns,
-  centroids and `patient_id`.
-- `neoplastic_data` — the pathologist's neoplastic-cellularity percentage, **one row
-  per scored region** (`ANNOTATION_1..3`, or `whole_slide` for a patient with no
-  annotation drawn). Long rather than wide, because a whole-slide score cannot be put
-  in an `ANNOTATION_k` column without claiming a region that was never drawn.
+- `ihc_data` — `ihc_for(ARM)`, the arm's single cells: **one row per physical cell
+  per patient**. For `massimo2` that is the de-duplicated union of a patient's
+  `csv/<patient>/<patient>_<A|B|C>.csv` region files, each of which covers the whole
+  slide — so cohort-level fractions are not computed over an inflated denominator.
+  For `massimo1` it is the arm's own whole-slide export, read directly. Carries
+  `phenotype`, per-marker sign columns, centroids and `patient_id`.
+- `neoplastic` — `neoplastic_for(ARM)`, the pathologist's neoplastic-cellularity
+  percentage for **this arm's regions**, one row per scored region (`ANNOTATION_1..3`,
+  or `whole_slide` for a patient with no annotation drawn). Long rather than wide,
+  because a whole-slide score cannot be put in an `ANNOTATION_k` column without
+  claiming a region that was never drawn. **Each arm has its own table**: the arms'
+  regions were annotated in separate sessions, so `ANNOTATION_2` is a different
+  polygon in each and the tables are not interchangeable.
 - `clinical_data` — the clinical CRF (`HOT score`, `Immuno-phenotype`, blood counts,
   `RESPONSE`, `OS`/`PFS`).
 
@@ -85,9 +98,11 @@ WHOLE SLIDE (patient has NO annotation directory):
   every cell is INSIDE — the layout's own convention, not a fallback guess
 ```
 
-The `source` column on every row records which applied (`sf` or `whole_slide`). Region
-`A` is `ANNOTATION_1`, `B` is `ANNOTATION_2` and so on **by alphabet position**, so the
-regions line up with `neoplastic_data`'s `ANNOTATION_1..3` columns.
+The `source` column on every row records which applied (`sf` or `whole_slide`). How a
+region is numbered depends on the arm: `massimo2` suffixes its files with a LETTER and
+`A` is `ANNOTATION_1`, `B` is `ANNOTATION_2` **by alphabet position**, while `massimo1`
+suffixes with `_a<k>` and `k` is taken literally. Either way the labels line up with
+this arm's own `ANNOTATION_1..3` scores — and only with its own.
 
 Because a polygon is read, `area_mm2` and every `dens_*_per_mm2` column carry real
 values — except for a whole-slide patient, which has no polygon and therefore no area.
@@ -95,12 +110,12 @@ values — except for a whole-slide patient, which has no polygon and therefore 
 ## Membership
 
 ```{r annotations}
-# "all_slide" reads BOTH its cells and its polygons — they are paired region by
-# region, so an externally supplied annotation set would not line up, and passing one
-# is an error rather than being silently ignored.
-mem <- membership_data("all_slide", ihc_data, neoplastic_data)
+# An arm reads BOTH its cells and its polygons — they are paired region by region,
+# so an externally supplied annotation set would not line up, and passing one is an
+# error rather than being silently ignored.
+mem <- membership_data(ARM, ihc_data, neoplastic)
 
-neo_ids   <- unique(slide_key(neoplastic_data$SAMPLE))
+neo_ids   <- unique(slide_key(neoplastic$SAMPLE))
 ihc_ids   <- unique(slide_key(ihc_data$patient_id))
 have_poly <- unique(mem$per_annotation$patient_id[mem$per_annotation$source == "sf"])
 missing   <- setdiff(neo_ids, ihc_ids)                        # no cell csv at all
@@ -125,7 +140,7 @@ if (length(missing))
 # inner join on (patient_id, annotation), so a region scored but not exported — or
 # exported but not scored — drops out silently and the correlation is computed over
 # fewer pairs than anyone intended. Print the comparison instead.
-.scored   <- neoplastic_data |>
+.scored   <- neoplastic |>
   transmute(patient_id = slide_key(SAMPLE), annotation, path_pct)
 .exported <- mem$per_annotation |> select(patient_id, annotation, source, n_inside)
 .recon <- full_join(.scored, .exported, by = c("patient_id", "annotation")) |>
@@ -142,8 +157,8 @@ knitr::kable(.recon, caption = paste(
 .bad <- filter(.recon, status != "matched")
 if (nrow(.bad))
   cat("\n> **", nrow(.bad), " region(s) do not line up** and are excluded from every",
-      " correlation on this page. Reconcile `neoplastic_data` in `code/load_data.R`",
-      " against the export before reading the numbers.\n", sep = "")
+      " correlation on this page. Reconcile `neoplastic_", ARM, "` in",
+      " `code/load_data.R` against the export before reading the numbers.\n", sep = "")
 ```
 
 ```{r export-shape}
@@ -274,10 +289,10 @@ of a patient's polygons.
 ihc_tumor_per_ann <- mem$per_annotation
 ihc_tumor_union   <- mem$union
 
-# neoplastic_data is already long — one row per scored region — so there is no pivot.
+# `neoplastic` is already long — one row per scored region — so there is no pivot.
 # Its `annotation` labels are the same vocabulary the metrics frames use, including
 # `whole_slide` for a patient with no annotation drawn, so the join below is direct.
-path_long <- neoplastic_data |>
+path_long <- neoplastic |>
   mutate(patient_id = slide_key(SAMPLE), path_frac = path_pct / 100) |>
   filter(!is.na(path_pct)) |>
   select(patient_id, annotation, path_pct, path_frac)

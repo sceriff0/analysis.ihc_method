@@ -43,7 +43,7 @@ suppressWarnings(suppressMessages({
   have_helpers <- tryCatch({ source(here("code", "validation_helpers.R")); TRUE },
                            error = function(e) FALSE)
   if (have_helpers) source(here("code", "paper_figures.R"))
-  if (have_helpers) source(here("code", "all_slide.R"))
+  if (have_helpers) source(here("code", "arm_cells.R"))
 }))
 
 # Where a hand-made panel (screenshot, exported schematic) is dropped in.
@@ -112,26 +112,40 @@ panel_slot <- function(id, what, howto, source = NULL) {
 
 ```{r load-cells}
 # The cell source for every spatial and immune-fraction panel: the all-slide
-# layout, which is the only export where the pathologist polygon and the cell table
-# are matched region by region. See code/all_slide.R for the layout and for the
-# "no annotation directory means everything is inside" rule.
+# layout, where the pathologist polygon and the cell table are matched region by
+# region. See code/arms.R for the three arms and code/arm_cells.R for the layout
+# rules, including "no annotation directory means everything is inside".
+#
+# The manuscript panels are built from ONE arm, named here. They cannot be pooled
+# across arms: the arms' regions are drawn independently, so an ANNOTATION_2 row from
+# each is a different polygon and stacking them would average regions that do not
+# overlap.
+ARM      <- "massimo2"
+as_spec  <- if (have_helpers) arm_spec(ARM) else NULL
+
 as_cells <- tibble::tibble(); as_polys <- NULL; as_per <- tibble::tibble()
-as_union <- tibble::tibble()
+as_union <- tibble::tibble(); as_ucells <- tibble::tibble()
 have_cells <- FALSE; geom_failure <- NULL
 
-if (have_helpers && dir.exists(file.path(ALL_SLIDE_DIR, "csv"))) {
-  as_cells <- all_slide_cells(ALL_SLIDE_DIR)
+if (have_helpers && dir.exists(as_spec$region_csv$path)) {
+  as_cells  <- arm_cells(as_spec)
+  as_ucells <- arm_union_tier_cells(as_spec)
   if (nrow(as_cells)) {
-    # all_slide_annotations() errors without sf, on purpose: a script that asked for
+    # arm_annotations() errors without sf, on purpose: a script that asked for
     # geometry should not quietly get something else. This page is a checklist and
     # has to knit anywhere, so it catches that and says what was lost — the panels
     # then fall back to the export flag, which is a DIFFERENT membership rule and
     # therefore reported, not absorbed.
-    as_polys <- tryCatch(
-      all_slide_annotations(ALL_SLIDE_DIR, patient_ids = unique(as_cells$patient_id)),
+    pids <- unique(c(as_cells$patient_id, as_ucells$patient_id))
+    as_polys <- tryCatch(arm_annotations(as_spec, "region", patient_ids = pids),
       error = function(e) { geom_failure <<- conditionMessage(e); NULL })
-    as_per     <- all_slide_metrics(as_cells, as_polys, "per_annotation")
-    as_union   <- all_slide_metrics(as_cells, as_polys, "union")
+    as_upoly <- tryCatch(arm_annotations(as_spec, "union", patient_ids = pids),
+      error = function(e) NULL)
+    .prom    <- arm_promote_unregioned(as_spec, as_cells, as_polys, as_ucells, as_upoly)
+    as_cells <- .prom$cells; as_polys <- .prom$polys
+    as_per   <- arm_metrics(as_spec, as_cells, as_polys, "per_annotation")
+    as_union <- arm_metrics(as_spec, as_cells, as_polys, "union",
+                            union_cells = as_ucells, union_polys = as_upoly)
     have_cells <- TRUE
   }
 }
@@ -143,15 +157,16 @@ if (have_cells) {
         "Reason: ", geom_failure, "\n\n")
   else if (is.null(as_polys))
     cat("> **No polygons found** — every patient is treated as whole-slide.\n\n")
-  knitr::kable(all_slide_inventory(as_cells),
-               caption = "What was read from data/all_slide/ — one row per patient x region.")
+  knitr::kable(arm_inventory(as_cells),
+               caption = paste0("What was read from data/", as_spec$root,
+                                "/ — one row per patient x region."))
 } else {
-  cat("**No cells.** This page expects the all-slide export at `data/all_slide/`:\n\n",
-      "```\ndata/all_slide/csv/<patient>/<patient>_<A|B|C>.csv\n",
-      "data/all_slide/annotation/<patient>/<patient>_<A|B|C>.geojson\n```\n\n",
-      "On the cluster that tree is\n",
-      "`/hpcnfs/techunits/imaging/work/ATTEND/Mirage/all-slide_new` — symlink or copy it:\n\n",
-      "```sh\nln -s /hpcnfs/techunits/imaging/work/ATTEND/Mirage/all-slide_new data/all_slide\n```\n",
+  cat("**No cells.** This page expects arm `", ARM, "` at `data/", ARM, "/`:\n\n",
+      "```\ndata/massimo2/csv/<patient>/<patient>_<A|B|C>.csv\n",
+      "data/massimo2/annotation/<patient>/<patient>_<A|B|C>.geojson\n```\n\n",
+      "On the cluster these trees are under the ATTEND share — symlink them:\n\n",
+      "```sh\nln -s <share>/Massimo2 data/massimo2\n",
+      "ln -s <share>/Massimo1 data/massimo1\n```\n",
       sep = "")
 }
 ```

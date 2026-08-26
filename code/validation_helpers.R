@@ -62,6 +62,7 @@ source(here::here("code", "plot_theme.R"))
 # is where the FlowPath / mirage-phenotypes / mirage-cohort spellings are
 # reconciled — see its header for the three schemas.
 source(here::here("code", "cell_tables.R"))
+source(here::here("code", "arms.R"))    # ARM_MODES / arm_spec() / arm_parse_name()
 
 # --- ID handling ------------------------------------------------------------
 # All datasets share one patient/slide ID but differ in punctuation (clinical
@@ -230,10 +231,23 @@ read_polygon_geojson <- function(path) {
 #
 # Returns NULL rather than erroring when there is nothing to read: a cohort can
 # legitimately be all-whole-slide (a patient with no annotation directory is entirely
-# inside — see code/all_slide.R), and that must not stop a report at the loader.
-ANNOTATION_DIR <- function() {
-  nested <- here::here("data", "all_slide", "annotation")
-  if (dir.exists(nested)) nested else here::here("data", "annotation")
+# inside — see code/arm_cells.R), and that must not stop a report at the loader.
+#
+# THERE IS NO DEFAULT DIRECTORY ANY MORE. `ANNOTATION_DIR()` used to answer "the"
+# annotation tree, which stopped being a question with one answer when the second and
+# third phenotyping arms arrived: three trees now hold polygons and they are drawn
+# INDEPENDENTLY of each other, so a page that took the default would silently compare
+# one arm's cells against another arm's regions. `arm_annotation_dir(arm)` makes the
+# arm part of the call, and `arm_annotations(spec, tier)` in arm_cells.R is what the
+# arm-aware pages actually use. This generic reader survives for a geojson tree that
+# belongs to no arm.
+arm_annotation_dir <- function(arm = ARM_MODES, tier = c("region", "union")) {
+  spec <- arm_spec(arm)
+  tier <- match.arg(tier)
+  key  <- if (tier == "region") "region_poly" else "union_poly"
+  if (is.null(spec[[key]]))
+    stop("arm \"", spec$arm, "\" has no ", tier, " polygon tier")
+  spec[[key]]$path
 }
 
 # "A" -> ANNOTATION_1, by alphabet position, not by file order.
@@ -246,29 +260,28 @@ annotation_from_letter <- function(letter) {
 # for geojsons here and for the cell csvs in annotation_membership_qc(): the two trees
 # name their regions identically, and having one parser is what keeps a geojson and its
 # csv agreeing on which region they are.
+# DELEGATES TO arm_parse_name(); it does not re-implement it. There is exactly one
+# place in the project that knows how a filename names its region, and it is
+# code/arms.R — a second copy here is how a geojson and the csv it is compared
+# against would drift into disagreeing about which region they are.
+#
+# The one thing this adds on top is the LEGACY DEFAULT: a bare `<patient>.geojson`
+# in a tree that belongs to no arm is that patient's sole annotation, so it is
+# ANNOTATION_1. An arm's tiers deliberately do NOT apply that rule — a bare geojson
+# in massimo1's `_all` tree is a union polygon, not region 1 — which is why
+# arm_parse_name() returns NA there and leaves the reading to its caller.
 .annotation_key <- function(path, root) {
-  stem   <- fs::path_ext_remove(fs::path_file(path))
-  parent <- fs::path_file(fs::path_dir(path))
   nested <- !identical(fs::path_norm(fs::path_dir(path)), fs::path_norm(root))
-
-  # <patient>_<LETTER>  (nested tree)
-  m <- regmatches(stem, regexec("^(.*)_([A-Za-z])$", stem))[[1]]
-  if (length(m) == 3 && !is.na(annotation_from_letter(m[3])))
-    return(list(patient = if (nested) parent else m[2],
-                annotation = annotation_from_letter(m[3])))
-
-  # <patient>_a<k>  (flat legacy tree)
-  m <- regmatches(stem, regexec("^(.*)_a([0-9]+)$", stem))[[1]]
-  if (length(m) == 3)
-    return(list(patient = if (nested) parent else m[2],
-                annotation = paste0("ANNOTATION_", as.integer(m[3]))))
-
-  # bare <patient>.geojson — that patient's sole annotation. In neoplastic_data such
-  # patients carry tumour content only in ANNOTATION_1, so that is where it belongs.
-  list(patient = if (nested) parent else stem, annotation = "ANNOTATION_1")
+  for (pat in if (nested) c("nested_letter", "nested_digit")
+              else        c("flat_letter", "flat_digit")) {
+    k <- arm_parse_name(path, pat)
+    if (!is.na(k$annotation)) return(k)
+  }
+  list(patient = arm_parse_name(path, if (nested) "nested_bare" else "flat_digit")$patient,
+       annotation = "ANNOTATION_1")
 }
 
-load_annotations <- function(dir = ANNOTATION_DIR(), patient_ids = NULL) {
+load_annotations <- function(dir, patient_ids = NULL) {
   .require_sf("load_annotations()")
   if (!dir.exists(dir)) {
     message("load_annotations(): no annotation directory at ", dir,
@@ -486,18 +499,18 @@ ihc_annotation_metrics <- function(ihc_data, annots,
 # row per (patient, annotation): set sizes, overlap (Jaccard, % of cells agreeing),
 # and the tumour fraction inside under each method. A large flag-vs-sf gap on a slide
 # means the fixed um_per_px is wrong FOR THAT slide (sf catching the wrong cells).
-# Default: the all-slide export's csv tree, whose per-region files carry both a
-# centroid pair and the exporter's Out_of_annotation flag — which is what makes the
-# sf-vs-flag comparison possible at all. Recurses and keys through .annotation_key(),
-# so the nested <pid>/<pid>_<L>.csv tree and the flat <pid>_a<k>.csv one both read.
-REGION_CSV_DIR <- function() {
-  nested <- here::here("data", "all_slide", "csv")
-  if (dir.exists(nested)) nested else here::here("data", "flowpath", "per_annotation")
-}
-
-annotation_membership_qc <- function(dir = REGION_CSV_DIR(), annots,
-                                     um_per_px = 0.325) {
+# TAKES AN ARM, NOT A DIRECTORY. The check is only meaningful when the csvs and the
+# polygons come from the SAME arm — an arm's regions are drawn independently of every
+# other arm's, so comparing one arm's flag against another's polygon would report a
+# disagreement that is real geometry rather than a coordinate-scale problem. Passing
+# `spec` makes that pairing structural: the csvs come from spec$region_csv and are
+# keyed with THAT tier's own naming pattern, so a flat `<pid>_a<k>.csv` tree and a
+# nested `<pid>/<pid>_<L>.csv` one both read without the caller saying which it has.
+annotation_membership_qc <- function(spec, annots, um_per_px = 0.325) {
   .require_sf("annotation_membership_qc()")
+  if (is.character(spec)) spec <- arm_spec(spec)
+  tier <- spec$region_csv
+  dir  <- tier$path
   if (!dir.exists(dir)) {
     warning("annotation_membership_qc(): no directory at ", dir)
     return(tibble::tibble())
@@ -510,8 +523,12 @@ annotation_membership_qc <- function(dir = REGION_CSV_DIR(), annots,
   annots <- dplyr::mutate(annots, .pid = slide_key(patient_id))
 
   purrr::map_dfr(as.character(files), function(path) {
-    key  <- .annotation_key(path, dir)
-    pid  <- slide_key(key$patient); ann <- key$annotation
+    key  <- arm_parse_name(path, tier$pattern)
+    pid  <- slide_key(key$patient)
+    ann  <- if (is.na(key$annotation)) spec$bare_region_is else key$annotation
+    if (is.na(ann))
+      return(tibble::tibble(patient_id = pid, annotation = NA_character_,
+                            note = "csv carries no region suffix and this arm has no rule for one"))
 
     cells <- tibble::as_tibble(data.table::fread(path))
     if (!has_centroids(cells) || !has_outside_flag(cells))
