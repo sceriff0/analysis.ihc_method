@@ -126,8 +126,3 @@ load_ihc_data <- function(root = ALL_SLIDE_DIR) {
 
 ihc_data <- load_ihc_data()
 
-colnames(clinical_data)
-colnames(neoplastic_data)
-colnames(counts_data)
-colnames(ihc_data)
-
