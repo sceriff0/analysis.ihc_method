@@ -6,12 +6,13 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 
 | file | owns |
 |---|---|
-| `load_data.R` | the raw loaders (`dds`, `clinical_data`, `neoplastic_data`, `counts_data`, `ihc_data`) |
+| `load_data.R` | the raw loaders (`dds`, `clinical_data`, `counts_data`, and the **per-arm** `neoplastic_massimo1/2` + `ihc_massimo1/2/1_inverted`) |
 | `cell_tables.R` | the **single-cell export schema** — one vocabulary over three upstream formats |
 | `validation_helpers.R` | the derived quantities (region ratios, composition, marker/lineage fractions, invasive margin, agreement stats) |
 | `mirage_cells.R` | the mirage cell source — `phenotypes.csv` + `morphology.csv` joined per patient |
-| `all_slide.R` | the **all-slide cell source** — one CSV *and* one geojson per annotation region, nested per patient |
-| `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob the four `clinical_data` pages turn |
+| `arms.R` | the **arm registry** — which files belong to which arm, and how a filename names its region |
+| `arm_cells.R` | the **arm cell source** — one reader for all three arms: region tier, whole-slide tier, metrics, provenance |
+| `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob each clinical page turns |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
@@ -21,11 +22,13 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `run_qc.R` | the **run's own** QC on the study samples: readers for mirage's per-patient QC artifacts, plus `build_run_qc_figs()` |
 | `paper_figures.R` | the **manuscript panels** — re-cuts of existing quantities in the shape each figure legend asks for |
 
-The dependency order is `cell_tables.R` → `validation_helpers.R` → `membership.R`
-(→ `mirage_cells.R`, `all_slide.R`); sourcing `validation_helpers.R` pulls in the first and
+The dependency order is `cell_tables.R` + `arms.R` → `validation_helpers.R` → `membership.R`
+(→ `mirage_cells.R`, `arm_cells.R`); sourcing `validation_helpers.R` pulls in the first two and
 `plot_theme.R`, so an analysis that sources it is loaded and styled with nothing
-further to call. `cell_tables.R` is the bottom of the stack and stays base-R +
-`tibble`, so it can be sourced and tested on its own. `sf` is a **lazy** dependency
+further to call. `cell_tables.R` and `arms.R` are the bottom of the stack — base R + `tibble` / `fs`
+respectively — so both can be sourced and tested on their own, with no data on disk.
+`arms.R` in particular is pure path logic, which is why `tests/testthat/test-arms.R`
+runs anywhere and is the first thing to fail if a producer renames a directory. `sf` is a **lazy** dependency
 of `validation_helpers.R`: only the six geojson functions require it, so the
 flag-membership reports source and run on a machine without it.
 
@@ -51,63 +54,97 @@ applies `normalise_cell_flags()`, which forces the boolean columns to real logic
 two exports of the same cohort can be bound without a type clash. The file header
 documents all three schemas.
 
-## The all-slide layout
+## Three phenotyping arms
 
-`all_slide.R` reads the fifth cell source, and the only one where the
-pathologist's polygon and the cell export are matched **per region**:
+Three tools phenotype **the same slides** three different ways, so the diff between
+any two of them isolates a *method* rather than a cohort. `arms.R` is the one place
+that knows which files belong to which arm:
 
 ```
-data/all_slide/csv/<patient>/<patient>_<A|B|C>.csv
-data/all_slide/csv/<patient>/<patient>.csv              (no regions)
-data/all_slide/annotation/<patient>/<patient>_<A|B|C>.geojson
+data/massimo1/                                   arm 1  (+ arm 3, which shares its root)
+  FlowPath_csv_selected/<pid>_a<k>.csv                   region cells   (FLAT)
+  annotation_selected/<pid>/<pid>_a<k>.geojson           region polygons
+  FlowPath_csv_all/<pid>/<pid>.csv                       whole-slide cells
+  annotation_all/<pid>/<pid>.geojson                     union polygon
+  csv_inverted-classification_modified-thrPANCK/         arm 3 region cells (FLAT)
+    <pid>_a<k>.csv
+data/massimo2/                                   arm 2
+  csv/<pid>/<pid>_<A|B|C>.csv                            region cells
+  csv/<pid>/<pid>.csv                                    whole slide, no regions
+  annotation/<pid>/<pid>_<A|B|C>.geojson                 region polygons
 ```
 
-On the cluster this tree is
-`/hpcnfs/techunits/imaging/work/ATTEND/Mirage/all-slide_new`; symlink it in with
-`ln -s <that path> data/all_slide`.
+Symlink the cluster trees in — one link per root, and arm 3 comes with arm 1:
 
-Three things about it differ from every other source, and all three are decisions
+```sh
+ln -s <share>/Massimo1 data/massimo1
+ln -s <share>/Massimo2 data/massimo2
+```
+
+Four things about this differ from every other source, and all four are decisions
 rather than accidents:
 
-- **Region letters are positions, not names.** `A` → `ANNOTATION_1`, `B` →
-  `ANNOTATION_2`, and so on by alphabet index, so the regions line up with
-  `neoplastic_data`'s `ANNOTATION_1..3` columns. `C` stays region 3 whether or not
-  `B` was exported.
-- **No annotation directory means everything is inside.** That is this layout's
-  own stated convention, and it is the reason `all_slide.R` exists instead of the
-  older loaders being widened: everywhere else a missing polygon is a reason to
-  *drop* a patient, and reinterpreting it as "all in" globally would turn a data
-  problem into a silently 100 %-inside patient. Here it is deliberate and is
-  recorded in the metrics frame's `source` column as `whole_slide`.
-- **The union de-duplicates, and the export shape is REPORTED rather than assumed.**
-  Whether a patient's region files repeat the same cells (each holding the whole slide
-  with `Out_of_annotation` computed for that region) or partition it (each holding only
-  its own region) is a property of the producer, not of the layout — and it sets every
-  cohort-level denominator while leaving every number plausible either way. The code is
-  correct under both: the per-region metrics intersect each file with its own polygon,
-  and `all_slide_union_cells()` keys on `cell_key_cols()` (or the rounded centroid)
-  before pooling. `all_slide_overlap_report()` says which shape the data on disk is, and
-  `clinical_flowpath.Rmd` prints it on every knit.
+- **The arms' regions are drawn INDEPENDENTLY.** `massimo1`'s `ANNOTATION_2` is not
+  `massimo2`'s `ANNOTATION_2` — they are separate annotation sessions over the same
+  tissue. So `ANNOTATION_<k>` is an **arm-local** label, each arm carries its own
+  pathologist table (`neoplastic_massimo1` / `neoplastic_massimo2`), and any cross-arm
+  figure joins on **patient**, never on `(patient, annotation)`. 24086 is the case that
+  makes it concrete: three regions in arm 1, none at all in arm 2, where it is a bare
+  whole-slide export. Both are correct.
+- **Region numbering follows the arm's own suffix.** Arm 2 suffixes with a LETTER read
+  by **alphabet position** — `C` is region 3 whether or not `B` was exported. Arm 1
+  suffixes with `_a<k>` and `k` is taken literally. `arm_parse_name()` is the only
+  parser; `.annotation_key()` in `validation_helpers.R` delegates to it rather than
+  keeping a second copy.
+- **The two tiers ARE the two scopes.** An arm shipping an `_all` tier answers `union`
+  from it directly — a real whole-slide export against a real union polygon, no
+  inference. An arm without one dissolves its region polygons and de-duplicates its
+  pooled region files. A patient with a whole-slide export but **no** region files
+  (arm 1's 10338 and 15897) has its union polygon promoted to `ANNOTATION_1`, so it
+  keeps a per-region row instead of vanishing from every per-annotation panel.
+- **No annotation directory means everything is inside — per arm.** That is arm 2's
+  own stated convention (`bare_region_is = "whole_slide"` in the registry), and it is
+  spelled out per-arm rather than applied globally: everywhere else a missing polygon
+  is a reason to *drop* a patient, and reinterpreting it as "all in" everywhere would
+  turn a data problem into a silently 100 %-inside patient. It is recorded in the
+  metrics frame's `source` column as `whole_slide`.
 
-Membership inside a region prefers, in order: the region's own geojson (`sf` —
-the only source that knows the region's **area**, hence the only one that yields
+**The export shape is REPORTED, not assumed.** Whether a patient's region files repeat
+the same cells (each holding the whole slide with `Out_of_annotation` computed for that
+region) or partition it is a property of the producer, and it sets every cohort-level
+denominator while leaving every number plausible either way. The code is correct under
+both — per-region metrics intersect each file with its own polygon, and
+`arm_cohort_cells()` de-duplicates on `cell_key_cols()` — and `arm_overlap_report()`
+says which shape the data on disk actually is on every knit.
+
+**Arm 1 is the ground truth for that de-duplication.** It is the only arm publishing
+both a whole-slide export *and* region files, so it is the only place the procedure
+arms 2 and 3 are *forced* to use can be checked rather than trusted:
+`arm_wholeslide_reconciliation()` runs the dedup on arm 1's region files and compares
+it against arm 1's own export. The deduped union is expected to be a **subset** (the
+selected regions need not cover the slide); deduped **>** whole-slide is the one
+direction coverage cannot explain, and it means `cell_key_cols()` has stopped
+identifying cells — inflating every arm without an `_all` tier by the same factor.
+
+Membership inside a region prefers, in order: the region's own geojson (`sf` — the
+only source that knows the region's **area**, hence the only one that yields
 densities), then the export's `Out_of_annotation` flag (`flag`), then every row
 (`whole_slide`). Whichever was used is in the `source` column, never inferred.
 
-Reach it through `membership_data("all_slide")` like any other mode — it reads its
-own polygons, so unlike `"mirage"` it takes no `annots` argument.
+Reach any arm through `membership_data("<arm>")`. Unlike `"mirage"` the arms read their
+own polygons, so passing `annots` is an **error** rather than being ignored — an
+outside set would score one arm's cells against another arm's regions.
 
-**Three membership modes were removed on 2026-08-11** (`geojson`, `flag`, `flag_old`)
-because their layouts are no longer produced: `geojson` wanted a whole-slide
-`data/flowpath/<patient>.csv` plus a FLAT `data/annotation/<patient>_a<k>.geojson`, and
-the flag modes wanted `data/flowpath/per_annotation/` with an `old/` overlay. Two pages
-went with them (`clinical_data_per_annotation`, `..._per_annotation_old`). What survives
-is `all_slide` + `mirage`, whose diff isolates the phenotyping method.
+**`"all_slide"` was renamed to `"massimo2"` on 2026-08-26**, when the second and third
+arms arrived and one export stopped being *the* export. Same tree, same rules. The old
+name now fails `match.arg()` loudly rather than partial-matching onto something
+plausible. **Three modes were removed on 2026-08-11** (`geojson`, `flag`, `flag_old`)
+because their layouts are no longer produced.
 
-`load_annotations()` reads **both** the nested tree and the flat legacy one, keyed by
-`.annotation_key()` — the same parser `annotation_membership_qc()` uses on the cell
-csvs, which is what guarantees a csv and the polygon it is compared against agree on
-which region they are.
+**There is no bare `ihc_data` or `neoplastic_data` any more.** Every page declares
+`ARM <- "..."` next to its `SLUG` and takes `ihc_for(ARM)` / `neoplastic_for(ARM)`. A
+default would let a page use one arm without saying so, and the resulting figure would
+be indistinguishable from a figure about a different arm.
 
 ## VALIS's own error: three stages, two columns, two files
 
