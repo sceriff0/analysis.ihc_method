@@ -838,7 +838,12 @@ if (!is.null(agr) && nrow(agr) > 0) {
   and `omnideconv::build_model()/deconvolute()` argument names against your
   installed versions before trusting their output.
 
-```{r deconv-cache-paired, include=FALSE}
+```{r deconv-cache-paired, include=FALSE, eval = have_arm}
+# Gated with the rest of the deconvolution section: `deconv_paired` is BUILT there,
+# so leaving this chunk open made it fail with "object 'deconv_paired' not found"
+# whenever the arm had no cells — the defensive !is.null() test cannot help when the
+# name was never bound at all.
+#
 # Hand `deconv_paired` to the figure-assembly page rather than making it recompute.
 # Deconvolution needs immunedeconv, counts.RData and several minutes; the paper
 # panel is a re-cut of THIS frame, so re-deriving it there would be both slow and
