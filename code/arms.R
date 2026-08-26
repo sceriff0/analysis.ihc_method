@@ -176,16 +176,38 @@ ARM_SPECS <- list(
 
 ARM_MODES <- names(ARM_SPECS)
 
+# DIRECTORY LOOKUP IS CASE-INSENSITIVE, DELIBERATELY.
+#
+# The producer ships `Massimo1`/`Massimo2`; the registry spells them lowercase to
+# match the mode strings. macOS resolves that mismatch silently because its
+# filesystem is case-insensitive, so a tree copied as `data/Massimo1` loads fine on
+# a laptop and finds NOTHING on the Linux cluster — where the whole site then
+# renders empty with no error, because an absent tree is a legitimate state.
+#
+# That failure is invisible exactly where it matters, so the name is resolved
+# against what is actually on disk rather than assumed. An exact match always wins;
+# a unique case-insensitive match is accepted and is what makes `Massimo1` and
+# `massimo1` the same tree on both platforms. An AMBIGUOUS match (both spellings
+# present, which only a case-sensitive filesystem can even represent) falls back to
+# the exact name rather than guessing which the user meant.
+.arm_resolve_dir <- function(parent, name) {
+  direct <- file.path(parent, name)
+  if (dir.exists(direct) || !dir.exists(parent)) return(direct)
+  kids <- list.dirs(parent, full.names = FALSE, recursive = FALSE)
+  hit  <- kids[tolower(kids) == tolower(name)]
+  if (length(hit) == 1) file.path(parent, hit) else direct
+}
+
 # The spec, with its tier directories resolved to absolute paths. Every reader
 # takes THIS rather than a root string, so no function downstream joins a path.
 arm_spec <- function(arm = ARM_MODES, data_dir = here::here("data")) {
   arm  <- match.arg(arm)
   spec <- ARM_SPECS[[arm]]
-  root <- file.path(data_dir, spec$root)
+  root <- .arm_resolve_dir(data_dir, spec$root)
   spec$root_path <- root
   for (tier in c("region_csv", "region_poly", "union_csv", "union_poly"))
     if (!is.null(spec[[tier]]))
-      spec[[tier]]$path <- file.path(root, spec[[tier]]$dir)
+      spec[[tier]]$path <- .arm_resolve_dir(root, spec[[tier]]$dir)
   spec
 }
 

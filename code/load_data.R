@@ -105,10 +105,17 @@ neoplastic_massimo2 <- tribble(
 )
 
 # --- ARM 1: the `_a<k>` selected regions -------------------------------------
-# STUB — every path_pct is NA and must be filled from the pathologist's arm-1 read.
-# Until it is, the arm-1 tumour-content correlation has no pairs and the clinical
-# page reports "exported, NOT scored" for every region rather than plotting a
-# correlation over an empty frame.
+# Values read 2026-08-26 from data/Massimo1/thr_head&neck.xlsx, which carries one
+# sheet per patient: marker thresholds, then a `neoplastic cellularity (%)` block
+# keyed annotation_1..3. Its 11 scored regions match arm 1's 11 `_selected` exports
+# exactly.
+#
+# THESE ARE THE PATHOLOGIST'S ORIGINAL READ; arm 2's are the RE-READ. That is the
+# clearest evidence the two arms are separate annotation sessions rather than one
+# relabelled: 046 A 50 vs 30, 052 70/50 vs 50/75, 5456 A 70 vs 80, and 24086 three
+# regions at 80/70/70 here against a single whole-slide 75 there. Neither supersedes
+# the other — each scores the polygons its own arm exported, which is why they are
+# two tables and never one.
 #
 # The 13 rows are the regions arm 1 actually exports, and they are NOT arm 2's:
 #   046, 5456        a1..a3        three selected regions each
@@ -125,17 +132,23 @@ neoplastic_massimo2 <- tribble(
 #                                  that label means "no polygon exists", and one does.
 neoplastic_massimo1 <- tribble(
   ~SAMPLE,  ~annotation,     ~path_pct,
-  "046",    "ANNOTATION_1",  NA_real_,
-  "046",    "ANNOTATION_2",  NA_real_,
-  "046",    "ANNOTATION_3",  NA_real_,
-  "052",    "ANNOTATION_1",  NA_real_,
-  "052",    "ANNOTATION_2",  NA_real_,
-  "5456",   "ANNOTATION_1",  NA_real_,
-  "5456",   "ANNOTATION_2",  NA_real_,
-  "5456",   "ANNOTATION_3",  NA_real_,
-  "24086",  "ANNOTATION_1",  NA_real_,
-  "24086",  "ANNOTATION_2",  NA_real_,
-  "24086",  "ANNOTATION_3",  NA_real_,
+  "046",    "ANNOTATION_1",         50,
+  "046",    "ANNOTATION_2",         60,
+  "046",    "ANNOTATION_3",         50,
+  "052",    "ANNOTATION_1",         70,
+  "052",    "ANNOTATION_2",         50,
+  "5456",   "ANNOTATION_1",         70,
+  "5456",   "ANNOTATION_2",         80,
+  "5456",   "ANNOTATION_3",         70,
+  "24086",  "ANNOTATION_1",         80,
+  "24086",  "ANNOTATION_2",         70,
+  "24086",  "ANNOTATION_3",         70,
+  # 10338 and 15897 have NO `_selected` regions in arm 1 and NO cellularity block in
+  # thr_head&neck.xlsx. Their `annotation_all` polygon is promoted to ANNOTATION_1 by
+  # arm_promote_unregioned(), so the region exists and is exported — it simply was
+  # never scored in this session. NA keeps it out of the correlation while the
+  # reconciliation table reports it as "exported, NOT scored", which is the honest
+  # statement. Arm 2 DID score both (10338 80, 15897 60/75) against its own polygons.
   "10338",  "ANNOTATION_1",  NA_real_,
   "15897",  "ANNOTATION_1",  NA_real_
 )

@@ -452,7 +452,7 @@ if (have_helpers && file.exists(paired_path)) {
   p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq")
   if (!is.null(p)) print(p)
 } else {
-  cat("_Needs `output/paired_deconv.rds`._ Knit [the molecular page](molecular_hot_cold.html)",
+  cat("_Needs `output/paired_deconv.rds`._ Knit [a molecular page](molecular_massimo2.html)",
       "first — its last chunk caches the paired frame so this panel does not have to",
       "re-run immunedeconv.\n")
 }

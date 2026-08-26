@@ -1,0 +1,80 @@
+---
+title: "Molecular — hot/cold vs bulk RNA — Massimo2 — all-slide export"
+author: "sceriff0"
+date: "2026-08-12"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+# renv: tidyverse + here (in the lockfile), sf + jsonlite for the margin geometry in
+# part 3, and immunedeconv (GitHub: omnideconv/immunedeconv, NOT Bioconductor) for
+# part 2 — see the method-configuration chunk there for the install recipe. Each part
+# degrades to a message if its optional input is absent; none of them is required.
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(purrr)
+  library(ggplot2)
+  library(stringr)
+  library(forcats)
+  library(here)
+  library(sf)
+})
+
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the analysis script that used to pull plot_theme.R in never runs —
+# which silently left those plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+
+# Loaders (dds, clinical_data, the per-arm neoplastic_* / ihc_* objects, counts_data)
+# helpers. load_data.R prints colnames() on load; silence it. validation_helpers.R pulls
+# in cell_tables.R (export-schema adapter) and plot_theme.R (house figure style, which
+# is where hotcold_cols()/hotcold_order() come from).
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
+source(here("code", "validation_helpers.R"))
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "molecular_massimo2"
+# WHICH ARM THIS PAGE IS ABOUT. Three arms phenotype the same slides three ways
+# (code/arms.R) and load_data.R deliberately defines NO bare `ihc_data`: a page that
+# forgot to name its arm would otherwise produce a figure indistinguishable from a
+# figure about a different arm. Change this one constant to re-point the page.
+ARM      <- "massimo2"
+ihc_data <- ihc_for(ARM)
+
+# The bulk-RNA and deconvolution sections stand on their own; only the chunks that
+# JOIN an IHC quantity need the arm's cells. Gating just those keeps the RNA half of
+# the page rendering when the arm's tree is not on disk.
+have_arm <- nrow(ihc_data) > 0
+if (!have_arm)
+  cat("!! ARM `", ARM, "` HAS NO CELLS at ", arm_spec(ARM)$root_path,
+      "\n   The IHC-vs-RNA and IHC-vs-deconvolution comparisons are skipped;",
+      "\n   the bulk-RNA sections still render.\n", sep = "")
+neoplastic <- neoplastic_for(ARM)
+```
+
+> **Arm: `massimo2`.** The letter-suffixed per-region export. Pathologist scores are the RE-READ (`%_neoplastic_cellularity_Massimo.xlsx`); 24086 has no annotation drawn and counts whole-slide.
+>
+> This page is one of three, identical in construction and differing only in which
+> arm it reads. The arms' regions were drawn in **separate annotation sessions**, so
+> `ANNOTATION_2` here is not `ANNOTATION_2` on the other pages — compare them by
+> PATIENT, never region by region. `code/arms.R` states the rule in full.
+
+```{r body, child = here::here("analysis", "_children", "molecular_body.Rmd")}
+```
+
+```{r export-pdfs, include=FALSE}
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
+```

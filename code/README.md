@@ -226,19 +226,23 @@ STARE transform manifest, so it is the same measurement either way. Each backend
 
 ## Child documents
 
-**There are none, and two costs argue against adding one.** `clinical_flowpath.Rmd`
-was a thin parent over `analysis/_children/clinical_body.Rmd` while a second
-phenotyping arm (`clinical_mirage.Rmd`) shared the same body; the arm is withdrawn and
-the body is inlined again. If a second arm returns, both rules below apply and
-`tests/testthat/test-child-documents.R` enforces the first two.
+**There are two, and they are what keeps the three arms from drifting apart.**
+`analysis/_children/clinical_body.Rmd` and `molecular_body.Rmd` hold the shared
+analysis; six thin parents (`clinical_massimo1/2/1_inverted`, `molecular_...`)
+supply only the YAML title, `SLUG`, `ARM`, the arm's objects and the
+`export_pdf_figures(SLUG)` call. A parent is ~70 lines; the bodies are ~900 and
+~1200. Six full copies would drift the first time one was edited, and the drift
+would be invisible because every copy still knits.
+
+Three rules, the first two enforced by `tests/testthat/test-child-documents.R`:
 
 - Children live in **`analysis/_children/`**, not beside their parents. An underscore
   on the *file* only hides it from `render_site()`, which skips `^[_.]` resources;
   it does **not** hide it from `Sys.glob()`, which is what `wflow_build("analysis/*.Rmd")`
-  expands — glob's `*` refuses a leading dot, not a leading underscore. That glob handed
-  the body to the builder as a page and the build died on the child's contract check.
-  The underscore on the *directory* hides it from `render_site()`, and a subdirectory is
-  out of reach of a non-recursive glob, so both routes are closed.
+  expands — glob's `*` refuses a leading dot, not a leading underscore. That glob would
+  hand the body to the builder as a page and the build dies on the child's contract
+  check. The underscore on the *directory* hides it from `render_site()`, and a
+  subdirectory is out of reach of a non-recursive glob, so both routes are closed.
 - The `child=` path must be **absolute**, via `here::here("analysis", "_children", ...)`.
   knitr resolves it against the knit working directory, and `_workflowr.yml` sets
   `knit_root_dir: "."` — the project root — so a bare filename is looked for beside
@@ -246,13 +250,16 @@ the body is inlined again. If a second arm returns, both rules below apply and
   `Error in file(con, "r") : cannot open the connection` partway through the parent,
   naming neither the child nor the path, because that is `readLines()`'s internal
   call inside `knitr:::call_block`.
-- **A child makes workflowr print a false fig.path warning on every plot it contains.**
-  `wflow_hook_plot_md()` compares the chunk's `fig.path` against a path it derives from
-  `knitr::current_input()`. Inside a child chunk `fig.path` is still the *parent's*
-  (`clinical_flowpath_files/figure-html/`) while `current_input()` returns the *child*
-  (`clinical_body.Rmd`), so the two never agree and the page renders
-  *"Warning! The custom fig.path you set was ignored by workflowr."* Nothing is ignored
-  and no figure moves — but the reader cannot tell that, so the warning is a real cost.
+- A parent must define everything the body reads before including it: `SLUG`, `ARM`,
+  `ihc_data`, `neoplastic`, and the sourced helpers. `tests/testthat/test-chunk-gates.R`
+  splices children into their parents exactly as knitr does, so a gate defined in a
+  parent's setup and used in a child's chunk is checked as one page.
+
+**The accepted cost:** workflowr prints *"Warning! The custom fig.path you set was
+ignored by workflowr."* on every plot inside a child. `wflow_hook_plot_md()` compares
+the chunk's `fig.path` — still the *parent's* — against a path it derives from
+`knitr::current_input()`, which is the *child*, so the two never agree. Nothing is
+actually ignored and no figure moves, but the warning is real text on the page.
 
 ## Sweep QC vs run QC
 

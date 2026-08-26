@@ -13,13 +13,25 @@ navbar:
     href: paper_figures.html
   - text: 1 · Clinical
     menu:
-    - text: Clinical concordance (FlowPath)
-      href: clinical_flowpath.html
+    # One page per phenotyping arm, in arm order. They are identical in
+    # construction — same child body — and differ only in which arm they read.
+    - text: Massimo1 — selected regions
+      href: clinical_massimo1.html
+    - text: Massimo2 — all-slide export
+      href: clinical_massimo2.html
+    - text: Massimo1 inverted — modified PANCK
+      href: clinical_massimo1_inverted.html
     - text: '---'
     - text: Annotation membership QC
       href: clinical_membership_qc.html
   - text: 2 · Molecular
-    href: molecular_hot_cold.html
+    menu:
+    - text: Massimo1 — selected regions
+      href: molecular_massimo1.html
+    - text: Massimo2 — all-slide export
+      href: molecular_massimo2.html
+    - text: Massimo1 inverted — modified PANCK
+      href: molecular_massimo1_inverted.html
   - text: 3 · Registration
     menu:
     - text: Run QC — the study samples

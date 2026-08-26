@@ -13,17 +13,32 @@
 #
 # This test is the static check: for every page, an ungated chunk may not read a
 # name that only gated chunks bind at top level.
+# CHILDREN ARE SPLICED IN PLACE, because that is what knitr does. The three arms
+# share one body (analysis/_children/*_body.Rmd) and each parent supplies only SLUG,
+# ARM and the arm's objects. A gate is therefore routinely DEFINED in the parent's
+# setup chunk and USED in the child's chunks — analysing either file alone would
+# report every one of those as an undefined gate, and would miss the dependency this
+# test exists to catch.
 .rmd_chunks <- function(path) {
   L <- readLines(path)
   starts <- grep("^```\\{r", L)
-  lapply(starts, function(s) {
+  out <- list()
+  for (s in starts) {
     e   <- s + which(L[(s + 1):length(L)] == "```")[1]
     hdr <- L[s]
-    list(label = trimws(sub("^```\\{r[ ,]*([^,}]*).*$", "\\1", hdr)),
-         gate  = if (grepl("eval\\s*=\\s*have_", hdr))
-                   sub(".*eval\\s*=\\s*(have_[a-z_]+).*", "\\1", hdr) else NA_character_,
-         code  = if (e > s + 1) L[(s + 1):(e - 1)] else character(0))
-  })
+    code <- if (e > s + 1) L[(s + 1):(e - 1)] else character(0)
+    if (grepl("child\\s*=", hdr)) {
+      kid <- sub('.*_children",\\s*"([^"]+)".*', "\\1", hdr)
+      kp  <- here::here("analysis", "_children", kid)
+      if (file.exists(kp)) { out <- c(out, .rmd_chunks(kp)); next }
+    }
+    out[[length(out) + 1]] <- list(
+      label = trimws(sub("^```\\{r[ ,]*([^,}]*).*$", "\\1", hdr)),
+      gate  = if (grepl("eval\\s*=\\s*have_", hdr))
+                sub(".*eval\\s*=\\s*(have_[a-z_]+).*", "\\1", hdr) else NA_character_,
+      code  = code)
+  }
+  out
 }
 
 # TOP-LEVEL bindings only. A name appearing as an NSE column inside group_by() or
@@ -48,8 +63,12 @@
   if (is.null(p)) character(0) else unique(all.vars(p))
 }
 
-PAGES <- c("clinical_flowpath", "clinical_membership_qc", "molecular_hot_cold",
-           "marker_qc", "paper_figures")
+# The six per-arm parents plus the standalone pages. The children are reached
+# THROUGH their parents, never analysed alone: a gate defined in a parent is only
+# in scope once the child is spliced in.
+PAGES <- c("clinical_massimo1", "clinical_massimo2", "clinical_massimo1_inverted",
+           "molecular_massimo1", "molecular_massimo2", "molecular_massimo1_inverted",
+           "clinical_membership_qc", "marker_qc", "paper_figures")
 
 for (page in PAGES) local({
   pg   <- page

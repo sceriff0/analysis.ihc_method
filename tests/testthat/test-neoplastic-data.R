@@ -88,13 +88,32 @@ test_that("arm 2 keeps 24086 as a whole-slide score", {
   expect_equal(dplyr::filter(m2, SAMPLE == "24086")$annotation, "whole_slide")
 })
 
-# --- Arm 1: the stub ---------------------------------------------------------
-test_that("arm 1 is an unfilled STUB and is visibly so", {
-  # Every value NA rather than a placeholder number: a plausible-looking 0 or 50
-  # would plot, and the resulting correlation would be fiction. NA drops the pair
-  # and the clinical page reports "exported, NOT scored".
-  expect_true(all(is.na(m1$path_pct)))
-  expect_type(m1$path_pct, "double")   # NA_real_, so filling it needs no type change
+# --- Arm 1: read from thr_head&neck.xlsx -------------------------------------
+test_that("arm 1's scored regions are percentages, and its unscored ones stay NA", {
+  # Filled 2026-08-26 from data/Massimo1/thr_head&neck.xlsx (one sheet per patient,
+  # each with a `neoplastic cellularity (%)` block keyed annotation_1..3).
+  scored <- m1$path_pct[!is.na(m1$path_pct)]
+  expect_equal(length(scored), 11)                    # the 11 `_selected` regions
+  expect_true(all(scored >= 1 & scored <= 100))       # percentages, not fractions
+  # 10338 and 15897 have no `_selected` regions and no cellularity block, so their
+  # promoted ANNOTATION_1 is exported-but-unscored. NA keeps the pair out of the
+  # correlation instead of inventing a plausible number that would plot.
+  expect_setequal(m1$SAMPLE[is.na(m1$path_pct)], c("10338", "15897"))
+  expect_type(m1$path_pct, "double")
+})
+
+test_that("the two arms record DIFFERENT reads of the same tissue", {
+  # arm 1's xlsx is the pathologist's ORIGINAL read, arm 2's the re-read. If these
+  # ever became equal, the two tables would be one table and the whole per-arm split
+  # would be ceremony — so the difference is asserted, not assumed.
+  both <- dplyr::inner_join(m1, m2, by = c("SAMPLE", "annotation"),
+                            suffix = c("_1", "_2"))
+  differing <- dplyr::filter(both, !is.na(path_pct_1), !is.na(path_pct_2),
+                             path_pct_1 != path_pct_2)
+  expect_gt(nrow(differing), 0)
+  # 046 ANNOTATION_1 is the clearest case: 50 in arm 1, 30 in arm 2.
+  expect_equal(dplyr::filter(m1, SAMPLE == "046", annotation == "ANNOTATION_1")$path_pct, 50)
+  expect_equal(dplyr::filter(m2, SAMPLE == "046", annotation == "ANNOTATION_1")$path_pct, 30)
 })
 
 test_that("the arm 1 stub covers exactly the regions arm 1 exports", {

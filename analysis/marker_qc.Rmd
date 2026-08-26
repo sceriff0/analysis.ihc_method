@@ -62,7 +62,7 @@ CAP  <- "ihc_method internal QC · FlowPath marker & lineage QC"
 Internal QC of the FlowPath gating, with **no external reference**: every check
 below asks whether the marker calls are self-consistent, not whether they match
 bulk RNA, deconvolution or the clinical record. Those comparisons live on
-[the molecular page](molecular_hot_cold.html); a disagreement there is only
+[the molecular pages](molecular_massimo2.html); a disagreement there is only
 interpretable once the checks here pass.
 
 Two parts, both reading the whole-slide `ihc_data`:

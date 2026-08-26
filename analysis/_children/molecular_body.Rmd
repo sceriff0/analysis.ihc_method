@@ -1,68 +1,29 @@
----
-title: "Bulk RNA, deconvolution and the hot/cold axis"
-author: "sceriff0"
-date: "2026-08-12"
-output: workflowr::wflow_html
-editor_options:
-  chunk_output_type: console
----
+<!-- =========================================================================
+     molecular_body.Rmd — the shared molecular body, rendered once PER ARM.
 
-```{r setup, include=FALSE}
-# renv: tidyverse + here (in the lockfile), sf + jsonlite for the margin geometry in
-# part 3, and immunedeconv (GitHub: omnideconv/immunedeconv, NOT Bioconductor) for
-# part 2 — see the method-configuration chunk there for the install recipe. Each part
-# degrades to a message if its optional input is absent; none of them is required.
-suppressPackageStartupMessages({
-  library(dplyr)
-  library(tibble)
-  library(tidyr)
-  library(readr)
-  library(purrr)
-  library(ggplot2)
-  library(stringr)
-  library(forcats)
-  library(here)
-  library(sf)
-})
+     Three arms phenotype the same slides three ways (code/arms.R). Every figure
+     below is identical in construction across them; only WHICH arm's cells,
+     polygons and pathologist table it reads differs. That variable lives in the
+     PARENT, not here.
 
-# The house style is sourced HERE, unconditionally and before opts_chunk$set:
-# the figure defaults below call fig_width(), and on a page whose data is
-# missing the analysis script that used to pull plot_theme.R in never runs —
-# which silently left those plots on ggplot2's default grey theme.
-source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
-knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
-                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
-                      # from rendered width to printed column, which is what keeps type
-                      # the same size on paper across every page. See plot_theme.R.
-                      fig.width = fig_width("double"), fig.height = fig_height("double"),
-                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+     The parent must define, before including this file:
+       SLUG        its own filename, for export_pdf_figures()
+       ARM         the arm string
+       ihc_data    ihc_for(ARM)
+       neoplastic  neoplastic_for(ARM)
+     and must have sourced load_data.R, validation_helpers.R, membership.R,
+     aggregation_compare.R and pdf_export.R.
 
-# Loaders (dds, clinical_data, the per-arm neoplastic_* / ihc_* objects, counts_data)
-# helpers. load_data.R prints colnames() on load; silence it. validation_helpers.R pulls
-# in cell_tables.R (export-schema adapter) and plot_theme.R (house figure style, which
-# is where hotcold_cols()/hotcold_order() come from).
-invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
-source(here("code", "validation_helpers.R"))
-source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+     WHY A CHILD AND NOT SIX COPIES. Six near-identical thousand-line pages drift
+     apart the first time one is edited, and the drift is invisible because every
+     copy still knits. The cost is that workflowr prints "Warning! The custom
+     fig.path you set was ignored" on every plot in a child — its hook compares the
+     PARENT's fig.path against a path derived from knitr::current_input(), which is
+     the CHILD, so they never match. Nothing is actually ignored and no figure
+     moves. See CLAUDE.md; tests/testthat/test-child-documents.R enforces the
+     placement rules that keep wflow_build's glob from picking this file up.
+========================================================================== -->
 
-SLUG <- "molecular_hot_cold"
-# WHICH ARM THIS PAGE IS ABOUT. Three arms phenotype the same slides three ways
-# (code/arms.R) and load_data.R deliberately defines NO bare `ihc_data`: a page that
-# forgot to name its arm would otherwise produce a figure indistinguishable from a
-# figure about a different arm. Change this one constant to re-point the page.
-ARM      <- "massimo2"
-ihc_data <- ihc_for(ARM)
-
-# The bulk-RNA and deconvolution sections stand on their own; only the chunks that
-# JOIN an IHC quantity need the arm's cells. Gating just those keeps the RNA half of
-# the page rendering when the arm's tree is not on disk.
-have_arm <- nrow(ihc_data) > 0
-if (!have_arm)
-  cat("!! ARM `", ARM, "` HAS NO CELLS at ", arm_spec(ARM)$root_path,
-      "\n   The IHC-vs-RNA and IHC-vs-deconvolution comparisons are skipped;",
-      "\n   the bulk-RNA sections still render.\n", sep = "")
-neoplastic <- neoplastic_for(ARM)
-```
 
 Everything on this page asks one question three ways: **does a bulk, cohort-level
 readout agree with what the slide shows, and does that agreement depend on whether
@@ -1266,8 +1227,3 @@ if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
 - Small cohort; Spearman with reported `n` throughout.
 
 
-```{r export-pdfs, include=FALSE}
-# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
-# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
-export_pdf_figures(SLUG)
-```

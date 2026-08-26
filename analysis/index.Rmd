@@ -26,8 +26,8 @@ navbar has one entry per part.
 
 | part | claim | pages |
 |---|---|---|
-| **1 · Clinical** | cells land in the right region, and FlowPath's phenotypes agree with the pathologist | `clinical_flowpath`, `clinical_membership_qc` |
-| **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_hot_cold` |
+| **1 · Clinical** | cells land in the right region, and FlowPath's phenotypes agree with the pathologist | `clinical_massimo1` / `_massimo2` / `_massimo1_inverted`, `clinical_membership_qc` |
+| **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_massimo1` / `_massimo2` / `_massimo1_inverted` |
 | **3 · Registration** | the study slides were registered well enough to analyse, under a configuration chosen on real tissue | `registration_run_qc`, `registration_arms` |
 | **4 · Benchmarks** | the pipeline's cost and accuracy scale as claimed, measured on synthetic images | `benchmark_registration`, `benchmark_pipeline` |
 
@@ -54,7 +54,9 @@ Every page defines `SLUG` equal to its own filename and calls
 Phenotypes come from **FlowPath's** QuPath gate tree; membership from the
 pathologist's own polygons, region by region.
 
-- [Clinical concordance — FlowPath](clinical_flowpath.html) — the main clinical page. A
+- Clinical concordance, **one page per phenotyping arm** —
+  [Massimo1](clinical_massimo1.html) · [Massimo2](clinical_massimo2.html) ·
+  [Massimo1 inverted](clinical_massimo1_inverted.html). Same analysis, three arms. A
   cell is inside when its centroid falls in **that region's own** polygon (sf
   point-in-polygon), because the all-slide export pairs a cell csv with a geojson
   region by region. A patient with no annotation directory is entirely inside — the
@@ -67,7 +69,9 @@ pathologist's own polygons, region by region.
 
 ## Part 2 — Bulk RNA, deconvolution and the hot/cold axis
 
-- [Bulk RNA, deconvolution and the hot/cold axis](molecular_hot_cold.html) — one page,
+- Bulk RNA, deconvolution and the hot/cold axis, **one page per arm** —
+  [Massimo1](molecular_massimo1.html) · [Massimo2](molecular_massimo2.html) ·
+  [Massimo1 inverted](molecular_massimo1_inverted.html) —
   three parts, one question: does a bulk readout agree with the slide, and does that
   agreement depend on whether the tumour is immunologically hot or cold?
   Part 1 is per-marker bulk expression vs the IHC positive-cell fraction; part 2 is
