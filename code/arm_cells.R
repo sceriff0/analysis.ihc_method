@@ -134,7 +134,7 @@ arm_cells <- function(spec) {
     cells <- read_cell_csv(path, patient_id = pid)
     if (nrow(cells) == 0) {
       warning("arm ", spec$arm, ": ", path, " has no cells — skipping")
-      return(tibble::tibble())
+      return(arm_empty_metrics())
     }
     has_ann <- pid %in% annotated
     # `ann` and `src` are settled BEFORE the mutate on purpose. mutate() evaluates its
@@ -168,7 +168,7 @@ arm_union_tier_cells <- function(spec) {
     cells <- read_cell_csv(path, patient_id = pid)
     if (nrow(cells) == 0) {
       warning("arm ", spec$arm, ": ", path, " has no cells — skipping")
-      return(tibble::tibble())
+      return(arm_empty_metrics())
     }
     dplyr::mutate(cells, arm = spec$arm, annotation = "union",
                   file_origin = spec$arm, has_annotation = TRUE,
@@ -274,6 +274,28 @@ arm_inventory <- function(cells) {
     dplyr::arrange(arm, patient_id, annotation)
 }
 
+# THE EMPTY METRICS FRAME IS TYPED, NOT BARE.
+#
+# `tibble::tibble()` has zero COLUMNS, so a downstream
+# `select(patient_id, annotation, source, n_inside)` does not return nothing — it
+# ERRORS with "Column `patient_id` doesn't exist", three chunks after the actual
+# problem and naming none of it. An arm with no data on disk is a routine state
+# (a fresh clone, a tree not symlinked yet), so it has to flow through the same
+# joins and selects as a full one and simply produce empty output.
+#
+# The schema is taken from region_ratios_area() itself rather than written out, so
+# it cannot drift from the real thing: region_ratios() already handles a zero-row
+# cell table, so calling it on one yields the exact column set and types, and the
+# [0, ] drops the placeholder row.
+arm_empty_metrics <- function() {
+  rr <- region_ratios_area(tibble::tibble(), 0, 1)
+  dplyr::mutate(rr,
+                patient_id = NA_character_,
+                annotation = NA_character_,
+                source     = NA_character_,
+                .before    = 1)[0, , drop = FALSE]
+}
+
 # --- Metrics -----------------------------------------------------------------
 # One metrics row per (patient_id, annotation), schema-identical to
 # ihc_annotation_metrics() so membership_data() can hand any arm to the same report.
@@ -305,7 +327,7 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
         if (!has_outside_flag(cp)) {
           warning("arm ", spec$arm, ": ", pid,
                   " has a whole-slide csv but no union polygon and no flag — skipping union")
-          return(tibble::tibble())
+          return(arm_empty_metrics())
         }
         return(region_ratios_area(cp[!cell_outside(cp), , drop = FALSE], 0, um_per_px) |>
                  dplyr::mutate(patient_id = pid, annotation = "union",
@@ -321,7 +343,7 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
     }))
   }
 
-  if (nrow(cells) == 0) return(tibble::tibble())
+  if (nrow(cells) == 0) return(arm_empty_metrics())
   has_poly <- !is.null(annots) && nrow(annots) > 0
   ann_key  <- if (has_poly) paste(slide_key(annots$patient_id), annots$annotation) else character(0)
 
@@ -348,7 +370,7 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
         if (!has_outside_flag(pooled)) {
           warning("arm ", spec$arm, ": ", pid,
                   " has no readable polygon and no flag — skipping union")
-          return(tibble::tibble())
+          return(arm_empty_metrics())
         }
         return(region_ratios_area(pooled[!cell_outside(pooled), , drop = FALSE], 0, um_per_px) |>
                  dplyr::mutate(patient_id = pid, annotation = "union",
@@ -373,7 +395,7 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
         if (!has_outside_flag(cells_r)) {
           warning("arm ", spec$arm, ": ", pid, " ", ann,
                   " has neither a polygon nor a flag — skipping")
-          return(tibble::tibble())
+          return(arm_empty_metrics())
         }
         return(region_ratios_area(cells_r[!cell_outside(cells_r), , drop = FALSE],
                                   0, um_per_px) |>

@@ -130,9 +130,17 @@ membership_data <- function(mode = MEMBERSHIP_MODES, ihc_data = NULL,
   if (nrow(cells) == 0 && nrow(ucell) == 0) {
     warning("membership_data(\"", mode, "\"): no cells under ", spec$root_path,
             " — every panel will be empty")
-    return(list(mode = mode, cells = cells, per_annotation = tibble::tibble(),
-                union = tibble::tibble(), inventory = tibble::tibble(),
-                has_area = FALSE, overlap = tibble::tibble(),
+    # TYPED empty metrics, not bare ones: an arm whose tree is not on disk yet is a
+    # routine state, and its frames have to flow through the same selects and joins
+    # a full arm's do. A zero-COLUMN tibble instead errors with "Column
+    # `patient_id` doesn't exist" several chunks downstream, naming neither the arm
+    # nor the directory that was missing.
+    return(list(mode = mode, cells = cells,
+                per_annotation = arm_empty_metrics(),
+                union          = arm_empty_metrics(),
+                inventory      = tibble::tibble(),
+                has_area       = FALSE,
+                overlap        = tibble::tibble(),
                 reconciliation = tibble::tibble()))
   }
 

@@ -115,6 +115,22 @@ values — except for a whole-slide patient, which has no polygon and therefore 
 # error rather than being silently ignored.
 mem <- membership_data(ARM, ihc_data, neoplastic)
 
+# AN ARM WITH NO DATA ON DISK IS A ROUTINE STATE, AND IT SAYS SO HERE — not as a
+# dplyr error three chunks down, and not as thirty silently empty figures. The
+# metrics frames are typed even when empty (arm_empty_metrics()), so every select
+# and join below still works; what would otherwise be missing is the explanation.
+have_arm <- nrow(mem$cells) > 0
+if (!have_arm) {
+  .st <- arm_tier_status(arm_spec(ARM))
+  cat("!! ARM `", ARM, "` HAS NO DATA. Every panel below is empty.\n\n", sep = "")
+  cat("Tiers this arm expects, and whether they are on disk:\n")
+  print(as.data.frame(.st[!is.na(.st$dir), c("tier", "dir", "exists")]), row.names = FALSE)
+  cat("\nRoot searched: ", arm_spec(ARM)$root_path, "\n", sep = "")
+  if (dir.exists(here("data", "all_slide")))
+    cat("\ndata/all_slide/ still exists — that IS massimo2's export under its old\n",
+        "name. Nothing reads that path any more:  ln -s all_slide data/massimo2\n", sep = "")
+}
+
 neo_ids   <- unique(slide_key(neoplastic$SAMPLE))
 ihc_ids   <- unique(slide_key(ihc_data$patient_id))
 have_poly <- unique(mem$per_annotation$patient_id[mem$per_annotation$source == "sf"])

@@ -290,6 +290,34 @@ test_that("massimo1's union comes from its own whole-slide tier, not from dissol
   expect_equal(dplyr::filter(u, patient_id == "046")$source, "sf")
 })
 
+test_that("an arm with NO data still yields metrics frames the pages can select from", {
+  # THE REGRESSION. A bare tibble::tibble() has zero COLUMNS, so the clinical page's
+  # `select(patient_id, annotation, source, n_inside)` did not return nothing — it
+  # errored with "Column `patient_id` doesn't exist", three chunks after the real
+  # problem and naming neither the arm nor the missing directory. An arm whose tree
+  # is not on disk yet is routine, so its frames must flow through the same selects
+  # and joins a full arm's do.
+  spec <- arm_spec("massimo2", data_dir = file.path(tempdir(), "definitely-not-there"))
+  m    <- suppressWarnings(arm_metrics(spec, arm_cells(spec), NULL, "per_annotation"))
+  expect_equal(nrow(m), 0)
+  expect_gt(ncol(m), 0)
+  expect_true(all(c("patient_id", "annotation", "source", "n_inside") %in% names(m)))
+  # The exact expression that failed on the cluster.
+  expect_silent(dplyr::select(m, patient_id, annotation, source, n_inside))
+  # ... and it must still join, so the reconciliation table reports
+  # "scored, NOT exported" rather than aborting the knit.
+  scored <- tibble::tibble(patient_id = "046", annotation = "ANNOTATION_1", path_pct = 30)
+  expect_equal(nrow(dplyr::full_join(scored, m, by = c("patient_id", "annotation"))), 1)
+})
+
+test_that("the empty schema is taken from region_ratios_area, so it cannot drift", {
+  # Written-out column lists rot. Deriving the empty frame from the real producer
+  # means a new metric column appears in both at once.
+  full  <- region_ratios_area(tibble::tibble(), 0, 1)
+  empty <- arm_empty_metrics()
+  expect_setequal(names(empty), c("patient_id", "annotation", "source", names(full)))
+})
+
 test_that("a missing region directory warns and yields no cells rather than erroring", {
   spec <- arm_spec("massimo2", data_dir = file.path(tempdir(), "definitely-not-there"))
   expect_warning(out <- arm_cells(spec), "no region csv directory")

@@ -189,8 +189,20 @@ load_arm_cells <- function(arm = ARM_MODES) {
   ucell <- arm_union_tier_cells(spec)
 
   if (nrow(cells) == 0 && nrow(ucell) == 0) {
+    # Name the directory AND the likely cause. The commonest reason this fires is a
+    # tree that predates the three-arm split: `data/all_slide/` is massimo2's export
+    # under its old name, and nothing here reads it any more. Saying so beats a bare
+    # "no cells", which reads like an empty dataset rather than an unmade symlink.
+    hint <- ""
+    legacy <- here::here("data", "all_slide")
+    if (identical(arm, "massimo2") && dir.exists(legacy))
+      hint <- paste0("\n  data/all_slide/ still exists — that IS this arm's export, ",
+                     "under the name it had before the arms were split. Rename or ",
+                     "symlink it:  ln -s all_slide data/massimo2")
     warning("load_arm_cells(\"", arm, "\"): no cells under ", spec$root_path,
-            " — copy or symlink the export to data/", spec$root, "/")
+            "\n  expected the region csvs at ", spec$region_csv$path,
+            "\n  symlink the export:  ln -s <share>/", sub("massimo", "Massimo", spec$root),
+            " data/", spec$root, hint)
     return(tibble::tibble())
   }
 
