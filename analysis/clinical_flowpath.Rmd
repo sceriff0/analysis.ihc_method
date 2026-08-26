@@ -129,6 +129,8 @@ if (!have_arm) {
   if (dir.exists(here("data", "all_slide")))
     cat("\ndata/all_slide/ still exists — that IS massimo2's export under its old\n",
         "name. Nothing reads that path any more:  ln -s all_slide data/massimo2\n", sep = "")
+  cat("\nEvery analysis section below is SKIPPED (eval = have_arm). The reconciliation\n",
+      "table still renders, and will show every scored region as 'scored, NOT exported'.\n", sep = "")
 }
 
 neo_ids   <- unique(slide_key(neoplastic$SAMPLE))
@@ -299,7 +301,7 @@ Being a density rather than a 0..1 fraction, it is compared to the pathologist b
 Each normalization is computed both per-annotation (one polygon) and over the union
 of a patient's polygons.
 
-```{r tumor-content}
+```{r tumor-content, eval = have_arm}
 # Membership was resolved in the parent report; from here on the two frames have the
 # same schema whichever mode produced them (see code/membership.R).
 ihc_tumor_per_ann <- mem$per_annotation
@@ -360,7 +362,7 @@ Spearman rho = rank correlation (monotonic, robust to outliers)
 Kendall tau  = rank concordance (pairwise, best-behaved at small n)
 ```
 
-```{r tumor-content-plot}
+```{r tumor-content-plot, eval = have_arm}
 # `metric` selects the IHC normalization; `unit_scale` draws the x=y line and forces
 # a 0..1 square (only meaningful for tumor_over_inside — tumor_over_cd45 is unbounded
 # and pathologist is 0..1, so their scatter is judged by RANK, not the diagonal).
@@ -467,7 +469,7 @@ the union's dedup of cells falling inside two overlapping annotations — so a v
 gap between them is a measurement of **annotation overlap**, not an aggregation
 error. Read those two rows against each other before trusting anything else here.
 
-```{r aggregation-grid}
+```{r aggregation-grid, eval = have_arm}
 # Every IHC aggregator x every pathologist aggregator, for both tumour-fraction
 # normalizations. $pairs = the per-patient points; $stats = paired_cor3 + bias per
 # combination. `bias` = mean(IHC - pathologist): the systematic offset that the
@@ -504,20 +506,20 @@ be selecting on noise — but to see **whether the choice matters at all**. A fl
 means the conclusion is robust to the aggregation; a grid with a large spread means
 any single reported correlation is partly an artefact of the collapse rule.
 
-```{r aggregation-heatmap, fig.width=fig_width("double"), fig.height=9}
+```{r aggregation-heatmap, eval = have_arm, fig.width=fig_width("double"), fig.height=9}
 # Reading a ROW shows how much the pathologist aggregator matters; a COLUMN, how much
 # the IHC one does. Flat = the choice is immaterial for this cohort (the hoped-for
 # outcome). Boxed cells are the matched-weighting pairs.
 plot_aggregation_heatmap(agg$stats, "spearman")
 ```
 
-```{r aggregation-scatter-raw, fig.width=fig_width("double"), fig.height=7.35}
+```{r aggregation-scatter-raw, eval = have_arm, fig.width=fig_width("double"), fig.height=7.35}
 # tumour / all cells inside. Dashed line is x = y; vertical distance from it is the
 # disagreement. Shaded panels weight both sides the same way.
 plot_aggregation_grid(agg$pairs, "tumor_over_inside")
 ```
 
-```{r aggregation-scatter-clean, fig.width=fig_width("double"), fig.height=7.35}
+```{r aggregation-scatter-clean, eval = have_arm, fig.width=fig_width("double"), fig.height=7.35}
 # tumour / cells inside, with FlowPath Outlier == TRUE and Unknown-phenotype cells
 # removed from both numerator and denominator.
 plot_aggregation_grid(agg$pairs, "tumor_over_inside_clean")
@@ -569,7 +571,7 @@ T-cell (CD3+CD45+) and cytotoxic-NK (GZMB+ NK) content.
 Clinical references: `HOT score` (continuous) and `Immuno-phenotype` (categorical),
 joined on `slide_key(`ID PATIENT`)`.
 
-```{r infiltrate-join}
+```{r infiltrate-join, eval = have_arm}
 clin <- clinical_data |>
   mutate(patient_id = slide_key(`ID PATIENT`)) |>
   select(patient_id,
@@ -586,7 +588,7 @@ cat("patients with IHC infiltrate + clinical immune phenotype:", nrow(infiltrate
 
 Statistic: Spearman correlation between `cd45_over_inside` and the numeric `HOT score`.
 
-```{r infiltrate-hotscore}
+```{r infiltrate-hotscore, eval = have_arm}
 if ("hot_score" %in% names(infiltrate) &&
     sum(is.finite(suppressWarnings(as.numeric(infiltrate$hot_score)))) > 2) {
   df <- infiltrate |> mutate(hot_score = suppressWarnings(as.numeric(hot_score)))
@@ -613,7 +615,7 @@ reaches and a seventh free-scale panel the eye reads as just another subset. Spl
 two, each figure asks a single scale question. The same split is repeated under the
 arcsin transform below, so there are four figures here.
 
-```{r infiltrate-phenotype-cd45, fig.width = fig_width("single"), fig.height = fig_height("single")}
+```{r infiltrate-phenotype-cd45, eval = have_arm, fig.width = fig_width("single"), fig.height = fig_height("single")}
 # The metrics carried into every immuno-phenotype comparison (all are 0..1 fractions
 # of the cells inside the tumour region, so the arcsin panels below can transform
 # them all), split into the total and its subsets — see the note above.
@@ -669,7 +671,7 @@ plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
 The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and GZMB+ NK
 readouts, and the four phenotype lineages — on a free y scale per panel:
 
-```{r infiltrate-phenotype-subsets}
+```{r infiltrate-phenotype-subsets, eval = have_arm}
 plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           "cell fraction inside tumour region (unitless, 0-1)")
 ```
@@ -679,12 +681,12 @@ plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
 stretching the crowded 0/1 tails — read the boxes as the transformed scale, not raw
 fractions.
 
-```{r infiltrate-phenotype-cd45-arcsin, fig.width = fig_width("single"), fig.height = fig_height("single")}
+```{r infiltrate-phenotype-cd45-arcsin, eval = have_arm, fig.width = fig_width("single"), fig.height = fig_height("single")}
 plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
                           "arcsin \u221afraction (radians)", transform = asin_sqrt)
 ```
 
-```{r infiltrate-phenotype-subsets-arcsin}
+```{r infiltrate-phenotype-subsets-arcsin, eval = have_arm}
 plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           "arcsin \u221afraction (radians)", transform = asin_sqrt)
 ```
@@ -708,7 +710,7 @@ Note `frac_cd45` for the CD45+ population is 1 by construction (a self-normalisa
 check), and marker-gated subsets are shown under all three denominators for
 consistency with the lineages.
 
-```{r infiltrate-composition, fig.height=5}
+```{r infiltrate-composition, eval = have_arm, fig.height=5}
 # Marker-gated populations to add to the phenotype lineages (label -> count column
 # from region_ratios). CD45+ = all immune; CD3+CD45+ = marker T cells; GZMB+ NK.
 comp_markers <- c("CD45+"      = "n_cd45_inside",
@@ -755,7 +757,7 @@ plot_composition(ihc_tumor_union, "cell fraction (unitless, 0-1)",
 **Arcsin-transformed.** Same composition under the arcsine square-root transform
 of each fraction.
 
-```{r infiltrate-composition-arcsin, fig.height=5}
+```{r infiltrate-composition-arcsin, eval = have_arm, fig.height=5}
 plot_composition(ihc_tumor_union, "arcsin \u221afraction (radians)",
                  "arcsin-sqrt of: all cells / tumour cells / CD45+ cells inside",
                  transform = asin_sqrt)
@@ -779,7 +781,7 @@ marker pos-fraction: <marker>_posfrac(p) =
                                         evaluated counts as not-positive]
 ```
 
-```{r whole-slide-immune}
+```{r whole-slide-immune, eval = have_arm}
 ihc_lin <- ihc_lineage_fraction(mem$cells) |>
   filter(lineage %in% comparable_lineages) |>
   select(patient_id, lineage, frac) |>
@@ -810,7 +812,7 @@ NLR(p) = BASAL VALUE OF NEUTROPHILS / BASAL VALUE OF LYMPHOCYTES
 compared against `ihc_immune_score` by Spearman correlation (also for lymphocytes
 and PNI).
 
-```{r blood-immunity}
+```{r blood-immunity, eval = have_arm}
 blood <- ihc_clin |>
   transmute(
     patient_id, ihc_immune_score,
@@ -845,7 +847,7 @@ if (nrow(blood_long) > 2) {
 `ihc_immune_score` distribution grouped by `RESPONSE` (factor ordered by ascending
 class value, 1 -> 3); no summary statistic beyond the group boxplots.
 
-```{r response}
+```{r response, eval = have_arm}
 if ("RESPONSE" %in% names(ihc_clin)) {
   df <- ihc_clin |>
     filter(!is.na(RESPONSE), is.finite(ihc_immune_score))
@@ -873,7 +875,7 @@ Event coding (`coerce_event`): yes/dead/relapse/1 -> 1; no/alive/censored/0 -> 0
 Time = `OS`/`PFS` (months); event = `FOLLOW UP` (death) / `PERSISTENCE OR RELAPSE?`
 (progression).
 
-```{r survival}
+```{r survival, eval = have_arm}
 surv_cfg <- list(
   OS  = list(time = "OS",  event = "FOLLOW UP"),
   PFS = list(time = "PFS", event = "PERSISTENCE OR RELAPSE?")

@@ -104,6 +104,14 @@ if (is.null(annots)) {
   if (nrow(qc) == 0) cat("No region csvs found under", REGION_DIR, "\n")
 }
 
+# `qc` is empty when the arm's tree is absent or no csv carries both a centroid and
+# the flag. Gate the table and the scatter on it rather than letting each fail on a
+# column that was never created.
+have_qc <- nrow(qc) > 0 && "pct_cells_agree" %in% names(qc)
+if (!have_qc)
+  cat("No comparable region csvs for arm `", ARM, "` — the table and scatter below",
+      " are skipped.\n", sep = "")
+
 if (nrow(qc)) {
   cat("annotations checked:", nrow(qc),
       "| mean cell-level agreement:",
@@ -119,7 +127,7 @@ methods. `jaccard` = |flag ∩ sf| / |flag ∪ sf| of the inside sets. The last 
 columns are the tumour-fraction-inside each method would feed into the concordance
 plots — they should be close if membership agrees.
 
-```{r qc-table}
+```{r qc-table, eval = have_qc}
 if (nrow(qc)) {
   qc |>
     mutate(across(c(jaccard, pct_cells_agree, tumor_frac_flag, tumor_frac_sf),
@@ -137,7 +145,7 @@ Each point is one annotation; the dashed line is perfect agreement. Points off t
 line are annotations where the two membership definitions give a different tumour
 fraction — those are the slides to distrust the sf conversion on.
 
-```{r qc-scatter}
+```{r qc-scatter, eval = have_qc}
 if (nrow(qc) && sum(is.finite(qc$tumor_frac_flag) & is.finite(qc$tumor_frac_sf)) > 1) {
   d  <- qc |> filter(is.finite(tumor_frac_flag), is.finite(tumor_frac_sf))
   cc <- paired_cor3(d$tumor_frac_flag, d$tumor_frac_sf)   # Pearson + Spearman + Kendall

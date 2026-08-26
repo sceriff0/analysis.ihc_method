@@ -174,6 +174,30 @@ aggregate_pathologist <- function(path_long, per_ann, metric) {
 #           bias = mean(IHC - pathologist), the systematic offset the correlation
 #           coefficients are deliberately blind to
 # ---------------------------------------------------------------------------
+# TYPED EMPTY FRAMES, DERIVED FROM THE PRODUCER.
+#
+# An empty purrr::map_dfr() result has NO COLUMNS, so a downstream
+# transmute(stats, metric, ...) fails with "object 'metric' not found" rather than
+# producing an empty table. That is the same defect the note inside
+# aggregation_grid() already warns about for `pairs` — `stats` was simply missed.
+#
+# Both schemas are built by calling paired_cor3() on empty input and slicing the
+# placeholder row away, so the column set and types come from the real producer and
+# cannot drift from it.
+.empty_agg_stats <- function() {
+  cc <- paired_cor3(numeric(0), numeric(0))
+  out <- dplyr::mutate(cc, metric = NA_character_, ihc_agg = NA_character_,
+                       path_agg = NA_character_, .before = 1)
+  out <- dplyr::mutate(out, bias = NA_real_, matched = NA)
+  .label_aggs(out)[0, , drop = FALSE]
+}
+
+.empty_baseline <- function() {
+  cc <- paired_cor3(numeric(0), numeric(0))
+  dplyr::mutate(cc, metric = NA_character_, bias = NA_real_,
+                .before = 1)[0, , drop = FALSE]
+}
+
 aggregation_grid <- function(per_ann, union, path_long,
                              metrics = c("tumor_over_inside", "tumor_over_inside_clean")) {
   pairs <- purrr::map_dfr(metrics, function(the_metric) {
@@ -208,7 +232,7 @@ aggregation_grid <- function(per_ann, union, path_long,
                              path_agg = character(), patient_id = character(),
                              ihc_val = numeric(), path_frac = numeric(),
                              ihc_lab = factor(), path_lab = factor()),
-      stats = tibble::tibble()
+      stats = .empty_agg_stats()
     ))
 
   stats <- pairs |>
@@ -246,7 +270,7 @@ per_annotation_baseline <- function(per_ann, path_long,
     d <- per_ann |>
       dplyr::inner_join(path_long, by = c("patient_id", "annotation")) |>
       dplyr::filter(is.finite(.data[[metric]]), is.finite(path_frac))
-    if (nrow(d) == 0) return(tibble::tibble())
+    if (nrow(d) == 0) return(.empty_baseline())
     paired_cor3(d[[metric]], d$path_frac) |>
       dplyr::mutate(metric = metric, bias = mean(d[[metric]] - d$path_frac),
                     .before = 1)

@@ -46,6 +46,16 @@ SLUG <- "marker_qc"
 # figure about a different arm. Change this one constant to re-point the page.
 ARM      <- "massimo2"
 ihc_data <- ihc_for(ARM)
+
+# EVERY check on this page is a QC of the arm's own cells, so all of them are gated
+# on the arm actually having any. Without this each chunk fails on its own terms —
+# an empty purrr::map_dfr() has no COLUMNS, so downstream references raise "object
+# not found" rather than drawing nothing — and the knit dies at whichever chunk
+# happens to come first instead of saying the tree is missing.
+have_arm <- nrow(ihc_data) > 0
+if (!have_arm)
+  cat("!! ARM `", ARM, "` HAS NO CELLS at ", arm_spec(ARM)$root_path,
+      "\n   Every check below is skipped.\n", sep = "")
 CAP  <- "ihc_method internal QC · FlowPath marker & lineage QC"
 ```
 
@@ -99,7 +109,7 @@ filter on `gated` first.
 space by `slide_key()`. The report restricts to **typed** cells: the cell type is
 not NA and not "Unknown".
 
-```{r marker-long}
+```{r marker-long, eval = have_arm}
 mk_long <- ihc_marker_long(ihc_data) |>
   filter(!is.na(phenotype_clean), phenotype_clean != "Unknown")
 cat("cells:", dplyr::n_distinct(mk_long$cell_id),
@@ -122,7 +132,7 @@ where:
 The heatmap fills each (marker, type) tile with `mean_z` (diverging scale centred
 at 0).
 
-```{r concordance-matrix}
+```{r concordance-matrix, eval = have_arm}
 conc <- mk_long |>
   group_by(phenotype_clean, marker) |>
   summarise(mean_z = mean(zscore, na.rm = TRUE),
@@ -157,7 +167,7 @@ where:
 
 `mean_z` is rounded to 2 dp; rows are sorted by descending `rank_of_defining`.
 
-```{r concordance-expected}
+```{r concordance-expected, eval = have_arm}
 # Encode the expected defining marker(s) per phenotype and check it is the top
 # (or near-top) signal. Flags phenotypes whose defining marker is not their max.
 expected <- tibble::tribble(
@@ -220,7 +230,7 @@ likely_bimodal = BC > 0.555 OR dip_p < 0.05
 
 Rows are sorted by descending BC.
 
-```{r channel-qc}
+```{r channel-qc, eval = have_arm}
 bimodality_coef <- function(x) {                       # Sarle's BC
   x <- x[is.finite(x)]; n <- length(x)
   if (n < 4) return(NA_real_)
@@ -260,7 +270,7 @@ Density of the z-scores per marker, over cells with a finite z-score that a gate
 actually evaluated (`gated`), split by the positive call (`sign +` / `sign -`);
 facets are free-scaled.
 
-```{r channel-qc-plot, fig.height=8}
+```{r channel-qc-plot, eval = have_arm, fig.height=8}
 ihc_marker_long(ihc_data) |>
   filter(!is.na(zscore), gated) |>
   mutate(call = if_else(pos, "sign +", "sign -")) |>
@@ -287,7 +297,7 @@ Over typed cells, each feature is pivoted long and filtered to finite values; th
 plot is a per-phenotype boxplot (phenotypes ordered by median feature value,
 outliers hidden, facets free-scaled).
 
-```{r morphology}
+```{r morphology, eval = have_arm}
 morph_feats <- intersect(c("area", "perimeter", "eccentricity", "solidity"),
                          names(ihc_data))
 
@@ -371,7 +381,7 @@ where:
 Each ratio is `NA` when its patient has no cell in the corresponding phenotype set
 (`any(...)` guard); positivity is never `NA`.
 
-```{r leakage}
+```{r leakage, eval = have_arm}
 immune_ph <- c("Immune", "T helper", "T cytotoxic", "Activated T cytotoxic",
                "CD4+ Treg", "CD8+ T reg", "Natural Killer", "Activated Natural Killer")
 
@@ -396,7 +406,7 @@ knitr::kable(spill, digits = 3,
 
 Bars are the two ratios above, per patient, dropping `NA` entries.
 
-```{r leakage-plot, fig.height=4.5}
+```{r leakage-plot, eval = have_arm, fig.height=4.5}
 spill |>
   pivot_longer(c(cd45pos_in_tumorph, panckpos_in_immune),
                names_to = "leak", values_to = "rate") |>
@@ -439,7 +449,7 @@ The two conditionals are set to `NA` when their denominator (`n_a` or `n_b`) is 
 `pct_dp_all` uses the all-cell denominator; the conditionals use the single-marker
 positive counts.
 
-```{r exclusivity-pairs}
+```{r exclusivity-pairs, eval = have_arm}
 # Per-cell marker positivity matrix: one logical column per marker, named for the
 # marker rather than for whichever sign column the export used. A marker the panel
 # does not carry comes back all-FALSE, so its pairs report 0% co-positivity instead
@@ -486,7 +496,7 @@ max_cond = larger of  p(b | a)  and  p(a | b)
 
 plotted for the pairs with a finite value.
 
-```{r exclusivity-summary, fig.height=4.5}
+```{r exclusivity-summary, eval = have_arm, fig.height=4.5}
 # The worst-case conditional co-positivity per pair (max of the two directions).
 pair_stats |>
   mutate(max_cond = pmax(p_b_given_a, p_a_given_b, na.rm = TRUE),
@@ -511,7 +521,7 @@ dp(p, a, b) = (cells of p that are both a+ and b+) / (all cells of p)
 This denominator is all of patient p's cells, i.e. the per-patient analogue of
 `pct_dp_all`, not of the conditional rates above.
 
-```{r exclusivity-heatmap}
+```{r exclusivity-heatmap, eval = have_arm}
 per_pat <- exclusivity_pairs |>
   select(a, b, pair_label) |>
   purrr::pmap_dfr(function(a, b, pair_label) {

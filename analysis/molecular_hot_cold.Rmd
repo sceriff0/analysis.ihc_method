@@ -52,6 +52,15 @@ SLUG <- "molecular_hot_cold"
 # figure about a different arm. Change this one constant to re-point the page.
 ARM      <- "massimo2"
 ihc_data <- ihc_for(ARM)
+
+# The bulk-RNA and deconvolution sections stand on their own; only the chunks that
+# JOIN an IHC quantity need the arm's cells. Gating just those keeps the RNA half of
+# the page rendering when the arm's tree is not on disk.
+have_arm <- nrow(ihc_data) > 0
+if (!have_arm)
+  cat("!! ARM `", ARM, "` HAS NO CELLS at ", arm_spec(ARM)$root_path,
+      "\n   The IHC-vs-RNA and IHC-vs-deconvolution comparisons are skipped;",
+      "\n   the bulk-RNA sections still render.\n", sep = "")
 neoplastic <- neoplastic_for(ARM)
 ```
 
@@ -224,7 +233,7 @@ where:
 These `_posfrac` columns are reshaped long to `patient_id`, `marker`, and
 `ihc_posfrac`.
 
-```{r rna-ihc-fraction}
+```{r rna-ihc-fraction, eval = have_arm}
 ihc_marker_frac <- ihc_marker_fraction(ihc_data) |>
   select(patient_id, ends_with("_posfrac")) |>
   pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_posfrac") |>
@@ -243,7 +252,7 @@ via `cor.test(method = "spearman")`), reported with its p-value and the pair cou
 `n`; it is `NA` when `n < 3` or either vector is constant. Rows are sorted by
 descending correlation.
 
-```{r rna-concordance}
+```{r rna-concordance, eval = have_arm}
 rna_paired <- marker_expr |>
   inner_join(ihc_marker_frac, by = c("marker", "patient_id")) |>
   filter(is.finite(rna_expr), is.finite(ihc_posfrac))
@@ -271,7 +280,7 @@ was designed around; the second takes the remaining nine. The split is by *readi
 order*, not by quality: no marker is dropped, and the Spearman table above still
 covers all of them together.
 
-```{r rna-concordance-plot-setup}
+```{r rna-concordance-plot-setup, eval = have_arm}
 # The ten checked first. Ordered as listed, not alphabetically, so the facet grid
 # reads down the immune lineage (CD45 -> CD3 -> CD8/CD4 -> GZMB/FOXP3 -> CD56) and
 # then the structural markers (SMA, PANCK, VIMENTIN).
@@ -312,7 +321,7 @@ plot_rna_concordance <- function(rna_paired, clin, markers, title) {
 }
 ```
 
-```{r rna-concordance-plot, fig.height=7}
+```{r rna-concordance-plot, eval = have_arm, fig.height=7}
 if (nrow(rna_paired) > 0)
   plot_rna_concordance(rna_paired, clin, rna_primary_markers,
                        "FlowPath marker+ fraction vs bulk-RNA expression")
@@ -321,7 +330,7 @@ if (nrow(rna_paired) > 0)
 The remaining markers — everything in `marker_gene_map` the figure above does not
 cover, in the order the map declares them:
 
-```{r rna-concordance-plot-rest, fig.height=7}
+```{r rna-concordance-plot-rest, eval = have_arm, fig.height=7}
 if (nrow(rna_paired) > 0) {
   rna_other_markers <- setdiff(ihc_markers, rna_primary_markers)
   plot_rna_concordance(rna_paired, clin, rna_other_markers,
@@ -340,7 +349,7 @@ mean staining intensity (mean z-score over non-NA cells):
 Then correlate `<marker>_z` against `rna_expr` per marker with the same statistic
 (Spearman correlation across patients).
 
-```{r rna-zscore-sensitivity}
+```{r rna-zscore-sensitivity, eval = have_arm}
 ihc_z <- ihc_marker_fraction(ihc_data) |>
   select(patient_id, ends_with("_z")) |>
   pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_z") |>
@@ -613,7 +622,7 @@ full patient-by-lineage grid: a lineage a patient simply lacks reads as 0
 (present), not a missing row — otherwise the `inner_join` below would silently
 drop that patient from that lineage's panel.
 
-```{r deconv-ihc-lineages}
+```{r deconv-ihc-lineages, eval = have_arm}
 lin_raw <- ihc_lineage_fraction(ihc_data) |>
   filter(lineage %in% comparable_lineages) |>
   select(patient_id, lineage, ihc_frac = frac)
@@ -644,7 +653,7 @@ where: the sub-types are the method's rows for that patient whose
 This is inner-joined to `ihc_frac(patient, lineage)` on patient and lineage,
 keeping finite pairs.
 
-```{r deconv-concordance}
+```{r deconv-concordance, eval = have_arm}
 deconv_paired <- NULL
 if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
   deconv_lin <- deconv_long |>
@@ -669,7 +678,7 @@ method ranking(method)       = average of those Spearman values across lineages 
 where: n_lineages = the number of lineages with a finite Spearman value.
 ```
 
-```{r deconv-concordance-table}
+```{r deconv-concordance-table, eval = have_arm}
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   deconv_summary <- deconv_paired |>
     group_by(method, lineage) |>
@@ -692,7 +701,7 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
 
 Scatter of `ihc_frac` (x) vs `score` (y), faceted method by lineage.
 
-```{r deconv-concordance-plot}
+```{r deconv-concordance-plot, eval = have_arm}
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
@@ -725,7 +734,7 @@ Treat IHC as one more "source" alongside each method, giving one value per sourc
 patient and lineage: the per-lineage deconvolution score for a method, or
 `ihc_frac` for source `IHC`.
 
-```{r deconv-agreement}
+```{r deconv-agreement, eval = have_arm}
 agr <- NULL
 if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
   # per (method, patient, lineage) score, summing a method's split sub-types.
@@ -758,7 +767,7 @@ where: for each lineage, the per-lineage Spearman correlates a's value against
 
 Rank-based throughout, so the methods' differing score scales do not matter.
 
-```{r deconv-agreement-heatmap, fig.height=6}
+```{r deconv-agreement-heatmap, eval = have_arm, fig.height=6}
 if (!is.null(agr) && nrow(agr) > 0) {
   # order sources by mean off-diagonal agreement (most-consensual first); keep IHC visible.
   ord <- agr |>
@@ -794,7 +803,7 @@ rho_vs_IHC(a)         = mean_rho(a, IHC)
 is agreement with IHC alone. A high vs-others but low vs-IHC source (or the
 reverse) localises where methods and IHC diverge.
 
-```{r deconv-agreement-ranks}
+```{r deconv-agreement-ranks, eval = have_arm}
 if (!is.null(agr) && nrow(agr) > 0) {
   # How much each source agrees with the consensus of the OTHERS (mean off-diagonal),
   # and separately with IHC alone.
@@ -921,7 +930,10 @@ D_MAIN        <- max(THRESHOLDS_UM)
 # independently, so an invasive margin measured from one arm's boundary against
 # another arm's cells would be a distance to a line those cells were never scored on.
 annots      <- arm_annotations(arm_spec(ARM), "region", patient_ids = neoplastic$SAMPLE)
-have_margin <- !is.null(annots) && nrow(annots) > 0
+# ALSO require the arm's cells: a margin band is a distance from a polygon to a
+# CELL, so polygons alone are not enough. Without this, an arm with readable
+# geojson but no csv would pass the gate and fail inside ihc_periphery_metrics().
+have_margin <- have_arm && !is.null(annots) && nrow(annots) > 0
 
 if (!have_margin)
   cat("No pathologist geojson for arm", ARM, "under",
