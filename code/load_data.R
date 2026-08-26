@@ -143,14 +143,17 @@ neoplastic_massimo1 <- tribble(
   "24086",  "ANNOTATION_1",         80,
   "24086",  "ANNOTATION_2",         70,
   "24086",  "ANNOTATION_3",         70,
-  # 10338 and 15897 have NO `_selected` regions in arm 1 and NO cellularity block in
-  # thr_head&neck.xlsx. Their `annotation_all` polygon is promoted to ANNOTATION_1 by
-  # arm_promote_unregioned(), so the region exists and is exported — it simply was
-  # never scored in this session. NA keeps it out of the correlation while the
-  # reconciliation table reports it as "exported, NOT scored", which is the honest
-  # statement. Arm 2 DID score both (10338 80, 15897 60/75) against its own polygons.
-  "10338",  "ANNOTATION_1",  NA_real_,
-  "15897",  "ANNOTATION_1",  NA_real_
+  # 10338 and 15897 have no `_selected` regions in arm 1 — one `annotation_all`
+  # polygon each, promoted to ANNOTATION_1 by arm_promote_unregioned(). Their sheets
+  # key the score as bare `annotation` (SINGULAR), not `annotation_<k>`, which is
+  # exactly right for a patient with one region and is why a first pass reading only
+  # `annotation_<k>` reported them unscored.
+  #
+  # 10338's sheet records a RANGE, "75-80"; 77.5 is its midpoint. It is the only
+  # interpolated value in either table — every other number is transcribed. Arm 2
+  # scored the same patient 80 against its own polygon.
+  "10338",  "ANNOTATION_1",       77.5,
+  "15897",  "ANNOTATION_1",         70
 )
 
 # The arm -> pathologist-table lookup, so a page says `neoplastic_for(ARM)` rather

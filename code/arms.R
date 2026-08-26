@@ -144,29 +144,49 @@ ARM_SPECS <- list(
     arm            = "massimo1",
     root           = "massimo1",
     label          = "FlowPath, selected regions",
-    region_csv     = list(dir = "FlowPath_csv_selected", pattern = "flat_digit"),
+    region_csv     = list(dir = "FlowPath_csv_selected", pattern = "flat_digit",
+                          classification = "normal"),
     region_poly    = list(dir = "annotation_selected",   pattern = "nested_digit"),
-    union_csv      = list(dir = "FlowPath_csv_all",      pattern = "nested_bare"),
+    union_csv      = list(dir = "FlowPath_csv_all",      pattern = "nested_bare",
+                          classification = "normal"),
     union_poly     = list(dir = "annotation_all",        pattern = "nested_bare"),
     bare_region_is = NA_character_
   ),
+  # THE INVERTED ARM FALLS BACK TO massimo1 FOR THE PATIENTS IT DID NOT RE-RUN.
+  #
+  # The modified-PANCK re-classification was run on 052 and 5456 only. Reading just
+  # those would make every cohort-level number on the page a statement about two
+  # patients while looking like a statement about the study — so the other four load
+  # their ORDINARY massimo1 cells, and `classification` records which is which per
+  # row. The comparison against massimo1 is then a comparison of the same six
+  # patients, of whom two differ by construction and four are identical by
+  # construction; the inventory says so rather than leaving it to be inferred.
+  #
+  # The union tier is arm 1's real whole-slide export, but it serves the FALLBACK
+  # patients only: 052 and 5456 have no inverted whole-slide csv, so using arm 1's
+  # for them would silently put NORMAL cells in the inverted arm's union row.
+  # arm_union_tier_cells() enforces that restriction.
   massimo1_inverted = list(
     arm            = "massimo1_inverted",
     root           = "massimo1",
     label          = "FlowPath, inverted classification at a modified PANCK threshold",
     region_csv     = list(dir = "csv_inverted-classification_modified-thrPANCK",
-                          pattern = "flat_digit"),
+                          pattern = "flat_digit", classification = "inverted"),
+    region_csv_fallback = list(dir = "FlowPath_csv_selected", pattern = "flat_digit",
+                               classification = "normal"),
     # Borrowed from massimo1: same regions, re-classified cells.
     region_poly    = list(dir = "annotation_selected", pattern = "nested_digit"),
-    union_csv      = NULL,
-    union_poly     = list(dir = "annotation_all",     pattern = "nested_bare"),
+    union_csv      = list(dir = "FlowPath_csv_all",    pattern = "nested_bare",
+                          classification = "normal"),
+    union_poly     = list(dir = "annotation_all",      pattern = "nested_bare"),
     bare_region_is = NA_character_
   ),
   massimo2 = list(
     arm            = "massimo2",
     root           = "massimo2",
     label          = "the all-slide export, letter-suffixed regions",
-    region_csv     = list(dir = "csv",        pattern = "nested_letter"),
+    region_csv     = list(dir = "csv",        pattern = "nested_letter",
+                          classification = "normal"),
     region_poly    = list(dir = "annotation", pattern = "nested_letter"),
     union_csv      = NULL,
     union_poly     = NULL,
@@ -205,7 +225,8 @@ arm_spec <- function(arm = ARM_MODES, data_dir = here::here("data")) {
   spec <- ARM_SPECS[[arm]]
   root <- .arm_resolve_dir(data_dir, spec$root)
   spec$root_path <- root
-  for (tier in c("region_csv", "region_poly", "union_csv", "union_poly"))
+  for (tier in c("region_csv", "region_csv_fallback",
+                 "region_poly", "union_csv", "union_poly"))
     if (!is.null(spec[[tier]]))
       spec[[tier]]$path <- .arm_resolve_dir(root, spec[[tier]]$dir)
   spec
@@ -216,11 +237,15 @@ arm_spec <- function(arm = ARM_MODES, data_dir = here::here("data")) {
 # named once rather than being an `is.null()` test scattered around.
 arm_has_union_tier <- function(spec) !is.null(spec$union_csv)
 
+# Does this arm top itself up from another tier for the patients it did not re-run?
+arm_has_fallback <- function(spec) !is.null(spec$region_csv_fallback)
+
 # Which tiers are actually on disk. Reported by every page's provenance table:
 # an arm whose region tier is missing yields empty panels, and the reader should
 # be able to say which directory it looked in rather than "no cells".
 arm_tier_status <- function(spec) {
-  tiers <- c("region_csv", "region_poly", "union_csv", "union_poly")
+  tiers <- c("region_csv", "region_csv_fallback",
+             "region_poly", "union_csv", "union_poly")
   tibble::tibble(
     arm    = spec$arm,
     tier   = tiers,

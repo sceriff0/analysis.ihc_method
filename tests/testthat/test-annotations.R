@@ -114,6 +114,58 @@ test_that("a missing or empty annotation directory returns NULL, not an error", 
   expect_null(load_annotations(empty))
 })
 
+test_that("read_polygon_geojson accepts a BARE ARRAY of features", {
+  # What annotation_all/ actually holds: [{"type":"Feature",...}, ...] with no
+  # envelope, so `$type` is NULL. Without a branch for it the geometry-only fallback
+  # wrapped the whole array as one geometry, `g$type` was NULL too, and it stopped
+  # with `unsupported geometry type: ` — an EMPTY name. arm_annotations() catches
+  # that and warn-and-skips, so the symptom was every union polygon in arm 1 silently
+  # missing: union rows dropping to the export flag, and the single-annotation
+  # patients losing the polygon their promoted ANNOTATION_1 depends on.
+  skip_if_not_installed("sf")
+  skip_if_not_installed("jsonlite")
+  d <- file.path(tempdir(), paste0("gj-", sample(1e6, 1))); dir.create(d)
+  ring <- function(x0, y0, x1, y1)
+    list(list(c(x0,y0), c(x1,y0), c(x1,y1), c(x0,y1), c(x0,y0)))
+  feat <- function(b) list(type = "Feature",
+                           geometry = list(type = "Polygon", coordinates = ring(b[1],b[2],b[3],b[4])),
+                           properties = structure(list(), names = character(0)))
+
+  bare <- file.path(d, "bare_array.geojson")
+  jsonlite::write_json(list(feat(c(0,0,10,10)), feat(c(20,20,30,30))),
+                       bare, auto_unbox = TRUE)
+  g <- read_polygon_geojson(bare)
+  expect_s3_class(g, "sfc")
+  # Two disjoint squares dissolve to one multipolygon spanning both.
+  expect_equal(as.numeric(sf::st_bbox(g)), c(0, 0, 30, 30))
+
+  # The three shapes that already worked must keep working.
+  fc <- file.path(d, "fc.geojson")
+  jsonlite::write_json(list(type = "FeatureCollection", features = list(feat(c(0,0,10,10)))),
+                       fc, auto_unbox = TRUE)
+  expect_equal(as.numeric(sf::st_bbox(read_polygon_geojson(fc))), c(0, 0, 10, 10))
+
+  one <- file.path(d, "one.geojson")
+  jsonlite::write_json(feat(c(1,1,4,4)), one, auto_unbox = TRUE)
+  expect_equal(as.numeric(sf::st_bbox(read_polygon_geojson(one))), c(1, 1, 4, 4))
+
+  geom <- file.path(d, "geom.geojson")
+  jsonlite::write_json(list(type = "Polygon", coordinates = ring(2,2,5,5)),
+                       geom, auto_unbox = TRUE)
+  expect_equal(as.numeric(sf::st_bbox(read_polygon_geojson(geom))), c(2, 2, 5, 5))
+})
+
+test_that("an unsupported geometry names the file it came from", {
+  # The old message was `unsupported geometry type: ` with nothing after the colon,
+  # which is what made the bare-array failure so hard to see.
+  skip_if_not_installed("sf")
+  d <- file.path(tempdir(), paste0("gj2-", sample(1e6, 1))); dir.create(d)
+  f <- file.path(d, "line.geojson")
+  jsonlite::write_json(list(type = "LineString", coordinates = list(c(0,0), c(1,1))),
+                       f, auto_unbox = TRUE)
+  expect_error(read_polygon_geojson(f), "line\\.geojson")
+})
+
 test_that("the surviving membership modes are the three arms plus mirage", {
   source(here::here("code", "membership.R"))
   expect_setequal(MEMBERSHIP_MODES,

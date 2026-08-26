@@ -189,8 +189,26 @@ ihc_markers <- marker_gene_map$marker
 read_polygon_geojson <- function(path) {
   .require_sf("read_polygon_geojson()")
   j <- jsonlite::fromJSON(path, simplifyVector = FALSE)
+
+  # FOUR SHAPES, because QuPath writes more than one and the arms differ.
+  #   {"type":"FeatureCollection","features":[...]}   the standard container
+  #   {"type":"Feature","geometry":{...}}             one annotation
+  #   [{"type":"Feature",...}, ...]                   a BARE ARRAY of features —
+  #                                                   no envelope, so `$type` is NULL
+  #   {"type":"Polygon", ...}                         a bare geometry
+  #
+  # The bare array is what `annotation_all/` holds. Without a branch for it, `$type`
+  # is NULL, the geometry-only fallback wraps the whole ARRAY as one geometry, and
+  # `g$type` is NULL too — so it stopped with `unsupported geometry type: ` and an
+  # EMPTY name. load_annotations()/arm_annotations() catch that and warn-and-skip, so
+  # the symptom was every union polygon in arm 1 silently missing: union rows falling
+  # back to the export flag, and 10338/15897 losing the polygon their promoted
+  # ANNOTATION_1 depends on. A whole scope quietly degraded on a parser branch.
+  .is_feature <- function(x) is.list(x) && !is.null(x$geometry)
   feats <- if (identical(j$type, "FeatureCollection")) j$features
            else if (identical(j$type, "Feature"))       list(j)
+           else if (is.null(names(j)) && length(j) > 0 &&
+                    all(vapply(j, .is_feature, logical(1)))) j
            else                                          list(list(geometry = j))
 
   geoms <- lapply(feats, function(f) {
@@ -201,7 +219,8 @@ read_polygon_geojson <- function(path) {
       sf::st_multipolygon(lapply(g$coordinates,
         function(poly) lapply(poly, .ring_matrix)))
     } else {
-      stop(sprintf("unsupported geometry type: %s", g$type))
+      stop(sprintf("unsupported geometry type '%s' in %s",
+                   g$type %||% "<none>", path))
     }
   })
   # planar image pixel coordinates -> no CRS; dissolve to one geometry.

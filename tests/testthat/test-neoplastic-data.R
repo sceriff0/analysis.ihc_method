@@ -89,17 +89,32 @@ test_that("arm 2 keeps 24086 as a whole-slide score", {
 })
 
 # --- Arm 1: read from thr_head&neck.xlsx -------------------------------------
-test_that("arm 1's scored regions are percentages, and its unscored ones stay NA", {
-  # Filled 2026-08-26 from data/Massimo1/thr_head&neck.xlsx (one sheet per patient,
-  # each with a `neoplastic cellularity (%)` block keyed annotation_1..3).
-  scored <- m1$path_pct[!is.na(m1$path_pct)]
-  expect_equal(length(scored), 11)                    # the 11 `_selected` regions
-  expect_true(all(scored >= 1 & scored <= 100))       # percentages, not fractions
-  # 10338 and 15897 have no `_selected` regions and no cellularity block, so their
-  # promoted ANNOTATION_1 is exported-but-unscored. NA keeps the pair out of the
-  # correlation instead of inventing a plausible number that would plot.
-  expect_setequal(m1$SAMPLE[is.na(m1$path_pct)], c("10338", "15897"))
+test_that("every arm-1 region is scored, and they are percentages", {
+  # Read from data/Massimo1/thr_head&neck.xlsx, one sheet per patient. Multi-region
+  # patients key the block `annotation_<k>`; 10338 and 15897 key it bare `annotation`
+  # (SINGULAR), which is correct for a patient with one region — and is why a first
+  # pass matching only `annotation_<k>` reported those two unscored.
+  expect_false(any(is.na(m1$path_pct)))
+  expect_equal(nrow(m1), 13)
+  expect_true(all(m1$path_pct >= 1 & m1$path_pct <= 100))
   expect_type(m1$path_pct, "double")
+})
+
+test_that("the single-annotation patients carry one score used by BOTH scopes", {
+  # 10338 and 15897 have one `annotation_all` polygon each, promoted to ANNOTATION_1.
+  # That one row is what the per-annotation panel joins on AND what the union
+  # aggregation collapses to, so both scopes plot the same number for them — which
+  # is the point: the patient must not vanish from either panel.
+  for (pid in c("10338", "15897")) {
+    rows <- dplyr::filter(m1, SAMPLE == pid)
+    expect_equal(nrow(rows), 1, info = pid)
+    expect_equal(rows$annotation, "ANNOTATION_1", info = pid)
+    expect_false(is.na(rows$path_pct), info = pid)
+  }
+  expect_equal(dplyr::filter(m1, SAMPLE == "15897")$path_pct, 70)
+  # 10338's sheet records the RANGE "75-80"; 77.5 is its midpoint and the only
+  # interpolated value in either table.
+  expect_equal(dplyr::filter(m1, SAMPLE == "10338")$path_pct, 77.5)
 })
 
 test_that("the two arms record DIFFERENT reads of the same tissue", {

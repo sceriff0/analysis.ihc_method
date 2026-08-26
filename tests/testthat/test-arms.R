@@ -26,13 +26,29 @@ test_that("the inverted arm reads massimo1's polygons, not its own", {
   expect_false(identical(inv$region_csv$path, m1$region_csv$path))
 })
 
-test_that("only massimo1 ships a dedicated whole-slide tier", {
-  # This is what makes arm 1 the ground truth for the de-duplication the other two
-  # arms are forced to use. If another arm gained an `_all` tier the reconciliation
-  # should extend to it, so the assertion is on the registry, not on a hard-coded name.
+test_that("massimo2 has no whole-slide tier; both massimo1 arms do", {
+  # arm 1's `_all` export is what makes it the ground truth for the de-duplication
+  # massimo2 is forced to use. The inverted arm shares that export, but only for the
+  # patients it did not re-run — see the fallback test below.
   expect_true(arm_has_union_tier(arm_spec("massimo1", data_dir = "/data")))
+  expect_true(arm_has_union_tier(arm_spec("massimo1_inverted", data_dir = "/data")))
   expect_false(arm_has_union_tier(arm_spec("massimo2", data_dir = "/data")))
-  expect_false(arm_has_union_tier(arm_spec("massimo1_inverted", data_dir = "/data")))
+})
+
+test_that("only the inverted arm falls back to another tier", {
+  # The modified-PANCK run covers 052 and 5456 only. Reading just those would make
+  # every cohort number a statement about two patients while looking like a statement
+  # about the study, so the other four load their ordinary massimo1 cells.
+  inv <- arm_spec("massimo1_inverted", data_dir = "/data")
+  expect_true(arm_has_fallback(inv))
+  expect_equal(inv$region_csv_fallback$path,
+               arm_spec("massimo1", data_dir = "/data")$region_csv$path)
+  # The two tiers must be distinguishable in the output, or a reader cannot tell
+  # which patients were actually re-classified.
+  expect_equal(inv$region_csv$classification, "inverted")
+  expect_equal(inv$region_csv_fallback$classification, "normal")
+  for (a in c("massimo1", "massimo2"))
+    expect_false(arm_has_fallback(arm_spec(a, data_dir = "/data")))
 })
 
 test_that("letters map to region index by alphabet position, not file order", {
@@ -105,7 +121,7 @@ test_that(".annotation_key delegates here rather than keeping its own parser", {
 test_that("arm_tier_status reports which tiers are actually on disk", {
   spec <- arm_spec("massimo2", data_dir = file.path(tempdir(), "definitely-not-there"))
   st   <- arm_tier_status(spec)
-  expect_equal(nrow(st), 4)
+  expect_equal(nrow(st), 5)   # + region_csv_fallback
   expect_false(any(st$exists))
   expect_true(all(is.na(st$dir[st$tier %in% c("union_csv", "union_poly")])))
 })

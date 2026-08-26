@@ -95,8 +95,11 @@ source(here::here("code", "arms.R"))
 # `bare_region_is` rule. Where that rule is NA the file is a contradiction in the
 # layout, so it is dropped with a warning rather than pooled in as an extra region
 # and double-counting every cell it holds.
-arm_cells <- function(spec) {
-  meta <- .arm_tier_files(spec$region_csv, "csv", "region csv")
+# One tier's cells. Factored out of arm_cells() so the primary and fallback tiers
+# are read by the SAME code — a fallback read a second way would be a second set of
+# rules for the same question.
+.arm_read_region_tier <- function(spec, tier, what) {
+  meta <- .arm_tier_files(tier, "csv", what)
   if (nrow(meta) == 0) return(tibble::tibble())
 
   bare <- is.na(meta$annotation)
@@ -148,10 +151,35 @@ arm_cells <- function(spec) {
     dplyr::mutate(cells,
                   arm                = spec$arm,
                   annotation         = ann,
+                  classification     = tier$classification %||% "normal",
                   file_origin        = spec$arm,
                   has_annotation     = has_ann,
                   .membership_source = src)
   })
+}
+
+# The arm's region cells: its own tier, topped up from the fallback for the patients
+# it does not cover.
+#
+# TOP-UP IS PER PATIENT, NOT PER FILE. A patient the arm re-ran is taken entirely
+# from the arm's own tier; a patient it did not is taken entirely from the fallback.
+# Mixing the two within one patient would put re-classified and ordinary cells in the
+# same denominator, and no column could then say what that patient's number means.
+arm_cells <- function(spec) {
+  primary <- .arm_read_region_tier(spec, spec$region_csv, "region csv")
+  if (!arm_has_fallback(spec)) return(primary)
+
+  fb <- .arm_read_region_tier(spec, spec$region_csv_fallback, "fallback region csv")
+  if (nrow(fb) == 0) return(primary)
+  have <- if (nrow(primary)) unique(primary$patient_id) else character(0)
+  fb   <- dplyr::filter(fb, !patient_id %in% have)
+  if (nrow(fb) == 0) return(primary)
+
+  message(sprintf("arm %s: %d patient(s) not re-run (%s) load their %s cells from %s",
+                  spec$arm, dplyr::n_distinct(fb$patient_id),
+                  paste(sort(unique(fb$patient_id)), collapse = ", "),
+                  spec$region_csv_fallback$classification, spec$region_csv_fallback$dir))
+  if (nrow(primary) == 0) fb else dplyr::bind_rows(primary, fb)
 }
 
 # --- Cells: the whole-slide tier ---------------------------------------------
@@ -163,6 +191,25 @@ arm_union_tier_cells <- function(spec) {
   if (!arm_has_union_tier(spec)) return(tibble::tibble())
   meta <- .arm_tier_files(spec$union_csv, "csv", "whole-slide csv")
   if (nrow(meta) == 0) return(tibble::tibble())
+
+  # An arm with a fallback re-ran only some patients, and its whole-slide tier is the
+  # FALLBACK's export. Serving a re-run patient from it would put ordinary cells in
+  # that patient's union row while its per-region rows hold re-classified ones — the
+  # same patient reading two different ways inside one arm, with no column to say so.
+  if (arm_has_fallback(spec)) {
+    rerun <- .arm_read_region_tier(spec, spec$region_csv, "region csv")
+    if (nrow(rerun)) {
+      drop <- slide_key(meta$patient_id) %in% unique(rerun$patient_id)
+      if (any(drop))
+        message(sprintf("arm %s: %s re-run by this arm, so their union comes from the ",
+                        spec$arm, paste(sort(unique(slide_key(meta$patient_id)[drop])),
+                                        collapse = ", ")),
+                "pooled region files, not the whole-slide export")
+      meta <- meta[!drop, , drop = FALSE]
+    }
+  }
+  if (nrow(meta) == 0) return(tibble::tibble())
+
   purrr::pmap_dfr(meta, function(path, patient_id, annotation) {
     pid   <- slide_key(patient_id)
     cells <- read_cell_csv(path, patient_id = pid)
@@ -171,6 +218,7 @@ arm_union_tier_cells <- function(spec) {
       return(arm_empty_metrics())
     }
     dplyr::mutate(cells, arm = spec$arm, annotation = "union",
+                  classification = spec$union_csv$classification %||% "normal",
                   file_origin = spec$arm, has_annotation = TRUE,
                   .membership_source = "sf")
   })
@@ -266,7 +314,7 @@ arm_promote_unregioned <- function(spec, cells, polys, union_cells, union_polys)
 arm_inventory <- function(cells) {
   if (nrow(cells) == 0) return(tibble::tibble())
   cells |>
-    dplyr::group_by(arm, patient_id, annotation) |>
+    dplyr::group_by(arm, patient_id, annotation, classification) |>
     dplyr::summarise(n_cells        = dplyr::n(),
                      has_annotation = any(has_annotation),
                      membership     = paste(sort(unique(.membership_source)), collapse = "/"),
@@ -314,9 +362,14 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
   scope <- match.arg(scope)
 
   # -- the dedicated whole-slide tier, where the arm has one -------------------
+  # It may cover only SOME patients: an arm with a fallback serves its re-run
+  # patients from their pooled region files instead (see arm_union_tier_cells()).
+  # So this collects the rows it can and lets the rest fall through to the pooled
+  # path below, rather than returning and dropping them.
+  tier_rows <- arm_empty_metrics()
   if (scope == "union" && arm_has_union_tier(spec) &&
       !is.null(union_cells) && nrow(union_cells) > 0) {
-    return(purrr::map_dfr(unique(union_cells$patient_id), function(pid) {
+    tier_rows <- purrr::map_dfr(unique(union_cells$patient_id), function(pid) {
       cp <- dplyr::filter(union_cells, patient_id == pid)
       pu <- if (!is.null(union_polys))
               union_polys[union_polys$patient_id == pid, , drop = FALSE] else NULL
@@ -340,14 +393,19 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
       region_ratios_area(cp[inside, , drop = FALSE],
                          as.numeric(sum(sf::st_area(poly_u))), um_per_px) |>
         dplyr::mutate(patient_id = pid, annotation = "union", source = "sf", .before = 1)
-    }))
+    })
+    # Whatever the tier covered must not also be pooled, or the patient gets two
+    # union rows and every cohort mean counts it twice.
+    if (nrow(cells))
+      cells <- dplyr::filter(cells, !patient_id %in% unique(union_cells$patient_id))
   }
 
-  if (nrow(cells) == 0) return(arm_empty_metrics())
+  if (nrow(cells) == 0)
+    return(if (nrow(tier_rows)) tier_rows else arm_empty_metrics())
   has_poly <- !is.null(annots) && nrow(annots) > 0
   ann_key  <- if (has_poly) paste(slide_key(annots$patient_id), annots$annotation) else character(0)
 
-  purrr::map_dfr(unique(cells$patient_id), function(pid) {
+  rest <- purrr::map_dfr(unique(cells$patient_id), function(pid) {
     cp <- dplyr::filter(cells, patient_id == pid)
 
     # -- whole-slide patient: no polygon by the arm's own convention, so every cell
@@ -411,6 +469,9 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
         dplyr::mutate(patient_id = pid, annotation = ann, source = "sf", .before = 1)
     })
   })
+
+  if (nrow(tier_rows) == 0) return(rest)
+  dplyr::arrange(dplyr::bind_rows(tier_rows, rest), patient_id, annotation)
 }
 
 # The same physical cell can appear in several of a patient's region files. Key on
@@ -472,16 +533,26 @@ arm_overlap_report <- function(cells) {
 # its region files and de-duplicates, which is the only thing it can do and is
 # correct under both export shapes above.
 arm_cohort_cells <- function(spec, cells = NULL, union_cells = NULL) {
-  if (arm_has_union_tier(spec)) {
-    if (is.null(union_cells)) union_cells <- arm_union_tier_cells(spec)
-    if (nrow(union_cells) > 0) return(union_cells)
-    warning("arm ", spec$arm, ": whole-slide tier is empty — falling back to the ",
-            "de-duplicated union of the region files")
-  }
   if (is.null(cells)) cells <- arm_cells(spec)
-  if (nrow(cells) == 0) return(cells)
-  purrr::map_dfr(unique(cells$patient_id), function(pid)
-    .arm_dedupe(dplyr::filter(cells, patient_id == pid)))
+  if (arm_has_union_tier(spec) && is.null(union_cells))
+    union_cells <- arm_union_tier_cells(spec)
+  if (is.null(union_cells)) union_cells <- tibble::tibble()
+
+  # PER PATIENT, the best source it has. The whole-slide tier where one exists for
+  # that patient — a real export, no de-duplication in the path at all — and the
+  # pooled, de-duplicated region files otherwise. An arm with a fallback has both
+  # kinds at once: its re-run patients pool, the rest read their whole-slide csv.
+  covered <- if (nrow(union_cells)) unique(union_cells$patient_id) else character(0)
+  if (nrow(cells) == 0) return(union_cells)
+  rest <- dplyr::filter(cells, !patient_id %in% covered)
+  pooled <- if (nrow(rest))
+    purrr::map_dfr(unique(rest$patient_id), function(pid)
+      .arm_dedupe(dplyr::filter(rest, patient_id == pid)))
+  else tibble::tibble()
+
+  if (nrow(union_cells) == 0) return(pooled)
+  if (nrow(pooled) == 0) return(union_cells)
+  dplyr::bind_rows(union_cells, pooled)
 }
 
 # CHECK THE PROCEDURE AGAINST THE GROUND TRUTH, where an arm supplies both.

@@ -109,6 +109,30 @@ rather than accidents:
   turn a data problem into a silently 100 %-inside patient. It is recorded in the
   metrics frame's `source` column as `whole_slide`.
 
+**The inverted arm falls back to massimo1 for the patients it did not re-run.** The
+modified-PANCK re-classification covers 052 and 5456 only; reading just those would
+make every cohort-level number a statement about two patients while looking like a
+statement about the study. So the other four load their ordinary massimo1 cells, and
+a `classification` column (`inverted` / `normal`) records which per row —
+`arm_inventory()` reports the split. The top-up is **per patient, never per file**:
+mixing re-classified and ordinary cells inside one patient would put both in the same
+denominator with no column able to say what that number means. Its union tier is arm
+1's real whole-slide export, but it serves the **fallback patients only** — using it
+for 052/5456 would put normal cells in the inverted arm's union row while its
+per-region rows held re-classified ones. `arm_metrics()` and `arm_cohort_cells()`
+therefore handle a **mixed** union: the tier where a patient has one, pooled and
+de-duplicated otherwise.
+
+**Four geojson shapes, because QuPath writes more than one.** `read_polygon_geojson()`
+accepts a `FeatureCollection`, a single `Feature`, a bare geometry, **and a bare ARRAY
+of features** — which is what `annotation_all/` holds. That last branch was missing:
+`$type` is NULL on an array, the geometry-only fallback wrapped the whole array as one
+geometry, and it stopped with `unsupported geometry type: ` and an EMPTY name. The
+loaders catch that and warn-and-skip, so the symptom was every union polygon in arm 1
+silently absent — union rows dropping to the export flag, and the single-annotation
+patients (10338, 15897) losing the polygon their promoted `ANNOTATION_1` depends on. A
+whole scope degraded quietly on one parser branch; the error now names its file.
+
 **The export shape is REPORTED, not assumed.** Whether a patient's region files repeat
 the same cells (each holding the whole slide with `Out_of_annotation` computed for that
 region) or partition it is a property of the producer, and it sets every cohort-level
