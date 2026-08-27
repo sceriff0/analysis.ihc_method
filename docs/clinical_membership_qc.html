@@ -346,7 +346,13 @@ div.tocify {
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="clinical_flowpath.html">Clinical concordance (FlowPath)</a>
+      <a href="clinical_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="clinical_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="clinical_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
     </li>
     <li class="divider"></li>
     <li>
@@ -354,8 +360,23 @@ div.tocify {
     </li>
   </ul>
 </li>
-<li>
-  <a href="molecular_hot_cold.html">2 · Molecular</a>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    2 · Molecular
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="molecular_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="molecular_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="molecular_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+  </ul>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -455,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-25
+<strong>Last updated:</strong> 2026-08-26
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -586,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea1f4dbcc24db959e1bfb294f9438e45759685f1ftargetblanka1f4dbca">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/a1f4dbcc24db959e1bfb294f9438e45759685f1f" target="_blank">a1f4dbc</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea1f4dbcc24db959e1bfb294f9438e45759685f1ftargetblanka1f4dbca"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -604,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/a1f4dbcc24db959e1bfb294f9438e45759685f1f" target="_blank">a1f4dbc</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -671,6 +692,76 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/2089263b995bb84b3c65dc54b53406eb8e8ab139/analysis/clinical_membership_qc.Rmd" target="_blank">2089263</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:sparkles: One page per phenotyping arm, and fill arm 1’s scores from
+thr_head&amp;neck.xlsx
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/fa998cb5d356699f37e783973992ed6a43d23dc8/analysis/clinical_membership_qc.Rmd" target="_blank">fa998cb</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:bug: Skip the analysis sections when an arm has no cells, instead of
+failing chunk by chunk
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/41480e63bae69e572292f18d900f2c297409380b/analysis/clinical_membership_qc.Rmd" target="_blank">41480e6</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:recycle: Support three phenotyping arms instead of one all-slide export
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/794c4ea3f6a9037ddbabbace24129eb1cc808a1f/docs/clinical_membership_qc.html" target="_blank">794c4ea</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:wrench: improving plots
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -804,23 +895,24 @@ bolt3x
 <p>Every value below is derived from two inputs, compared <strong>per
 cell</strong>:</p>
 <ul>
-<li><code>&lt;patient&gt;_&lt;A|B|C&gt;.csv</code> — the all-slide
-export’s per-region cell files under
-<code>data/all_slide/csv/&lt;patient&gt;/</code>, one row per cell,
-carrying <strong>both</strong> the cell <code>centroid</code> and the
-exporter’s precomputed <code>Out_of_annotation</code> flag for the same
-cells. That both live in one file is what makes this a per-cell
-comparison rather than a cross-file match.</li>
+<li>the arm’s per-region cell files (<code>spec$region_csv</code>), one
+row per cell, carrying <strong>both</strong> the cell
+<code>centroid</code> and the exporter’s precomputed
+<code>Out_of_annotation</code> flag for the same cells. That both live
+in one file is what makes this a per-cell comparison rather than a
+cross-file match.</li>
 <li>the pathologist annotation <strong>geojson</strong> polygons
-(<code>ANNOTATION_k</code>, in pixels), under
-<code>data/all_slide/annotation/&lt;patient&gt;/</code>, loaded via
-<code>load_annotations()</code> for the patients in
-<code>neoplastic_data$SAMPLE</code>.</li>
+(<code>ANNOTATION_k</code>, in pixels) from the SAME arm
+(<code>spec$region_poly</code>), for the patients in
+<code>neoplastic$SAMPLE</code>.</li>
 </ul>
-<p>Region <code>A</code> is <code>ANNOTATION_1</code>, <code>B</code> is
-<code>ANNOTATION_2</code>, by alphabet position — the same parser keys
-the csvs and the geojsons, which is what guarantees a cell file and the
-polygon it is compared against refer to the same region.</p>
+<p>Both trees are keyed by the arm’s own naming pattern
+(<code>arm_parse_name()</code>), which is what guarantees a cell file
+and the polygon it is compared against refer to the same region. For
+<code>massimo2</code> that pattern is a LETTER read by alphabet position
+(<code>A</code> is <code>ANNOTATION_1</code>); for <code>massimo1</code>
+it is the literal <code>k</code> in an <code>_a&lt;k&gt;</code>
+suffix.</p>
 <p>The main pipeline decides “inside the annotation” by <strong>sf
 point-in-polygon</strong> on the pathologist geojson, mapping cell
 centroids into the pixel frame with the fixed
@@ -839,20 +931,28 @@ slide</strong> — sf is landing on the wrong cells.</p>
 </div>
 <div id="compute-agreement" class="section level2">
 <h2>Compute agreement</h2>
-<pre class="r"><code># The region csvs and the polygons come from the same export tree, so REGION_CSV_DIR()
-# and load_annotations() default to the two halves of it. Both fall back to the older
-# flat layout if the nested one is absent.
-REGION_DIR &lt;- REGION_CSV_DIR()
+<pre class="r"><code># The region csvs and the polygons come from the same ARM, and are read through the
+# same spec — so there is no way for this page to compare one arm&#39;s cells against
+# another arm&#39;s regions.
+REGION_DIR &lt;- spec$region_csv$path
 
-annots &lt;- load_annotations(patient_ids = neoplastic_data$SAMPLE)
+annots &lt;- arm_annotations(spec, &quot;region&quot;, patient_ids = neoplastic$SAMPLE)
 
 if (is.null(annots)) {
   qc &lt;- tibble::tibble()
-  cat(&quot;No annotation polygons found — nothing to compare the flag against.\n&quot;)
+  cat(&quot;No annotation polygons found for&quot;, ARM, &quot;— nothing to compare the flag against.\n&quot;)
 } else {
-  qc &lt;- annotation_membership_qc(REGION_DIR, annots, um_per_px = 0.325)
+  qc &lt;- annotation_membership_qc(spec, annots, um_per_px = 0.325)
   if (nrow(qc) == 0) cat(&quot;No region csvs found under&quot;, REGION_DIR, &quot;\n&quot;)
 }
+
+# `qc` is empty when the arm&#39;s tree is absent or no csv carries both a centroid and
+# the flag. Gate the table and the scatter on it rather than letting each fail on a
+# column that was never created.
+have_qc &lt;- nrow(qc) &gt; 0 &amp;&amp; &quot;pct_cells_agree&quot; %in% names(qc)
+if (!have_qc)
+  cat(&quot;No comparable region csvs for arm `&quot;, ARM, &quot;` — the table and scatter below&quot;,
+      &quot; are skipped.\n&quot;, sep = &quot;&quot;)
 
 if (nrow(qc)) {
   cat(&quot;annotations checked:&quot;, nrow(qc),
@@ -1056,7 +1156,7 @@ slide.</caption>
 </tr>
 <tr class="even">
 <td align="left">24086</td>
-<td align="left">ANNOTATION_1</td>
+<td align="left">whole_slide</td>
 <td align="right">283631</td>
 <td align="right">NA</td>
 <td align="right">NA</td>
@@ -1173,7 +1273,7 @@ skipped (missing geojson or columns).</li>
 conversion for those slides; a slide with low agreement should either be
 excluded or given its own conversion.</li>
 <li>This compares <em>membership</em>, not the pathologist — that
-concordance is in <code>clinical_flowpath.Rmd</code>.</li>
+concordance is in the <code>clinical_massimo*.Rmd</code> pages.</li>
 </ul>
 <br>
 <p>

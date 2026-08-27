@@ -346,7 +346,13 @@ div.tocify {
   </a>
   <ul class="dropdown-menu" role="menu">
     <li>
-      <a href="clinical_flowpath.html">Clinical concordance (FlowPath)</a>
+      <a href="clinical_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="clinical_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="clinical_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
     </li>
     <li class="divider"></li>
     <li>
@@ -354,8 +360,23 @@ div.tocify {
     </li>
   </ul>
 </li>
-<li>
-  <a href="molecular_hot_cold.html">2 · Molecular</a>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    2 · Molecular
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="molecular_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="molecular_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="molecular_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+  </ul>
 </li>
 <li class="dropdown">
   <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -455,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-25
+<strong>Last updated:</strong> 2026-08-26
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -586,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea1f4dbcc24db959e1bfb294f9438e45759685f1ftargetblanka1f4dbca">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/a1f4dbcc24db959e1bfb294f9438e45759685f1f" target="_blank">a1f4dbc</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea1f4dbcc24db959e1bfb294f9438e45759685f1ftargetblanka1f4dbca"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -604,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/a1f4dbcc24db959e1bfb294f9438e45759685f1f" target="_blank">a1f4dbc</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -670,6 +691,76 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/2089263b995bb84b3c65dc54b53406eb8e8ab139/analysis/marker_qc.Rmd" target="_blank">2089263</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:sparkles: One page per phenotyping arm, and fill arm 1’s scores from
+thr_head&amp;neck.xlsx
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/fa998cb5d356699f37e783973992ed6a43d23dc8/analysis/marker_qc.Rmd" target="_blank">fa998cb</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:bug: Skip the analysis sections when an arm has no cells, instead of
+failing chunk by chunk
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/41480e63bae69e572292f18d900f2c297409380b/analysis/marker_qc.Rmd" target="_blank">41480e6</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:recycle: Support three phenotyping arms instead of one all-slide export
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/794c4ea3f6a9037ddbabbace24129eb1cc808a1f/docs/marker_qc.html" target="_blank">794c4ea</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:wrench: improving plots
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -802,7 +893,7 @@ bolt3x
 reference</strong>: every check below asks whether the marker calls are
 self-consistent, not whether they match bulk RNA, deconvolution or the
 clinical record. Those comparisons live on <a
-href="molecular_hot_cold.html">the molecular page</a>; a disagreement
+href="molecular_massimo2.html">the molecular pages</a>; a disagreement
 there is only interpretable once the checks here pass.</p>
 <p>Two parts, both reading the whole-slide <code>ihc_data</code>:</p>
 <table>

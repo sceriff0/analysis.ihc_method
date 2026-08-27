@@ -1,0 +1,2413 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-08-12" />
+
+<title>Molecular — hot/cold vs bulk RNA — Massimo1 inverted — modified PANCK threshold</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ihc_method</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="clinical_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="clinical_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    2 · Molecular
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="molecular_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="molecular_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="molecular_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/sceriff0/ihc_method">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Molecular — hot/cold vs bulk RNA — Massimo1
+inverted — modified PANCK threshold</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-08-12</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-26
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>ihc_method/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260630code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260630)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260630code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260630)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/
+    Ignored:    output/figures/
+    Ignored:    renv/library/
+    Ignored:    renv/staging/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/molecular_massimo1_inverted.Rmd</code>) and HTML
+(<code>docs/molecular_massimo1_inverted.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/6036fc018bebb9ef5facf898124e4db86be4bf52/analysis/molecular_massimo1_inverted.Rmd" target="_blank">6036fc0</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:bug: Splice arm bodies with knit_child(text=), not the child= chunk
+option
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/2089263b995bb84b3c65dc54b53406eb8e8ab139/analysis/molecular_massimo1_inverted.Rmd" target="_blank">2089263</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:sparkles: One page per phenotyping arm, and fill arm 1’s scores from
+thr_head&amp;neck.xlsx
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Arm: <code>massimo1_inverted</code>.</strong> Massimo1’s OWN
+regions and polygons, with the cells re-classified at a modified PANCK
+threshold. Covers 052 and 5456 only, and shares arm 1’s pathologist
+scores — the tissue is the same, only the classifier differs.</p>
+<p>This page is one of three, identical in construction and differing
+only in which arm it reads. The arms’ regions were drawn in
+<strong>separate annotation sessions</strong>, so
+<code>ANNOTATION_2</code> here is not <code>ANNOTATION_2</code> on the
+other pages — compare them by PATIENT, never region by region.
+<code>code/arms.R</code> states the rule in full.</p>
+</blockquote>
+<!-- =========================================================================
+     molecular_body.Rmd — the shared molecular body, rendered once PER ARM.
+
+     Three arms phenotype the same slides three ways (code/arms.R). Every figure
+     below is identical in construction across them; only WHICH arm's cells,
+     polygons and pathologist table it reads differs. That variable lives in the
+     PARENT, not here.
+
+     The parent must define, before including this file:
+       SLUG        its own filename, for export_pdf_figures()
+       ARM         the arm string
+       ihc_data    ihc_for(ARM)
+       neoplastic  neoplastic_for(ARM)
+     and must have sourced load_data.R, validation_helpers.R, membership.R,
+     aggregation_compare.R and pdf_export.R.
+
+     WHY A CHILD AND NOT SIX COPIES. Six near-identical thousand-line pages drift
+     apart the first time one is edited, and the drift is invisible because every
+     copy still knits. The cost is that workflowr prints "Warning! The custom
+     fig.path you set was ignored" on every plot in a child — its hook compares the
+     PARENT's fig.path against a path derived from knitr::current_input(), which is
+     the CHILD, so they never match. Nothing is actually ignored and no figure
+     moves. See CLAUDE.md; tests/testthat/test-child-documents.R enforces the
+     placement rules that keep wflow_build's glob from picking this file up.
+========================================================================== -->
+<p>Everything on this page asks one question three ways: <strong>does a
+bulk, cohort-level readout agree with what the slide shows, and does
+that agreement depend on whether the tumour is immunologically hot or
+cold?</strong></p>
+<table>
+<colgroup>
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+<col width="25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>part</th>
+<th>bulk readout</th>
+<th>compared against</th>
+<th>grain</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>per-gene DESeq2-normalised expression</td>
+<td>IHC marker-positive cell fraction</td>
+<td>marker</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>immunedeconv cell-type scores</td>
+<td>IHC lineage fraction</td>
+<td>lineage</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>— (spatial, not bulk)</td>
+<td>clinical <code>HOT score</code> / immuno-phenotype</td>
+<td>invasive margin</td>
+</tr>
+</tbody>
+</table>
+<p>Parts 1 and 2 were separate pages (<code>bulkRna</code>,
+<code>deconvolution</code>) and part 3 was a third
+(<code>periphery</code>). They shared the CRF-to-slide id bridge, the
+clinical hot/cold lookup and the whole-slide <code>ihc_data</code>
+reduction, and re-derived all three independently — three places for the
+same mapping to drift. They are one page now, and those shared keys are
+built <strong>once</strong>, immediately below, by the only chunk
+allowed to build them.</p>
+<div id="shared-keys-the-id-bridge-and-the-hotcold-call"
+class="section level2">
+<h2>Shared keys: the id bridge and the hot/cold call</h2>
+<p>Two lookups are used by all three parts, so they are defined here and
+nowhere else.</p>
+<p><strong>The id bridge.</strong> Bulk RNA lives in
+<strong>CRF-id</strong> space; IHC lives in <strong>slide-id</strong>
+space. <code>slide_key()</code> maps any id to the shared numeric slide
+space (strip non-digits, apply the verified typo fix <code>15879</code>
+-&gt; <code>15897</code>); <code>norm_id()</code> upper-cases and strips
+non-alphanumerics. <code>crf_to_slide_map(clinical_data)</code> returns
+a named vector:</p>
+<pre><code>crf2slide[crf] = slide
+where: crf   = norm_id of `ID CRF PRESERVE`
+       slide = slide_key of `ID PATIENT`</code></pre>
+<p>It is a base-R named-vector lookup, deliberately <strong>not</strong>
+a join: a join on a duplicated CRF id silently multiplies rows, and this
+table has one row per patient.</p>
+<p><strong>The hot/cold call.</strong> <code>clin</code> carries the two
+clinical immune columns, keyed into slide space so it joins onto every
+per-patient frame below:</p>
+<pre><code>hot_score(p)  = numeric `HOT score`        from the clinical CRF
+immuno_phe(p) = `Immuno-phenotype`         from the clinical CRF (cold / intermediate / hot)</code></pre>
+<p><code>hot_score</code> is coerced with <code>as.numeric()</code>; a
+non-numeric entry becomes <code>NA</code> rather than stopping the page.
+<code>any_of()</code> means a clinical export missing either column
+yields a <code>clin</code> without it instead of an error — the hot/cold
+colouring then simply falls back to grey.</p>
+<pre class="r"><code># ONE owner for both lookups. Parts 1-3 all consume these; none of them rebuilds them.
+crf2slide &lt;- crf_to_slide_map(clinical_data)
+
+clin &lt;- clinical_data |&gt;
+  mutate(patient_id = slide_key(`ID PATIENT`)) |&gt;
+  select(patient_id,
+         hot_score  = any_of(&quot;HOT score&quot;),
+         immuno_phe = any_of(&quot;Immuno-phenotype&quot;)) |&gt;
+  mutate(hot_score = suppressWarnings(as.numeric(hot_score)))
+
+cat(&quot;clinical rows:&quot;, nrow(clin),
+    &quot;| with a numeric HOT score:&quot;, sum(is.finite(clin$hot_score)),
+    &quot;| with an immuno-phenotype:&quot;, sum(!is.na(clin$immuno_phe)), &quot;\n&quot;)</code></pre>
+<pre><code>clinical rows: 6 | with a numeric HOT score: 6 | with an immuno-phenotype: 6 </code></pre>
+</div>
+<div id="part-1-bulk-rna-expression-vs-ihc-marker-positivity"
+class="section level2">
+<h2>Part 1 — Bulk RNA expression vs IHC marker positivity</h2>
+<p>Marker by marker, across patients: does a marker’s gene expression in
+bulk RNA track the fraction of cells the IHC gate calls positive for it?
+Points are coloured by the clinical immuno-phenotype so a marker that
+only agrees in hot tumours is visible.</p>
+<div id="starting-data-and-notation" class="section level3">
+<h3>Starting data and notation</h3>
+<p>Every value below is derived from three inputs:</p>
+<ul>
+<li><code>ihc_data</code> — FlowPath single cells, deduplicated to
+<strong>one copy per patient</strong> (whole slide, no annotation
+boundary). Carries per-marker <code>&lt;marker&gt;_sign</code> and
+<code>&lt;marker&gt;_zscore</code> columns and
+<code>patient_id</code>.</li>
+<li><code>counts_data</code> — DESeq2-normalised <strong>bulk
+RNA</strong>, one row per RNA sample, one column per gene, plus the
+CRF-space sample id <code>Sample</code>.</li>
+<li><code>crf2slide</code> and <code>clin</code> — the id bridge and the
+hot/cold call, both built once in <strong>Shared keys</strong> above and
+only read here.</li>
+</ul>
+<p>Notation and mappings used throughout:</p>
+<pre><code>cells of a patient p = all of p&#39;s cells in `ihc_data`
+marker-positive cell (marker &lt;marker&gt;) = marker_pos(cell, &lt;marker&gt;) is TRUE
+  (is_pos accepts +, pos, positive, yes, true, 1)
+genes of a marker = marker_gene_map[&lt;marker&gt;]: a comma-separated gene list
+  (e.g. CD3 -&gt; CD3D, CD3E, CD3G; PANCK -&gt; EPCAM, KRT5, KRT8, KRT14, KRT18, KRT19);
+  multi-gene markers are averaged</code></pre>
+<p>Paired associations are Spearman correlations via
+<code>paired_spearman</code>.</p>
+</div>
+<div id="per-patient-bulk-expression-of-each-markers-genes"
+class="section level3">
+<h3>Per-patient bulk expression of each marker’s gene(s)</h3>
+<p>RNA samples are keyed in CRF space; <code>crf2slide</code> bridges
+them to slide space. <code>counts_data</code> is melted long to one row
+per (sample, gene), with columns <code>Sample</code>,
+<code>crf_id = norm_id(Sample)</code>, <code>gene</code>, and
+<code>expr</code>. <code>gene_rows</code> expands
+<code>marker_gene_map</code> to one row per (marker, gene) over each
+marker’s gene list (comma-split, trimmed); <code>marker_genes</code>
+keeps only the (marker, gene) rows whose gene appears in the RNA
+matrix:</p>
+<pre><code>available genes of a marker = its genes that are also columns of `counts_data`</code></pre>
+<p>Per marker and CRF sample, expression is the mean over that marker’s
+available genes:</p>
+<pre><code>rna_expr(&lt;marker&gt;, s) = (sum over the marker&#39;s available genes of expr(s, gene))
+                        / (number of the marker&#39;s available genes)
+where:
+  expr(s, gene) = the DESeq2-normalised value for gene in sample s</code></pre>
+<p>The CRF id is then mapped to slide space with
+<code>patient_id = crf2slide[crf_id(s)]</code>, and rows with no
+crosswalk match (NA) are dropped.</p>
+<pre class="r"><code>expr_long &lt;- counts_data |&gt;
+  mutate(crf_id = norm_id(Sample)) |&gt;
+  pivot_longer(-c(Sample, crf_id), names_to = &quot;gene&quot;, values_to = &quot;expr&quot;)
+
+# marker -&gt; its genes, one row per (marker, gene). Explicit $-access + strsplit
+# (no NSE) so it is robust to the base pipe / tidyr separate_rows() quirks.
+gene_rows &lt;- do.call(rbind, Map(function(m, g)
+  data.frame(marker = m, gene = trimws(strsplit(g, &quot;,&quot;)[[1]]), stringsAsFactors = FALSE),
+  marker_gene_map$marker, marker_gene_map$genes))
+
+missing_genes &lt;- setdiff(gene_rows$gene, unique(expr_long$gene))
+if (length(missing_genes)) message(&quot;genes absent from RNA matrix: &quot;, paste(missing_genes, collapse = &quot;, &quot;))
+
+# keep only genes present in the RNA matrix
+marker_genes &lt;- gene_rows |&gt; filter(gene %in% unique(expr_long$gene))
+
+# Per patient, average expression across a marker&#39;s available genes, then map the
+# CRF sample id to the IHC slide id via the crosswalk.
+marker_expr &lt;- expr_long |&gt;
+  inner_join(marker_genes, by = &quot;gene&quot;, relationship = &quot;many-to-many&quot;) |&gt;
+  group_by(marker, crf_id) |&gt;
+  summarise(rna_expr = mean(expr), .groups = &quot;drop&quot;) |&gt;
+  mutate(patient_id = unname(crf2slide[crf_id])) |&gt;   # crf id -&gt; slide id
+  filter(!is.na(patient_id)) |&gt;
+  select(marker, patient_id, rna_expr)</code></pre>
+</div>
+<div id="per-patient-ihc-positive-cell-fraction" class="section level3">
+<h3>Per-patient IHC positive-cell fraction</h3>
+<p><code>ihc_marker_fraction(ihc_data)</code> groups cells by
+<code>slide_key(patient_id)</code> and, for each marker, returns the
+whole-slide positive fraction (mean of <code>is_pos</code> over non-NA
+sign values):</p>
+<pre><code>&lt;marker&gt;_posfrac(p) = (cells of p positive for &lt;marker&gt;) / (all cells of p)
+where:
+  positive = marker_pos(cell, marker) — TRUE only for an explicitly positive sign.
+             A cell no gate evaluated for this marker (blank / &quot;·&quot; sign, or a marker
+             the panel lacks) counts in the denominator as not-positive, so a
+             sparsely-gated marker reads LOW rather than dropping out. Check
+             marker_gated() before reading a near-zero posfrac as biology.</code></pre>
+<p>These <code>_posfrac</code> columns are reshaped long to
+<code>patient_id</code>, <code>marker</code>, and
+<code>ihc_posfrac</code>.</p>
+<pre class="r"><code>ihc_marker_frac &lt;- ihc_marker_fraction(ihc_data) |&gt;
+  select(patient_id, ends_with(&quot;_posfrac&quot;)) |&gt;
+  pivot_longer(-patient_id, names_to = &quot;marker&quot;, values_to = &quot;ihc_posfrac&quot;) |&gt;
+  mutate(marker = sub(&quot;_posfrac$&quot;, &quot;&quot;, marker))
+
+cat(&quot;IHC patients:&quot;, dplyr::n_distinct(ihc_marker_frac$patient_id),
+    &quot;| RNA patients:&quot;, dplyr::n_distinct(marker_expr$patient_id), &quot;\n&quot;)</code></pre>
+<pre><code>IHC patients: 2 | RNA patients: 6 </code></pre>
+</div>
+<div id="marker-by-marker-concordance" class="section level3">
+<h3>Marker-by-marker concordance</h3>
+<p>Inner-join <code>marker_expr</code> and <code>ihc_marker_frac</code>
+on <code>marker</code> and <code>patient_id</code>, keeping finite
+pairs. Per marker, over its shared patients, the statistic is the
+Spearman correlation between <code>ihc_posfrac</code> and
+<code>rna_expr</code> across patients (<code>paired_spearman</code>, via
+<code>cor.test(method = "spearman")</code>), reported with its p-value
+and the pair count <code>n</code>; it is <code>NA</code> when
+<code>n &lt; 3</code> or either vector is constant. Rows are sorted by
+descending correlation.</p>
+<pre class="r"><code>rna_paired &lt;- marker_expr |&gt;
+  inner_join(ihc_marker_frac, by = c(&quot;marker&quot;, &quot;patient_id&quot;)) |&gt;
+  filter(is.finite(rna_expr), is.finite(ihc_posfrac))
+
+cat(&quot;shared patients (RNA + IHC):&quot;,
+    dplyr::n_distinct(rna_paired$patient_id), &quot;\n&quot;)</code></pre>
+<pre><code>shared patients (RNA + IHC): 2 </code></pre>
+<pre class="r"><code>rna_summary &lt;- rna_paired |&gt;
+  group_by(marker) |&gt;
+  group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |&gt;
+  ungroup() |&gt;
+  arrange(desc(rho))
+
+knitr::kable(rna_summary, digits = 3,
+             caption = &quot;Spearman: IHC positive-cell fraction vs bulk-RNA expression&quot;)</code></pre>
+<table>
+<caption>Spearman: IHC positive-cell fraction vs bulk-RNA
+expression</caption>
+<thead>
+<tr class="header">
+<th align="left">marker</th>
+<th align="right">n</th>
+<th align="right">rho</th>
+<th align="right">p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ARID1A</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD14</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD163</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD3</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD45</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD56</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD74</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">FOXP3</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">FSP1</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">GZMB</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">L1CAM</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">P53</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">PANCK</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">PD1</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">PDL1</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">SMA</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">VIMENTIN</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+</tbody>
+</table>
+<p>Scatter per marker: <code>ihc_posfrac</code> against
+<code>log1p(rna_expr)</code> (<code>log1p</code> keeps zeros), with an
+OLS fit line.</p>
+<p><strong>Split into two figures.</strong> <code>marker_gene_map</code>
+carries 19 markers, and 19 free-scale facets on one double-column figure
+gives each panel about 35mm — too small to read a fit line off. The
+first figure takes the ten lineage and structural markers the panel was
+designed around; the second takes the remaining nine. The split is by
+<em>reading order</em>, not by quality: no marker is dropped, and the
+Spearman table above still covers all of them together.</p>
+<pre class="r"><code># The ten checked first. Ordered as listed, not alphabetically, so the facet grid
+# reads down the immune lineage (CD45 -&gt; CD3 -&gt; CD8/CD4 -&gt; GZMB/FOXP3 -&gt; CD56) and
+# then the structural markers (SMA, PANCK, VIMENTIN).
+rna_primary_markers &lt;- c(&quot;CD45&quot;, &quot;CD3&quot;, &quot;CD8&quot;, &quot;GZMB&quot;, &quot;FOXP3&quot;,
+                         &quot;CD4&quot;, &quot;CD56&quot;, &quot;SMA&quot;, &quot;PANCK&quot;, &quot;VIMENTIN&quot;)
+
+# One scatter-by-marker figure over `markers`. Split out of the chunk body because
+# both figures below are the same plot over a different marker set, and a second
+# copy of it is how the two would drift apart.
+plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
+  # Colour by the clinical hot/cold call so a marker whose RNA-IHC agreement holds
+  # only in one immune stratum is visible as such. left_join, not inner_join: a
+  # patient with no immuno-phenotype must stay in the plot (grey) rather than
+  # silently shrink the panel the fit is drawn through.
+  df &lt;- rna_paired |&gt;
+    filter(marker %in% markers) |&gt;
+    left_join(clin, by = &quot;patient_id&quot;) |&gt;
+    mutate(immuno_phe = hotcold_order(immuno_phe),
+           # Keep the given order as the facet order; intersect() drops any marker
+           # this export did not gate rather than drawing an empty panel for it.
+           marker = factor(marker, levels = intersect(markers, unique(marker))))
+  if (nrow(df) == 0) return(invisible())
+  # log-scale expression (counts span orders of magnitude); +1 to keep zeros.
+  # The fit goes under the points and is over ALL patients, coloured or not.
+  ggplot(df, aes(ihc_posfrac, log1p(rna_expr))) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
+    # Panels are titled by the population counted, not by the column that carried
+    # it, so a strip here and a strip on the clinical page name the same thing.
+    facet_wrap(~ marker, scales = &quot;free&quot;, labeller = flowpath_labeller()) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
+    labs(title = title,
+         subtitle = with_n(&quot;points coloured by the clinical immuno-phenotype; the fit is over all patients&quot;,
+                           df$patient_id, &quot;patients&quot;),
+         x = &quot;FlowPath positive-cell fraction (unitless, 0-1)&quot;,
+         y = &quot;bulk RNA expression (log1p DESeq2-normalised counts)&quot;)
+}</code></pre>
+<pre class="r"><code>if (nrow(rna_paired) &gt; 0)
+  plot_rna_concordance(rna_paired, clin, rna_primary_markers,
+                       &quot;FlowPath marker+ fraction vs bulk-RNA expression&quot;)</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/rna-concordance-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>The remaining markers — everything in <code>marker_gene_map</code>
+the figure above does not cover, in the order the map declares them:</p>
+<pre class="r"><code>if (nrow(rna_paired) &gt; 0) {
+  rna_other_markers &lt;- setdiff(ihc_markers, rna_primary_markers)
+  plot_rna_concordance(rna_paired, clin, rna_other_markers,
+                       &quot;FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)&quot;)
+}</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/rna-concordance-plot-rest-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>Sensitivity: replace the hard-threshold positive fraction with the
+per-patient mean staining intensity (mean z-score over non-NA
+cells):</p>
+<pre><code>&lt;marker&gt;_z(p) = (sum over p&#39;s cells with a non-NA &lt;marker&gt;_zscore of that zscore)
+                / (cells of p with a non-NA &lt;marker&gt;_zscore)     (ihc_marker_fraction)</code></pre>
+<p>Then correlate <code>&lt;marker&gt;_z</code> against
+<code>rna_expr</code> per marker with the same statistic (Spearman
+correlation across patients).</p>
+<pre class="r"><code>ihc_z &lt;- ihc_marker_fraction(ihc_data) |&gt;
+  select(patient_id, ends_with(&quot;_z&quot;)) |&gt;
+  pivot_longer(-patient_id, names_to = &quot;marker&quot;, values_to = &quot;ihc_z&quot;) |&gt;
+  mutate(marker = sub(&quot;_z$&quot;, &quot;&quot;, marker))
+
+paired_z &lt;- marker_expr |&gt;
+  inner_join(ihc_z, by = c(&quot;marker&quot;, &quot;patient_id&quot;)) |&gt;
+  filter(is.finite(rna_expr), is.finite(ihc_z))
+
+if (nrow(paired_z) &gt; 0) {
+  paired_z |&gt;
+    group_by(marker) |&gt;
+    group_modify(~ paired_spearman(.x$ihc_z, .x$rna_expr)) |&gt;
+    ungroup() |&gt;
+    arrange(desc(rho)) |&gt;
+    knitr::kable(digits = 3,
+                 caption = &quot;Spearman: IHC mean z-score vs bulk-RNA expression&quot;)
+}</code></pre>
+<table>
+<caption>Spearman: IHC mean z-score vs bulk-RNA expression</caption>
+<thead>
+<tr class="header">
+<th align="left">marker</th>
+<th align="right">n</th>
+<th align="right">rho</th>
+<th align="right">p</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ARID1A</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD14</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD163</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD3</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD45</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD56</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">CD74</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">FOXP3</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">FSP1</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">GZMB</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">L1CAM</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">P53</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">PANCK</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">PD1</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">PDL1</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="even">
+<td align="left">SMA</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">VIMENTIN</td>
+<td align="right">2</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="notes" class="section level3">
+<h3>Notes</h3>
+<ul>
+<li>Both IHC reductions use <code>na.rm = TRUE</code>:
+<code>&lt;marker&gt;_posfrac</code> and <code>&lt;marker&gt;_z</code>
+average over the non-NA sign / z-score cells of a patient, so the
+effective denominator is that count, not necessarily all of the
+patient’s cells.</li>
+<li><code>rna_expr</code> averages only genes actually present in
+<code>counts_data</code> (a marker’s available genes); genes in a
+marker’s list that are absent from the matrix are reported by the
+<code>missing_genes</code> message and excluded from the mean. A marker
+with no available genes contributes no RNA row.</li>
+<li>The gene join is <code>relationship = "many-to-many"</code>, but
+each (sample, gene) has a single <code>expr</code>, so the per-(marker,
+sample) mean is over distinct genes.</li>
+<li><code>PANCK</code> averages <code>EPCAM</code> + keratins;
+<code>SMA</code> -&gt; <code>ACTA2</code>, <code>CD56</code> -&gt;
+<code>NCAM1</code>, <code>PDL1</code> -&gt; <code>CD274</code>,
+<code>PD1</code> -&gt; <code>PDCD1</code>, <code>FSP1</code> -&gt;
+<code>S100A4</code>. <code>wrongL1CAM</code> is excluded by construction
+(not in <code>marker_gene_map</code>).</li>
+<li>Correlations are cross-patient and small-n; every row carries its
+<code>n</code>.</li>
+</ul>
+</div>
+</div>
+<div id="part-2-deconvolution-scores-vs-ihc-lineage-fractions"
+class="section level2">
+<h2>Part 2 — Deconvolution scores vs IHC lineage fractions</h2>
+<p>The same question one level up: instead of a marker, a whole cell
+type. <code>immunedeconv</code> estimates cell-type abundance from the
+same bulk matrix; the IHC panel counts those cells directly. Restricted
+to the four lineages both sides can name (CD8T, CD4T, Treg, NK), and
+coloured by the same hot/cold call as part 1.</p>
+<div id="starting-data-and-notation-1" class="section level3">
+<h3>Starting data and notation</h3>
+<p>Every value below is derived from two inputs, bridged by the clinical
+table:</p>
+<ul>
+<li><code>ihc_data</code> — FlowPath single cells deduplicated to
+<strong>one copy per patient</strong> (whole slide, no annotation
+boundary). Each cell carries a <code>lineage</code> =
+<code>phenotype_clean</code> collapsed via the
+<code>phenotype_lineage</code> table.</li>
+<li><code>counts_data</code> — DESeq2-normalized bulk RNA, one row per
+sample, one column per gene, keyed by <code>Sample</code> (a CRF
+id).</li>
+<li><code>crf2slide</code> and <code>clin</code> — the id bridge and the
+hot/cold call, both built once in <strong>Shared keys</strong> above and
+only read here.</li>
+</ul>
+<p>Comparison is anchored to the four comparable lineages CD8T, CD4T,
+Treg, NK (<code>comparable_lineages</code>) — the only IHC phenotype
+lineages with a clean deconvolution counterpart.
+<code>deconv_to_lineage()</code> maps each method’s cell-type string to
+one of these (case-insensitive pattern match:
+<code>regulatory|treg</code> -&gt; Treg, <code>cd8</code> -&gt; CD8T,
+<code>cd4</code> -&gt; CD4T, <code>^nk|nk cell|natural killer</code>
+-&gt; NK), everything else to <code>NA</code>. All correlations are
+Spearman correlation via <code>paired_spearman</code> (rank-based;
+<code>NA</code> when fewer than 3 shared patients or either vector is
+constant).</p>
+</div>
+<div id="bulk-rna-expression-matrix" class="section level3">
+<h3>Bulk-RNA expression matrix</h3>
+<p><code>expr_mat</code> is <code>counts_data</code> (sample by gene)
+transposed to gene by sample, cast double, with gene symbols as row
+names:</p>
+<pre><code>expr_mat[gene, sample] = counts_data[sample, gene]   (transpose)</code></pre>
+<pre class="r"><code>expr_mat &lt;- counts_data |&gt;
+  column_to_rownames(&quot;Sample&quot;) |&gt;
+  as.matrix() |&gt;
+  t()
+
+storage.mode(expr_mat) &lt;- &quot;double&quot;
+cat(&quot;expression matrix:&quot;, nrow(expr_mat), &quot;genes x&quot;, ncol(expr_mat), &quot;samples\n&quot;)</code></pre>
+<pre><code>expression matrix: 29744 genes x 6 samples</code></pre>
+<blockquote>
+<p>Caveat: quanTIseq/EPIC are designed for TPM. DESeq2-normalized counts
+are used here as a pragmatic proxy; absolute fractions are therefore
+approximate, but the <em>cross-patient ranking</em> (what the Spearman
+validation uses) is robust to this.</p>
+</blockquote>
+</div>
+<div id="method-configuration" class="section level3">
+<h3>Method configuration</h3>
+<p>Each method is gated by the inputs it needs, not preference:</p>
+<ul>
+<li><code>methods_free</code> (quanTIseq, EPIC, MCPcounter, xCell, ABIS)
+— run on <code>expr_mat</code> alone. Always enabled.</li>
+<li><code>methods_indication</code> (TIMER, ConsensusTME) — need one
+cancer-type code per sample (<code>INDICATIONS</code>, length =
+<code>ncol(expr_mat)</code>). Enabled iff <code>INDICATIONS</code> is
+non-<code>NULL</code>; here it is <code>NULL</code>, so both are
+skipped.</li>
+<li>CIBERSORT / CIBERSORT (abs.) — license-gated
+<code>CIBERSORT.R</code> + <code>LM22.txt</code>, paths from env vars
+<code>CIBERSORT_BINARY</code> / <code>CIBERSORT_MAT</code>. Run iff both
+are set and the files exist.</li>
+<li>BayesPrism — needs an scRNA-seq reference at
+<code>data/sc_reference.rds</code> via <code>omnideconv</code>. Run iff
+present.</li>
+</ul>
+<pre class="r"><code># First-generation methods that run on the bulk matrix with no extra artifacts.
+methods_free &lt;- c(&quot;quantiseq&quot;, &quot;epic&quot;, &quot;mcp_counter&quot;, &quot;xcell&quot;, &quot;abis&quot;)
+
+# TIMER / ConsensusTME need one cancer-type code per SAMPLE (length == ncol(expr_mat),
+# same order). Set INDICATIONS to enable them, e.g. rep(&quot;READ&quot;, ncol(expr_mat)) for a
+# single-indication cohort, or a per-sample vector. NULL -&gt; both skipped.
+INDICATIONS        &lt;- NULL
+methods_indication &lt;- if (!is.null(INDICATIONS)) c(&quot;timer&quot;, &quot;consensus_tme&quot;) else character(0)
+
+# CIBERSORT is license-gated: register at cibersort.stanford.edu, download CIBERSORT.R
+# and LM22.txt, and point these at them (env vars keep the paths out of the repo).
+# Absent -&gt; CIBERSORT and CIBERSORT (abs.) are skipped.
+CIBERSORT_BINARY &lt;- Sys.getenv(&quot;CIBERSORT_BINARY&quot;, unset = NA)  # path to CIBERSORT.R
+CIBERSORT_MAT    &lt;- Sys.getenv(&quot;CIBERSORT_MAT&quot;,    unset = NA)  # path to LM22.txt
+
+# BayesPrism (second-generation) needs a cell-type-annotated scRNA-seq reference,
+# read from here() below. Absent -&gt; BayesPrism is skipped.
+SC_REFERENCE &lt;- here(&quot;data&quot;, &quot;sc_reference.rds&quot;)</code></pre>
+</div>
+<div id="run-deconvolution-methods" class="section level3">
+<h3>Run deconvolution methods</h3>
+<p>Each enabled method produces a cell-type by sample score table,
+pivoted long to rows of (cell_type, sample, score, method). Then each
+row is keyed into slide space:</p>
+<pre><code>crf_id     = norm_id(sample)
+patient_id = crf2slide[crf_id]              (slide space)
+lineage    = deconv_to_lineage(cell_type)</code></pre>
+<p>Rows with no slide crosswalk (<code>patient_id</code> is
+<code>NA</code>) are dropped.</p>
+<pre class="r"><code>deconv_long &lt;- NULL
+deconv_status &lt;- NULL
+if (requireNamespace(&quot;immunedeconv&quot;, quietly = TRUE)) {
+  # Run one method, CAPTURING success/failure + a note (why it failed, or how many
+  # cell types it returned). possibly()&#39;s messages are hidden by message=FALSE, so
+  # failures were previously invisible — this makes &quot;only 3 methods ran&quot; diagnosable.
+  run_method &lt;- function(m) {
+    tryCatch({
+      args &lt;- list(gene_expression = expr_mat, method = m)
+      if (m %in% c(&quot;timer&quot;, &quot;consensus_tme&quot;)) args$indications &lt;- INDICATIONS
+      res &lt;- do.call(immunedeconv::deconvolute, args) |&gt;
+        pivot_longer(-cell_type, names_to = &quot;sample&quot;, values_to = &quot;score&quot;) |&gt;
+        mutate(method = m)
+      list(method = m, ok = TRUE, data = res,
+           note = sprintf(&quot;%d cell types&quot;, dplyr::n_distinct(res$cell_type)))
+    }, error = function(e) list(method = m, ok = FALSE, data = NULL,
+                                note = conditionMessage(e)))
+  }
+
+  methods_run &lt;- c(methods_free, methods_indication)
+  # CIBERSORT (+ abs): only when the license-gated files are configured &amp; present.
+  if (!is.na(CIBERSORT_BINARY) &amp;&amp; !is.na(CIBERSORT_MAT) &amp;&amp;
+      file.exists(CIBERSORT_BINARY) &amp;&amp; file.exists(CIBERSORT_MAT)) {
+    immunedeconv::set_cibersort_binary(CIBERSORT_BINARY)
+    immunedeconv::set_cibersort_mat(CIBERSORT_MAT)
+    methods_run &lt;- c(methods_run, &quot;cibersort&quot;, &quot;cibersort_abs&quot;)
+  }
+
+  runs &lt;- purrr::map(methods_run, run_method)
+  deconv_status &lt;- purrr::map_dfr(runs, function(r)
+    tibble::tibble(method = r$method,
+                   status = if (r$ok) &quot;ok&quot; else &quot;FAILED&quot;,
+                   detail = r$note))
+
+  ok_data &lt;- runs |&gt; purrr::keep(~ .x$ok) |&gt; purrr::map(&quot;data&quot;)
+  if (length(ok_data)) {
+    deconv_long &lt;- bind_rows(ok_data) |&gt;
+      mutate(crf_id     = norm_id(sample),
+             patient_id = unname(crf2slide[crf_id]),   # crf id -&gt; slide id
+             lineage    = deconv_to_lineage(cell_type))
+    n_unmapped  &lt;- dplyr::n_distinct(deconv_long$crf_id[is.na(deconv_long$patient_id)])
+    deconv_long &lt;- deconv_long |&gt; filter(!is.na(patient_id))
+  } else {
+    n_unmapped &lt;- 0L
+  }
+
+  cat(&quot;methods:&quot;, sum(deconv_status$status == &quot;ok&quot;), &quot;ok of&quot;,
+      nrow(deconv_status), &quot;attempted [&quot;,
+      paste(sort(unique(deconv_long$method)), collapse = &quot;, &quot;), &quot;]&quot;,
+      &quot;| deconvolution rows:&quot;, if (is.null(deconv_long)) 0L else nrow(deconv_long),
+      &quot;|&quot;, n_unmapped, &quot;RNA sample(s) had no slide crosswalk\n&quot;)
+} else {
+  message(&quot;immunedeconv not installed — install it to run this report.&quot;)
+}</code></pre>
+</div>
+<div id="bayesprism-single-cell-reference-scaffolded"
+class="section level3">
+<h3>BayesPrism (single-cell reference; scaffolded)</h3>
+<p><code>immunedeconv::deconvolute()</code> covers only bulk-signature
+methods. BayesPrism is a second-generation method (fractions from a
+cell-type-annotated scRNA-seq reference, via <code>omnideconv</code>);
+this project ships no reference, so the block is a ready-to-run scaffold
+that activates only when <code>data/sc_reference.rds</code> is present
+(an <code>.rds</code> list: <code>counts</code> = gene by cell,
+<code>labels</code> = per-cell type, <code>batch</code> = per-cell
+sample id) and skips cleanly otherwise. Its output is mapped to
+(patient_id, lineage) by the same <code>norm_id</code> -&gt;
+<code>crf2slide</code> / <code>deconv_to_lineage</code> pipeline as the
+other methods, then row-bound into <code>deconv_long</code>. Verify the
+<code>omnideconv</code> argument names against your installed version
+before trusting the numbers.</p>
+<pre class="r"><code>bayes_long &lt;- NULL
+if (file.exists(SC_REFERENCE) &amp;&amp; requireNamespace(&quot;omnideconv&quot;, quietly = TRUE)) {
+  ref &lt;- readRDS(SC_REFERENCE)
+  bayes_long &lt;- tryCatch({
+    # build_model(): learn the reference; deconvolute(): apply it to the bulk matrix.
+    model &lt;- omnideconv::build_model(
+      single_cell_object    = ref$counts,
+      cell_type_annotations = ref$labels,
+      batch_ids             = ref$batch,
+      method                = &quot;bayesprism&quot;,
+      bulk_gene_expression  = expr_mat)
+    frac &lt;- omnideconv::deconvolute(
+      bulk_gene_expression  = expr_mat,
+      model                 = model,
+      single_cell_object    = ref$counts,
+      cell_type_annotations = ref$labels,
+      batch_ids             = ref$batch,
+      method                = &quot;bayesprism&quot;)
+    as.data.frame(frac) |&gt;
+      tibble::rownames_to_column(&quot;sample&quot;) |&gt;            # omnideconv returns sample x cell_type
+      pivot_longer(-sample, names_to = &quot;cell_type&quot;, values_to = &quot;score&quot;) |&gt;
+      mutate(method = &quot;bayesprism&quot;)
+  }, error = function(e) { message(&quot;BayesPrism failed: &quot;, conditionMessage(e)); NULL })
+} else {
+  message(&quot;BayesPrism skipped — needs data/sc_reference.rds + the omnideconv package.&quot;)
+}
+
+if (!is.null(bayes_long) &amp;&amp; !is.null(deconv_long)) {
+  bayes_long &lt;- bayes_long |&gt;
+    mutate(crf_id     = norm_id(sample),
+           patient_id = unname(crf2slide[crf_id]),
+           lineage    = deconv_to_lineage(cell_type)) |&gt;
+    filter(!is.na(patient_id))
+  deconv_long &lt;- bind_rows(deconv_long, bayes_long)
+  cat(&quot;BayesPrism added:&quot;, nrow(bayes_long), &quot;rows\n&quot;)
+}</code></pre>
+</div>
+<div id="ihc-lineage-fractions-reference" class="section level3">
+<h3>IHC lineage fractions (reference)</h3>
+<p><code>ihc_lineage_fraction(ihc_data)</code> counts cells per patient
+and lineage and normalises by the patient’s total cell count (over
+<strong>all</strong> lineages, <code>NA</code> included), giving the
+whole-slide fraction:</p>
+<pre><code>ihc_frac(patient, lineage) = (cells of patient with that lineage) / (all cells of patient)
+where: the denominator is ALL cells of the patient (every lineage, NA included),
+       before restricting to the four comparable lineages.</code></pre>
+<p>Restricted to the four comparable lineages, then <strong>completed to
+0</strong> across the full patient-by-lineage grid: a lineage a patient
+simply lacks reads as 0 (present), not a missing row — otherwise the
+<code>inner_join</code> below would silently drop that patient from that
+lineage’s panel.</p>
+<pre class="r"><code>lin_raw &lt;- ihc_lineage_fraction(ihc_data) |&gt;
+  filter(lineage %in% comparable_lineages) |&gt;
+  select(patient_id, lineage, ihc_frac = frac)
+
+# Complete the patient x lineage grid: a lineage a patient simply lacks must read
+# as 0 (present), not a missing row. Otherwise the inner_join below silently drops
+# that patient from that lineage&#39;s panel — the &quot;plot never shows all patients&quot; bug.
+ihc_lin &lt;- expand.grid(patient_id = unique(slide_key(ihc_data$patient_id)),
+                       lineage    = comparable_lineages,
+                       stringsAsFactors = FALSE) |&gt;
+  left_join(lin_raw, by = c(&quot;patient_id&quot;, &quot;lineage&quot;)) |&gt;
+  mutate(ihc_frac = ifelse(is.na(ihc_frac), 0, ihc_frac))
+
+cat(&quot;IHC patients with lineage fractions:&quot;, dplyr::n_distinct(ihc_lin$patient_id), &quot;\n&quot;)</code></pre>
+<pre><code>IHC patients with lineage fractions: 2 </code></pre>
+</div>
+<div id="method-vs-ihc-per-lineage-concordance" class="section level3">
+<h3>Method vs IHC — per-lineage concordance</h3>
+<p>Per method, patient and lineage, the score sums a method’s sub-types
+mapping to the same lineage (e.g. two NK sub-types):</p>
+<pre><code>score(method, patient, lineage) = sum of that method&#39;s sub-type scores mapping to the lineage
+where: the sub-types are the method&#39;s rows for that patient whose
+       deconv_to_lineage(cell_type) equals the lineage.</code></pre>
+<p>This is inner-joined to <code>ihc_frac(patient, lineage)</code> on
+patient and lineage, keeping finite pairs.</p>
+<pre class="r"><code>deconv_paired &lt;- NULL
+if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
+  deconv_lin &lt;- deconv_long |&gt;
+    filter(!is.na(lineage)) |&gt;
+    group_by(method, patient_id, lineage) |&gt;
+    summarise(score = sum(score), .groups = &quot;drop&quot;)
+
+  deconv_paired &lt;- deconv_lin |&gt;
+    inner_join(ihc_lin, by = c(&quot;patient_id&quot;, &quot;lineage&quot;)) |&gt;
+    filter(is.finite(score), is.finite(ihc_frac))
+  cat(&quot;deconv_paired (method x lineage x patient) rows:&quot;, nrow(deconv_paired), &quot;\n&quot;)
+}</code></pre>
+<p>Per method and lineage, concordance is the cross-patient Spearman
+correlation between the method’s score and the IHC fraction; method
+ranking averages those across lineages:</p>
+<pre><code>concordance(method, lineage) = Spearman correlation between score and ihc_frac across patients
+method ranking(method)       = average of those Spearman values across lineages (na.rm)
+where: n_lineages = the number of lineages with a finite Spearman value.</code></pre>
+<pre class="r"><code>if (!is.null(deconv_paired) &amp;&amp; nrow(deconv_paired) &gt; 0) {
+  deconv_summary &lt;- deconv_paired |&gt;
+    group_by(method, lineage) |&gt;
+    group_modify(~ paired_spearman(.x$score, .x$ihc_frac)) |&gt;
+    ungroup() |&gt;
+    arrange(lineage, desc(rho))
+  knitr::kable(deconv_summary, digits = 3,
+               caption = &quot;Spearman IHC vs deconvolution, per method and lineage&quot;)
+
+  # Which method agrees best overall (mean rho across lineages).
+  method_rank &lt;- deconv_summary |&gt;
+    group_by(method) |&gt;
+    summarise(mean_rho = mean(rho, na.rm = TRUE),
+              n_lineages = sum(is.finite(rho)), .groups = &quot;drop&quot;) |&gt;
+    arrange(desc(mean_rho))
+  knitr::kable(method_rank, digits = 3,
+               caption = &quot;Method ranking by mean Spearman across lineages&quot;)
+}</code></pre>
+<p>Scatter of <code>ihc_frac</code> (x) vs <code>score</code> (y),
+faceted method by lineage.</p>
+<pre class="r"><code>if (!is.null(deconv_paired) &amp;&amp; nrow(deconv_paired) &gt; 0) {
+  # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
+  # a method that tracks IHC only in hot tumours shows up here as a colour-split
+  # cloud rather than as a middling overall rho.
+  df &lt;- deconv_paired |&gt;
+    left_join(clin, by = &quot;patient_id&quot;) |&gt;
+    mutate(immuno_phe = hotcold_order(immuno_phe))
+  ggplot(df, aes(ihc_frac, score)) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
+    facet_grid(method ~ lineage, scales = &quot;free&quot;) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
+    # Every panel here has its OWN x and y range (scales = &quot;free&quot;), because the
+    # methods&#39; scores are on incomparable scales. theme_paper_panels() draws the
+    # border and the wider gutter that say so — without them twenty panels sit edge
+    # to edge and read as one continuous field on a shared axis, which is the single
+    # wrong conclusion this figure can produce.
+    theme_paper_panels() +
+    labs(title = &quot;IHC lineage fraction vs bulk-RNA deconvolution score&quot;,
+         subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales&quot;,
+         x = &quot;IHC fraction of all cells (unitless, 0-1)&quot;,
+         y = &quot;Deconvolution score (unitless)&quot;)
+}</code></pre>
+</div>
+<div id="cross-method-agreement-methods-vs-each-other-and-vs-ihc"
+class="section level3">
+<h3>Cross-method agreement (methods vs each other and vs IHC)</h3>
+<p>Treat IHC as one more “source” alongside each method, giving one
+value per source, patient and lineage: the per-lineage deconvolution
+score for a method, or <code>ihc_frac</code> for source
+<code>IHC</code>.</p>
+<pre class="r"><code>agr &lt;- NULL
+if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
+  # per (method, patient, lineage) score, summing a method&#39;s split sub-types.
+  deconv_lin &lt;- deconv_long |&gt;
+    filter(!is.na(lineage)) |&gt;
+    group_by(method, patient_id, lineage) |&gt;
+    summarise(score = sum(score), .groups = &quot;drop&quot;)
+
+  agree_src &lt;- bind_rows(
+    deconv_lin |&gt; transmute(source = method, patient_id, lineage, value = score),
+    ihc_lin    |&gt; transmute(source = &quot;IHC&quot;,  patient_id, lineage, value = ihc_frac)
+  )
+  agr &lt;- pairwise_agreement(agree_src)
+}</code></pre>
+<p><code>pairwise_agreement</code> returns a symmetric long table over
+every ordered source pair (a, b):</p>
+<pre><code>pairwise_agreement(a, b):
+  if a == b:             mean_rho = 1,   n_lineages = NA
+  if no shared patients: mean_rho = NA,  n_lineages = 0
+  otherwise:             mean_rho   = average across lineages of the per-lineage
+                                      Spearman between a and b over their shared patients
+                         n_lineages = the number of lineages with a finite Spearman value
+where: for each lineage, the per-lineage Spearman correlates a&#39;s value against
+       b&#39;s value across the patients the two sources share.</code></pre>
+<p>Rank-based throughout, so the methods’ differing score scales do not
+matter.</p>
+<pre class="r"><code>if (!is.null(agr) &amp;&amp; nrow(agr) &gt; 0) {
+  # order sources by mean off-diagonal agreement (most-consensual first); keep IHC visible.
+  ord &lt;- agr |&gt;
+    filter(a != b) |&gt;
+    group_by(a) |&gt;
+    summarise(m = mean(mean_rho, na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+    arrange(m) |&gt;
+    pull(a)
+  agr &lt;- agr |&gt; mutate(a = factor(a, levels = ord), b = factor(b, levels = ord))
+
+  ggplot(agr, aes(a, b, fill = mean_rho)) +
+    geom_tile(colour = &quot;white&quot;, linewidth = 0.3) +
+    geom_text(aes(label = ifelse(is.na(mean_rho), &quot;·&quot;, sprintf(&quot;%.2f&quot;, mean_rho))),
+              size = pt_text(6.5)) +
+    scale_fill_div(midpoint = 0, limits = c(-1, 1), name = &quot;mean rho&quot;, guide = guide_cbar()) +
+    coord_equal() +
+    labs(title = &quot;Cross-source agreement (mean Spearman across lineages)&quot;,
+         subtitle = &quot;Each deconvolution method vs every other and vs IHC; averaged over CD8T/CD4T/Treg/NK&quot;,
+         x = NULL, y = NULL) +
+    theme_paper_tile() +
+    theme(axis.text.x = element_text(angle = 40, hjust = 1))
+}</code></pre>
+<p>Per source:</p>
+<pre><code>mean_rho_vs_others(a) = average of mean_rho(a, b) over all other sources b
+rho_vs_IHC(a)         = mean_rho(a, IHC)</code></pre>
+<p><code>mean_rho_vs_others</code> is agreement with the consensus of
+the others; <code>rho_vs_IHC</code> is agreement with IHC alone. A high
+vs-others but low vs-IHC source (or the reverse) localises where methods
+and IHC diverge.</p>
+<pre class="r"><code>if (!is.null(agr) &amp;&amp; nrow(agr) &gt; 0) {
+  # How much each source agrees with the consensus of the OTHERS (mean off-diagonal),
+  # and separately with IHC alone.
+  vs_ihc &lt;- agr |&gt; filter(b == &quot;IHC&quot;, a != &quot;IHC&quot;) |&gt; select(source = a, rho_vs_IHC = mean_rho)
+  agr |&gt;
+    filter(a != b) |&gt;
+    group_by(source = a) |&gt;
+    summarise(mean_rho_vs_others = mean(mean_rho, na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+    left_join(vs_ihc, by = &quot;source&quot;) |&gt;
+    arrange(desc(mean_rho_vs_others)) |&gt;
+    knitr::kable(digits = 3,
+      caption = &quot;Per-source agreement with the other sources vs with IHC alone. A high vs-others but low vs-IHC source (or the reverse) flags where methods and IHC diverge.&quot;)
+}</code></pre>
+</div>
+<div id="notes-1" class="section level3">
+<h3>Notes</h3>
+<ul>
+<li>Relative-score methods (MCPcounter, xCell, CIBERSORT rel.) are
+rank-only; their slope against IHC is not meaningful, so every statistic
+here is Spearman. Absolute-fraction methods (quanTIseq, EPIC, CIBERSORT
+abs., ABIS) are the fair apples-to-apples comparison but are still
+compared by rank for uniformity.</li>
+<li>Only the four comparable lineages CD8T, CD4T, Treg, NK are compared:
+the IHC panel has no macrophage or B-cell phenotype, so
+<code>deconv_to_lineage</code> returns <code>NA</code> for those and
+they are dropped (part 1 above does a marker-level CD163/CD14 check
+instead).</li>
+<li>Cross-patient Spearman needs at least 3 shared patients (and
+non-constant vectors); sparser method-lineage or source pairs return
+<code>NA</code> rather than a spurious correlation, and mean_rho
+averages over the finite lineages only. With this cohort’s size the
+agreement matrix is descriptive — read it for <em>pattern</em>, not
+significance.</li>
+<li>The CIBERSORT and BayesPrism blocks are scaffolds — verify
+<code>set_cibersort_*()</code> and
+<code>omnideconv::build_model()/deconvolute()</code> argument names
+against your installed versions before trusting their output.</li>
+</ul>
+</div>
+</div>
+<div id="part-3-invasive-margin-immunity-vs-the-hotcold-call"
+class="section level2">
+<h2>Part 3 — Invasive-margin immunity vs the hot/cold call</h2>
+<p>Neither bulk readout above is spatial, and “hot” is a spatial claim:
+the clinical immuno-phenotype is a statement about where the immune
+cells are, not just how many there are. This part tests it directly — a
+physical band around the pathologist polygon, the CD45+ fraction and
+density inside it, and those against <code>HOT score</code> and
+<code>Immuno-phenotype</code>.</p>
+<p>This is the only part that needs real geometry (a distance band
+cannot come from a binary in-annotation flag), so it keeps
+<code>sf</code> and is gated on the geojson tree being present; parts 1
+and 2 run without it.</p>
+<div id="starting-data-and-notation-2" class="section level3">
+<h3>Starting data and notation</h3>
+<p>Inputs: <code>ihc_data</code> (whole-slide FlowPath cells, one copy
+per patient, with <code>centroid_x</code>/<code>centroid_y</code> in
+<strong>microns</strong>), the pathologist annotation
+<strong>geojson</strong> polygons (in <strong>pixels</strong>), and the
+clinical <code>HOT score</code> / <code>Immuno-phenotype</code>.</p>
+<p>Unlike the inside-the-annotation checks, membership here needs real
+geometry (a distance band cannot come from the binary
+<code>Out_of_annotation</code> flag), so this report keeps
+<code>sf</code>. Cells are placed in the polygon pixel frame by a
+<strong>fixed</strong> conversion:</p>
+<pre><code>x_px = centroid_x / 0.325
+y_px = centroid_y / 0.325           (0.325 microns per pixel)</code></pre>
+<p>So 1 pixel = 0.325 microns, which gives the two conversions used
+below:</p>
+<pre><code>threshold d microns  -&gt;  d / 0.325 pixels
+pixel area A         -&gt;  A * 0.325^2 / 1e6  square millimetres</code></pre>
+</div>
+<div id="margin-and-core-regions" class="section level3">
+<h3>Margin and core regions</h3>
+<p>For a core polygon P (the union of a patient’s annotations, or each
+single annotation) and a half-width <code>d</code> microns, with
+<code>d_px = d / 0.325</code>:</p>
+<pre><code>margin band = (P grown by d_px)  minus  (P shrunk by d_px)
+deep core   =  P shrunk by d_px</code></pre>
+<p>(grow/shrink are <code>st_buffer</code> by +/- <code>d_px</code>;
+<code>margin_regions</code>.) If <code>d_px</code> exceeds the core’s
+inradius the shrunk core is empty, and the margin band falls back to the
+full grown buffer. Thresholds analysed: <code>d</code> = 50, 100, 200
+microns. These are narrower than the 500 µm consensus-Immunoscore
+half-width on purpose: at 500 µm the grown buffer swallows most of a
+small annotation and the “margin” stops being a margin, so the band is
+read at widths where it still isolates the boundary. The widest,
+<code>D_MAIN</code>, is the one every single-threshold panel below
+uses.</p>
+<pre class="r"><code>THRESHOLDS_UM &lt;- c(50, 100, 200)
+UM_PER_PX     &lt;- 0.325
+
+# The headline width, derived rather than repeated. Every panel that shows one
+# threshold reads D_MAIN, so changing THRESHOLDS_UM moves them all together — the
+# previous version spelled `500` into eight filters and four captions, which is four
+# captions that can disagree with the data they label.
+D_MAIN        &lt;- max(THRESHOLDS_UM)
+
+# arm_annotations() returns NULL when there is no geojson tree at all. This part is
+# the only one of the three that needs real polygon geometry, so the absence is
+# recorded as a flag and every chunk below carries `eval = have_margin`. Letting the
+# first filter() hit a NULL frame instead would take parts 1 and 2 down with it, and
+# those read bulk RNA and whole-slide cells — nothing to do with the annotations.
+# The polygons come from the SAME arm as the cells: the arms&#39; regions are drawn
+# independently, so an invasive margin measured from one arm&#39;s boundary against
+# another arm&#39;s cells would be a distance to a line those cells were never scored on.
+annots      &lt;- arm_annotations(arm_spec(ARM), &quot;region&quot;, patient_ids = neoplastic$SAMPLE)
+# ALSO require the arm&#39;s cells: a margin band is a distance from a polygon to a
+# CELL, so polygons alone are not enough. Without this, an arm with readable
+# geojson but no csv would pass the gate and fail inside ihc_periphery_metrics().
+have_margin &lt;- have_arm &amp;&amp; !is.null(annots) &amp;&amp; nrow(annots) &gt; 0
+
+if (!have_margin)
+  cat(&quot;No pathologist geojson for arm&quot;, ARM, &quot;under&quot;,
+      arm_annotation_dir(ARM), &quot;- the invasive-margin section is skipped.\n&quot;)
+
+if (have_margin) {
+  peri_union   &lt;- ihc_periphery_metrics(ihc_data, annots, scope = &quot;union&quot;,
+                                        thresholds_um = THRESHOLDS_UM, um_per_px = UM_PER_PX)
+  peri_per_ann &lt;- ihc_periphery_metrics(ihc_data, annots, scope = &quot;per_annotation&quot;,
+                                        thresholds_um = THRESHOLDS_UM, um_per_px = UM_PER_PX)
+
+  cat(&quot;union rows:&quot;, nrow(peri_union),
+      &quot;| patients:&quot;, dplyr::n_distinct(peri_union$patient_id),
+      &quot;| per-annotation rows:&quot;, nrow(peri_per_ann), &quot;\n&quot;)
+}</code></pre>
+<pre><code>union rows: 12 | patients: 2 | per-annotation rows: 30 </code></pre>
+</div>
+<div id="per-region-quantities" class="section level3">
+<h3>Per-region quantities</h3>
+<p>For the cells inside a region (<code>st_within</code>),
+<code>region_ratios_area()</code> returns the membership counts (as in
+<code>clinical_flowpath.Rmd</code>) plus:</p>
+<pre><code>area_mm2            = region pixel area * 0.325^2 / 1e6
+dens_all_per_mm2    = n_inside      / area_mm2
+dens_cd45_per_mm2   = n_cd45_inside / area_mm2
+dens_&lt;lineage&gt;_per_mm2 = n_&lt;lineage&gt; / area_mm2    (CD8T, CD4T, Treg, NK)
+
+cd45_over_inside    = n_cd45_inside / n_inside</code></pre>
+<p>Densities are <code>NA</code> when the region is empty.</p>
+<table>
+<caption>Cells and area per region at d = 200 µm (union). n_inside = 0 ⇒
+empty region.</caption>
+<colgroup>
+<col width="11%" />
+<col width="7%" />
+<col width="17%" />
+<col width="12%" />
+<col width="9%" />
+<col width="9%" />
+<col width="14%" />
+<col width="17%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="left">region</th>
+<th align="left">source</th>
+<th align="right">um_per_unit</th>
+<th align="right">area_mm2</th>
+<th align="right">n_inside</th>
+<th align="right">n_cd45_inside</th>
+<th align="right">cd45_over_inside</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">core</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">1.747</td>
+<td align="right">15929</td>
+<td align="right">7456</td>
+<td align="right">0.468</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="left">margin</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">3.920</td>
+<td align="right">35005</td>
+<td align="right">22275</td>
+<td align="right">0.636</td>
+</tr>
+<tr class="odd">
+<td align="left">5456</td>
+<td align="left">core</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">2.433</td>
+<td align="right">26076</td>
+<td align="right">15942</td>
+<td align="right">0.611</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="left">margin</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">5.445</td>
+<td align="right">62859</td>
+<td align="right">35619</td>
+<td align="right">0.567</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="margin-immunity-vs-clinical-hot-score" class="section level3">
+<h3>Margin immunity vs clinical HOT score</h3>
+<p>Statistic: Spearman correlation (per threshold) between the
+margin-band value and the numeric <code>HOT score</code>, for both:</p>
+<pre><code>fraction = cd45_over_inside   = n_cd45_inside / n_inside
+density  = dens_cd45_per_mm2  = n_cd45_inside / area_mm2</code></pre>
+<pre class="r"><code>margin_union &lt;- peri_union |&gt;
+  filter(region == &quot;margin&quot;) |&gt;
+  inner_join(clin, by = &quot;patient_id&quot;)
+
+cat(&quot;patients with margin metrics + clinical immune phenotype:&quot;,
+    dplyr::n_distinct(margin_union$patient_id), &quot;\n&quot;)</code></pre>
+<pre><code>patients with margin metrics + clinical immune phenotype: 2 </code></pre>
+<pre class="r"><code>df &lt;- margin_union |&gt;
+  filter(is.finite(cd45_over_inside), is.finite(hot_score))
+if (nrow(df) &gt; 2) {
+  labs_tbl &lt;- df |&gt;
+    group_by(threshold_um) |&gt;
+    group_modify(~ paired_spearman(.x$cd45_over_inside, .x$hot_score)) |&gt;
+    mutate(lab = sprintf(&quot;rho = %.2f\np = %.3g (n = %d)&quot;, rho, p, n))
+  # Coloured by the categorical immuno-phenotype while the axis is the continuous
+  # HOT score: the two are separate clinical columns, and seeing them together is
+  # the point — a cold-labelled case sitting high on the score axis is a
+  # disagreement inside the clinical record, not in the imaging.
+  df &lt;- df |&gt; mutate(immuno_phe = hotcold_order(immuno_phe))
+  ggplot(df, aes(cd45_over_inside, hot_score)) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.85, size = 2) +
+    geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
+              hjust = -0.05, vjust = 1.2, inherit.aes = FALSE, size = 3) +
+    facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0(&quot;d = &quot;, .x, &quot; µm&quot;))) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
+    labs(title = &quot;Invasive-margin immune fraction vs clinical HOT score&quot;,
+         x = &quot;CD45+ fraction in margin band (unitless, 0-1)&quot;,
+         y = &quot;Clinical HOT score (unitless)&quot;)
+}</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-hot-score-fraction-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df &lt;- margin_union |&gt;
+  filter(is.finite(dens_cd45_per_mm2), is.finite(hot_score))
+if (nrow(df) &gt; 2) {
+  labs_tbl &lt;- df |&gt;
+    group_by(threshold_um) |&gt;
+    group_modify(~ paired_spearman(.x$dens_cd45_per_mm2, .x$hot_score)) |&gt;
+    mutate(lab = sprintf(&quot;rho = %.2f\np = %.3g (n = %d)&quot;, rho, p, n))
+  # Coloured by the categorical immuno-phenotype while the axis is the continuous
+  # HOT score: the two are separate clinical columns, and seeing them together is
+  # the point — a cold-labelled case sitting high on the score axis is a
+  # disagreement inside the clinical record, not in the imaging.
+  df &lt;- df |&gt; mutate(immuno_phe = hotcold_order(immuno_phe))
+  ggplot(df, aes(dens_cd45_per_mm2, hot_score)) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_point(aes(colour = immuno_phe), alpha = 0.85, size = 2) +
+    geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
+              hjust = -0.05, vjust = 1.2, inherit.aes = FALSE, size = 3) +
+    facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0(&quot;d = &quot;, .x, &quot; µm&quot;))) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
+    labs(title = &quot;Invasive-margin immune density vs clinical HOT score&quot;,
+         x = &quot;CD45+ density in margin band (cells/mm²)&quot;,
+         y = &quot;Clinical HOT score (unitless)&quot;)
+}</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-hot-score-density-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="margin-immunity-by-clinical-immuno-phenotype"
+class="section level3">
+<h3>Margin immunity by clinical immuno-phenotype</h3>
+<p>Distribution of the margin-band <code>cd45_over_inside</code> within
+each <code>Immuno-phenotype</code> group (ordered cold -&gt;
+intermediate -&gt; hot), faceted by threshold.</p>
+<pre class="r"><code>df &lt;- margin_union |&gt;
+  filter(!is.na(immuno_phe), is.finite(cd45_over_inside)) |&gt;
+  mutate(immuno_phe = hotcold_order(immuno_phe))
+if (dplyr::n_distinct(na.omit(df$immuno_phe)) &gt; 1 &amp;&amp; nrow(df) &gt; 3) {
+  ggplot(df, aes(immuno_phe, cd45_over_inside, colour = immuno_phe)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.6) +
+    facet_wrap(~ threshold_um, labeller = labeller(threshold_um = ~ paste0(&quot;d = &quot;, .x, &quot; µm&quot;))) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
+                        name = &quot;Immuno-phenotype&quot;) +
+    labs(title = &quot;Invasive-margin immune fraction by clinical immuno-phenotype&quot;,
+         x = NULL, y = &quot;CD45+ fraction in margin band&quot;) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}</code></pre>
+</div>
+<div id="margin-vs-core-exclusion-score" class="section level3">
+<h3>Margin-vs-core exclusion score</h3>
+<p>Per patient at the widest band, <code>d = D_MAIN</code> (200)
+microns:</p>
+<pre><code>exclusion_frac = cd45_over_inside (margin)  -  cd45_over_inside (core)
+exclusion_dens = dens_cd45_per_mm2 (margin) -  dens_cd45_per_mm2 (core)</code></pre>
+<p>Positive means immunity is concentrated at the border.</p>
+<pre class="r"><code>mc &lt;- peri_union |&gt;
+  filter(threshold_um == D_MAIN) |&gt;
+  select(patient_id, region, cd45_over_inside,
+         dens_cd45_per_mm2, dens_CD8T_per_mm2, n_inside) |&gt;
+  pivot_wider(names_from = region,
+              values_from = c(cd45_over_inside, dens_cd45_per_mm2, dens_CD8T_per_mm2, n_inside)) |&gt;
+  mutate(
+    exclusion_frac = cd45_over_inside_margin - cd45_over_inside_core,
+    exclusion_dens = dens_cd45_per_mm2_margin - dens_cd45_per_mm2_core
+  ) |&gt;
+  inner_join(clin, by = &quot;patient_id&quot;)
+
+mc |&gt;
+  select(patient_id, immuno_phe,
+         margin_cd45 = cd45_over_inside_margin, core_cd45 = cd45_over_inside_core,
+         exclusion_frac, hot_score) |&gt;
+  arrange(desc(exclusion_frac)) |&gt;
+  knitr::kable(digits = 3,
+    caption = paste0(&quot;Margin-vs-core CD45+ fraction at d = &quot;, D_MAIN,
+                     &quot; µm. Positive exclusion_frac ⇒ border-concentrated immunity.&quot;))</code></pre>
+<table style="width:100%;">
+<caption>Margin-vs-core CD45+ fraction at d = 200 µm. Positive
+exclusion_frac ⇒ border-concentrated immunity.</caption>
+<colgroup>
+<col width="15%" />
+<col width="15%" />
+<col width="17%" />
+<col width="14%" />
+<col width="21%" />
+<col width="14%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="left">immuno_phe</th>
+<th align="right">margin_cd45</th>
+<th align="right">core_cd45</th>
+<th align="right">exclusion_frac</th>
+<th align="right">hot_score</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">HOT</td>
+<td align="right">0.636</td>
+<td align="right">0.468</td>
+<td align="right">0.168</td>
+<td align="right">0.736</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="left">HOT</td>
+<td align="right">0.567</td>
+<td align="right">0.611</td>
+<td align="right">-0.045</td>
+<td align="right">0.747</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>sc &lt;- mc |&gt; filter(is.finite(cd45_over_inside_margin), is.finite(cd45_over_inside_core))
+if (nrow(sc) &gt; 1) {
+  aes_col &lt;- if (&quot;immuno_phe&quot; %in% names(sc) &amp;&amp; any(!is.na(sc$immuno_phe)))
+    aes(cd45_over_inside_core, cd45_over_inside_margin, colour = hotcold_order(immuno_phe))
+  else aes(cd45_over_inside_core, cd45_over_inside_margin)
+  p &lt;- ggplot(sc, aes_col) +
+    geom_abline(slope = 1, linetype = &quot;dashed&quot;, colour = &quot;grey50&quot;) +
+    geom_point(size = 3, alpha = 0.85) +
+    coord_equal() +
+    labs(title = paste0(&quot;Margin vs core CD45+ fraction (d = &quot;, D_MAIN, &quot; µm)&quot;),
+         x = &quot;CD45+ fraction, deep core&quot;, y = &quot;CD45+ fraction, invasive margin&quot;,
+         colour = &quot;Immuno-phenotype&quot;)
+  if (&quot;colour&quot; %in% names(sc) || any(!is.na(sc$immuno_phe)))
+    p &lt;- p + scale_colour_manual(values = hotcold_cols(levels(hotcold_order(sc$immuno_phe))),
+                                 name = &quot;Immuno-phenotype&quot;, na.value = &quot;grey70&quot;)
+  print(p)
+}</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-core-scatter-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>df &lt;- mc |&gt;
+  filter(!is.na(immuno_phe), is.finite(exclusion_frac)) |&gt;
+  mutate(immuno_phe = hotcold_order(immuno_phe))
+if (dplyr::n_distinct(na.omit(df$immuno_phe)) &gt; 1 &amp;&amp; nrow(df) &gt; 3) {
+  ggplot(df, aes(immuno_phe, exclusion_frac, colour = immuno_phe)) +
+    geom_hline(yintercept = 0, linetype = &quot;dashed&quot;, colour = &quot;grey50&quot;) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.6) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)), name = &quot;Immuno-phenotype&quot;) +
+    labs(title = paste0(&quot;Margin-minus-core exclusion score by clinical phenotype (d = &quot;, D_MAIN, &quot; µm)&quot;),
+         x = NULL, y = &quot;Exclusion score: margin − core CD45+ fraction (unitless)&quot;) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}</code></pre>
+</div>
+<div id="single-annotations-vs-union" class="section level3">
+<h3>Single annotations vs union</h3>
+<p>Per-annotation margin fraction (each single-annotation core) vs the
+patient’s union margin fraction, at <code>d = D_MAIN</code> (200)
+microns — a stability check across a patient’s separately drawn
+regions.</p>
+<pre class="r"><code>pa &lt;- peri_per_ann |&gt;
+  filter(region == &quot;margin&quot;, threshold_um == D_MAIN) |&gt;
+  select(patient_id, annotation, cd45_over_inside)
+un &lt;- peri_union |&gt;
+  filter(region == &quot;margin&quot;, threshold_um == D_MAIN) |&gt;
+  select(patient_id, union_cd45 = cd45_over_inside)
+cmp &lt;- inner_join(pa, un, by = &quot;patient_id&quot;) |&gt;
+  filter(is.finite(cd45_over_inside), is.finite(union_cd45))
+if (nrow(cmp) &gt; 1) {
+  ggplot(cmp, aes(patient_id, cd45_over_inside)) +
+    geom_line(aes(y = union_cd45, group = 1), colour = &quot;grey60&quot;) +
+    geom_point(aes(y = union_cd45), colour = &quot;grey40&quot;, size = 3, shape = 18) +
+    geom_jitter(aes(colour = annotation), width = 0.05, size = 2, alpha = 0.85) +
+    labs(title = paste0(&quot;Margin immune fraction: single annotations vs union (d = &quot;, D_MAIN, &quot; µm)&quot;),
+         x = &quot;Patient&quot;, y = &quot;CD45+ fraction in margin band (unitless, 0-1)&quot;,
+         colour = &quot;Annotation&quot;) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-per-ann-vs-union-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="margin-composition-three-denominators" class="section level3">
+<h3>Margin composition (three denominators)</h3>
+<p>The same three-denominator composition used inside the tumour,
+applied to the margin band at <code>d = D_MAIN</code> (200) microns:</p>
+<pre><code>frac_inside = n_&lt;lineage&gt; / n_inside         (of all cells in band)
+frac_tumor  = n_&lt;lineage&gt; / n_tumor_inside   (of tumour cells in band)
+frac_cd45   = n_&lt;lineage&gt; / n_cd45_inside    (of CD45+ cells in band)</code></pre>
+<pre class="r"><code>comp &lt;- peri_union |&gt;
+  filter(region == &quot;margin&quot;, threshold_um == D_MAIN) |&gt;
+  region_composition() |&gt;
+  pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
+               names_to = &quot;normalization&quot;, values_to = &quot;frac&quot;) |&gt;
+  mutate(normalization = factor(
+           c(frac_inside = &quot;of all cells&quot;, frac_tumor = &quot;of tumour cells&quot;,
+             frac_cd45 = &quot;of CD45+ cells&quot;)[normalization],
+           levels = c(&quot;of all cells&quot;, &quot;of tumour cells&quot;, &quot;of CD45+ cells&quot;))) |&gt;
+  filter(is.finite(frac))
+
+if (nrow(comp) &gt; 0) {
+  ggplot(comp, aes(lineage, frac, fill = lineage)) +
+    geom_boxplot(outlier.shape = NA, colour = &quot;grey30&quot;) +
+    geom_jitter(width = .15, alpha = .5, size = 1) +
+    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    # Named lineage palette, not positional `oi` — see the note on the same plot
+    # in clinical_flowpath.Rmd. These are the same populations as that figure and
+    # must therefore be the same colours.
+    scale_fill_lineage(guide = &quot;none&quot;) +
+    labs(title = paste0(&quot;Immune composition in the invasive-margin band (d = &quot;, D_MAIN, &quot; µm)&quot;),
+         subtitle = with_n(NULL, comp$patient_id, &quot;patients&quot;),
+         x = NULL, y = &quot;Cell fraction (unitless, 0-1)&quot;) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-composition-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="margin-cell-type-fractions-hot-vs-cold" class="section level3">
+<h3>Margin cell-type fractions: hot vs cold</h3>
+<p>Same margin-band composition (d = D_MAIN = 200 µm, union), now split
+by the clinical <code>Immuno-phenotype</code>: for each lineage, the
+boxes contrast <strong>hot</strong> vs <strong>cold</strong>
+tumours.</p>
+<pre><code>group(patient) = hot / intermediate / cold   (from clinical Immuno-phenotype)
+compared per lineage and per denominator (of all cells / tumour cells / CD45+ cells)</code></pre>
+<pre class="r"><code>comp_hc &lt;- peri_union |&gt;
+  filter(region == &quot;margin&quot;, threshold_um == D_MAIN) |&gt;
+  region_composition() |&gt;
+  inner_join(clin, by = &quot;patient_id&quot;) |&gt;
+  filter(!is.na(immuno_phe)) |&gt;
+  mutate(immuno_phe = hotcold_order(immuno_phe)) |&gt;   # cold -&gt; intermediate -&gt; hot
+  pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
+               names_to = &quot;normalization&quot;, values_to = &quot;frac&quot;) |&gt;
+  mutate(normalization = factor(
+           c(frac_inside = &quot;of all cells&quot;, frac_tumor = &quot;of tumour cells&quot;,
+             frac_cd45 = &quot;of CD45+ cells&quot;)[normalization],
+           levels = c(&quot;of all cells&quot;, &quot;of tumour cells&quot;, &quot;of CD45+ cells&quot;))) |&gt;
+  filter(is.finite(frac))
+
+if (nrow(comp_hc) &gt; 0 &amp;&amp; dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) &gt; 1) {
+  ggplot(comp_hc, aes(lineage, frac, colour = immuno_phe)) +
+    geom_boxplot(outlier.shape = NA, position = position_dodge(width = .75)) +
+    geom_point(position = position_jitterdodge(jitter.width = .12, dodge.width = .75),
+               alpha = .6, size = 1) +
+    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    scale_colour_manual(values = hotcold_cols(levels(comp_hc$immuno_phe)),
+                        name = &quot;Immuno-phenotype&quot;) +   # hot = red, cold = light blue
+    labs(title = paste0(&quot;Invasive-margin cell-type fractions: hot vs cold (d = &quot;, D_MAIN, &quot; µm)&quot;),
+         subtitle = sprintf(&quot;%d patients with a margin band and an immuno-phenotype&quot;,
+                            dplyr::n_distinct(comp_hc$patient_id)),
+         x = NULL, y = &quot;Cell fraction in margin band (unitless, 0-1)&quot;) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}</code></pre>
+</div>
+<div id="notes-2" class="section level3">
+<h3>Notes</h3>
+<ul>
+<li>Band width is physical: each polygon is buffered by
+<code>d / 0.325</code> pixel units; the <code>um_per_unit</code> column
+echoes the 0.325 µm/px conversion used.</li>
+<li>Geojson-only: a margin band needs a real boundary, so only patients
+with a pathologist geojson are covered (no
+<code>Out_of_annotation</code> fallback).</li>
+<li>Fraction vs density: a thin band can read immune-rich by fraction
+yet sparse by density (per mm²) — the Immunoscore unit.</li>
+<li>Small cohort; Spearman with reported <code>n</code> throughout.</li>
+</ul>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices datasets  utils     methods  
+[8] base     
+
+other attached packages:
+ [1] data.table_1.18.4           fs_2.1.0                   
+ [3] readxl_1.5.0                DESeq2_1.42.1              
+ [5] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+ [7] MatrixGenerics_1.14.0       matrixStats_1.5.0          
+ [9] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[11] IRanges_2.36.0              S4Vectors_0.40.2           
+[13] BiocGenerics_0.48.1         sf_1.1-2                   
+[15] here_1.0.2                  forcats_1.0.1              
+[17] stringr_1.6.0               ggplot2_4.0.3              
+[19] purrr_1.2.2                 readr_2.2.0                
+[21] tidyr_1.3.2                 tibble_3.3.1               
+[23] dplyr_1.2.1                 workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1        farver_2.1.2            S7_0.2.2               
+ [4] bitops_1.1-0            fastmap_1.2.0           RCurl_1.98-1.20        
+ [7] promises_1.5.0          digest_0.6.39           lifecycle_1.0.5        
+[10] processx_3.9.0          magrittr_2.0.5          compiler_4.3.2         
+[13] rlang_1.2.0             sass_0.4.10             tools_4.3.2            
+[16] yaml_2.3.12             knitr_1.51              labeling_0.4.3         
+[19] S4Arrays_1.2.1          classInt_0.4-11         DelayedArray_0.28.0    
+[22] RColorBrewer_1.1-3      BiocParallel_1.36.0     abind_1.4-8            
+[25] KernSmooth_2.23-27      withr_3.0.3             grid_4.3.2             
+[28] git2r_0.33.0            e1071_1.7-17            scales_1.4.0           
+[31] cli_3.6.6               rmarkdown_2.31          crayon_1.5.3           
+[34] generics_0.1.4          otel_0.2.0              rstudioapi_0.15.0      
+[37] httr_1.4.7              tzdb_0.5.0              DBI_1.3.0              
+[40] cachem_1.1.0            proxy_0.4-29            zlibbioc_1.48.2        
+[43] parallel_4.3.2          cellranger_1.1.0        XVector_0.42.0         
+[46] vctrs_0.7.3             Matrix_1.6-5            jsonlite_2.0.0         
+[49] callr_3.7.6             hms_1.1.4               locfit_1.5-9.12        
+[52] jquerylib_0.1.4         units_1.0-1             glue_1.8.1             
+[55] codetools_0.2-20        ps_1.9.3                stringi_1.8.7          
+[58] gtable_0.3.6            later_1.4.8             pillar_1.11.1          
+[61] htmltools_0.5.9         GenomeInfoDbData_1.2.11 R6_2.6.1               
+[64] rprojroot_2.1.1         evaluate_1.0.5          lattice_0.23-1         
+[67] renv_1.2.3              httpuv_1.6.12           bslib_0.9.0            
+[70] class_7.3-24            Rcpp_1.1.1-1.1          SparseArray_1.2.4      
+[73] whisker_0.4.1           xfun_0.58               getPass_0.2-4          
+[76] pkgconfig_2.0.3        </code></pre>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

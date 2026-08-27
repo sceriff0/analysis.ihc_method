@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-07-05" />
+
+<title>Clinical concordance — Massimo1 — FlowPath, selected regions</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ihc_method</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="clinical_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="clinical_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    2 · Molecular
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="molecular_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="molecular_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="molecular_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/sceriff0/ihc_method">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Clinical concordance — Massimo1 — FlowPath,
+selected regions</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-07-05</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-08-26
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>ihc_method/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260630code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260630)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260630code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260630)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/
+    Ignored:    output/figures/
+    Ignored:    renv/library/
+    Ignored:    renv/staging/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/clinical_massimo1.Rmd</code>) and
+HTML (<code>docs/clinical_massimo1.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/6036fc018bebb9ef5facf898124e4db86be4bf52/analysis/clinical_massimo1.Rmd" target="_blank">6036fc0</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:bug: Splice arm bodies with knit_child(text=), not the child= chunk
+option
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/2089263b995bb84b3c65dc54b53406eb8e8ab139/analysis/clinical_massimo1.Rmd" target="_blank">2089263</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-26
+</td>
+<td>
+:sparkles: One page per phenotyping arm, and fill arm 1’s scores from
+thr_head&amp;neck.xlsx
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Arm: <code>massimo1</code>.</strong> FlowPath’s
+<code>_selected</code> per-region export, with a real whole-slide
+<code>_all</code> tier behind the union scope. Pathologist scores are
+the ORIGINAL read (<code>thr_head&amp;neck.xlsx</code>).</p>
+<p>This page is one of three, identical in construction and differing
+only in which arm it reads. The arms’ regions were drawn in
+<strong>separate annotation sessions</strong>, so
+<code>ANNOTATION_2</code> here is not <code>ANNOTATION_2</code> on the
+other pages — compare them by PATIENT, never region by region.
+<code>code/arms.R</code> states the rule in full.</p>
+</blockquote>
+<!-- =========================================================================
+     clinical_body.Rmd — the shared clinical body, rendered once PER ARM.
+
+     Three arms phenotype the same slides three ways (code/arms.R). Every figure
+     below is identical in construction across them; only WHICH arm's cells,
+     polygons and pathologist table it reads differs. That variable lives in the
+     PARENT, not here.
+
+     The parent must define, before including this file:
+       SLUG        its own filename, for export_pdf_figures()
+       ARM         the arm string
+       ihc_data    ihc_for(ARM)
+       neoplastic  neoplastic_for(ARM)
+     and must have sourced load_data.R, validation_helpers.R, membership.R,
+     aggregation_compare.R and pdf_export.R.
+
+     WHY A CHILD AND NOT SIX COPIES. Six near-identical thousand-line pages drift
+     apart the first time one is edited, and the drift is invisible because every
+     copy still knits. The cost is that workflowr prints "Warning! The custom
+     fig.path you set was ignored" on every plot in a child — its hook compares the
+     PARENT's fig.path against a path derived from knitr::current_input(), which is
+     the CHILD, so they never match. Nothing is actually ignored and no figure
+     moves. See CLAUDE.md; tests/testthat/test-child-documents.R enforces the
+     placement rules that keep wflow_build's glob from picking this file up.
+========================================================================== -->
+<div id="starting-data-and-notation" class="section level2">
+<h2>Starting data and notation</h2>
+<p>Membership is decided <strong>geometrically</strong>, from the
+pathologist’s own polygons — and in this export, from the polygon
+belonging to the <em>same region</em> as the cell file it scores.</p>
+<p>Phenotypes here are <strong>FlowPath’s</strong>, from the QuPath gate
+tree. A companion page ran the identical analysis on cells MIRAGE
+phenotyped itself — same slides, same polygons, so the two differed by
+the phenotyping method alone — but it is withdrawn for now and FlowPath
+is the only phenotyping on the site.</p>
+<p>Every value below is derived from three inputs:</p>
+<ul>
+<li><code>ihc_data</code> — <code>ihc_for(ARM)</code>, the arm’s single
+cells: <strong>one row per physical cell per patient</strong>. For
+<code>massimo2</code> that is the de-duplicated union of a patient’s
+<code>csv/&lt;patient&gt;/&lt;patient&gt;_&lt;A|B|C&gt;.csv</code>
+region files, each of which covers the whole slide — so cohort-level
+fractions are not computed over an inflated denominator. For
+<code>massimo1</code> it is the arm’s own whole-slide export, read
+directly. Carries <code>phenotype</code>, per-marker sign columns,
+centroids and <code>patient_id</code>.</li>
+<li><code>neoplastic</code> — <code>neoplastic_for(ARM)</code>, the
+pathologist’s neoplastic-cellularity percentage for <strong>this arm’s
+regions</strong>, one row per scored region
+(<code>ANNOTATION_1..3</code>, or <code>whole_slide</code> for a patient
+with no annotation drawn). Long rather than wide, because a whole-slide
+score cannot be put in an <code>ANNOTATION_k</code> column without
+claiming a region that was never drawn. <strong>Each arm has its own
+table</strong>: the arms’ regions were annotated in separate sessions,
+so <code>ANNOTATION_2</code> is a different polygon in each and the
+tables are not interchangeable.</li>
+<li><code>clinical_data</code> — the clinical CRF
+(<code>HOT score</code>, <code>Immuno-phenotype</code>, blood counts,
+<code>RESPONSE</code>, <code>OS</code>/<code>PFS</code>).</li>
+</ul>
+<p>Membership (which cells count as “inside the tumour annotation”):</p>
+<pre><code>PER REGION (patient HAS an annotation directory):
+  cell is INSIDE  = its centroid falls in THAT REGION&#39;S polygon (sf point-in-polygon),
+                    centroids mapped to the geojson pixel frame by
+                    x_px = centroid_x / 0.325  (0.325 microns/pixel)
+  union           = inside the dissolved union of the patient&#39;s polygons, scored on
+                    the DE-DUPLICATED slide so a cell in two regions counts once
+
+WHOLE SLIDE (patient has NO annotation directory):
+  every cell is INSIDE — the layout&#39;s own convention, not a fallback guess</code></pre>
+<p>The <code>source</code> column on every row records which applied
+(<code>sf</code> or <code>whole_slide</code>). How a region is numbered
+depends on the arm: <code>massimo2</code> suffixes its files with a
+LETTER and <code>A</code> is <code>ANNOTATION_1</code>, <code>B</code>
+is <code>ANNOTATION_2</code> <strong>by alphabet position</strong>,
+while <code>massimo1</code> suffixes with <code>_a&lt;k&gt;</code> and
+<code>k</code> is taken literally. Either way the labels line up with
+this arm’s own <code>ANNOTATION_1..3</code> scores — and only with its
+own.</p>
+<p>Because a polygon is read, <code>area_mm2</code> and every
+<code>dens_*_per_mm2</code> column carry real values — except for a
+whole-slide patient, which has no polygon and therefore no area.</p>
+</div>
+<div id="membership" class="section level2">
+<h2>Membership</h2>
+<pre class="r"><code># An arm reads BOTH its cells and its polygons — they are paired region by region,
+# so an externally supplied annotation set would not line up, and passing one is an
+# error rather than being silently ignored.
+mem &lt;- membership_data(ARM, ihc_data, neoplastic)
+
+# AN ARM WITH NO DATA ON DISK IS A ROUTINE STATE, AND IT SAYS SO HERE — not as a
+# dplyr error three chunks down, and not as thirty silently empty figures. The
+# metrics frames are typed even when empty (arm_empty_metrics()), so every select
+# and join below still works; what would otherwise be missing is the explanation.
+have_arm &lt;- nrow(mem$cells) &gt; 0
+if (!have_arm) {
+  .st &lt;- arm_tier_status(arm_spec(ARM))
+  cat(&quot;!! ARM `&quot;, ARM, &quot;` HAS NO DATA. Every panel below is empty.\n\n&quot;, sep = &quot;&quot;)
+  cat(&quot;Tiers this arm expects, and whether they are on disk:\n&quot;)
+  print(as.data.frame(.st[!is.na(.st$dir), c(&quot;tier&quot;, &quot;dir&quot;, &quot;exists&quot;)]), row.names = FALSE)
+  cat(&quot;\nRoot searched: &quot;, arm_spec(ARM)$root_path, &quot;\n&quot;, sep = &quot;&quot;)
+  if (dir.exists(here(&quot;data&quot;, &quot;all_slide&quot;)))
+    cat(&quot;\ndata/all_slide/ still exists — that IS massimo2&#39;s export under its old\n&quot;,
+        &quot;name. Nothing reads that path any more:  ln -s all_slide data/massimo2\n&quot;, sep = &quot;&quot;)
+  cat(&quot;\nEvery analysis section below is SKIPPED (eval = have_arm). The reconciliation\n&quot;,
+      &quot;table still renders, and will show every scored region as &#39;scored, NOT exported&#39;.\n&quot;, sep = &quot;&quot;)
+}
+
+neo_ids   &lt;- unique(slide_key(neoplastic$SAMPLE))
+ihc_ids   &lt;- unique(slide_key(ihc_data$patient_id))
+have_poly &lt;- unique(mem$per_annotation$patient_id[mem$per_annotation$source == &quot;sf&quot;])
+missing   &lt;- setdiff(neo_ids, ihc_ids)                        # no cell csv at all
+whole     &lt;- setdiff(intersect(neo_ids, ihc_ids), have_poly)  # cells but no polygon
+
+cat(&quot;patients loaded:&quot;, length(ihc_ids),
+    &quot;[&quot;, paste(sort(ihc_ids), collapse = &quot;, &quot;), &quot;]\n&quot;)</code></pre>
+<pre><code>patients loaded: 6 [ 046, 052, 10338, 15897, 24086, 5456 ]</code></pre>
+<pre class="r"><code>cat(&quot;patients with a pathologist score AND IHC cells:&quot;,
+    length(intersect(neo_ids, ihc_ids)),
+    &quot;| scored per region against a polygon:&quot;, length(intersect(neo_ids, have_poly)),
+    &quot;| whole-slide (no annotation directory):&quot;, length(whole), &quot;\n&quot;)</code></pre>
+<pre><code>patients with a pathologist score AND IHC cells: 6 | scored per region against a polygon: 6 | whole-slide (no annotation directory): 0 </code></pre>
+<pre class="r"><code>if (length(whole))
+  cat(&quot;whole-slide patients (every cell counts, by the layout convention):&quot;,
+      paste(sort(whole), collapse = &quot;, &quot;), &quot;\n&quot;)
+if (length(missing))
+  cat(&quot;pathologist patients with NO cell csv (absent from every IHC metric):&quot;,
+      paste(sort(missing), collapse = &quot;, &quot;), &quot;\n&quot;)</code></pre>
+<pre class="r"><code># DOES THE PATHOLOGIST&#39;S REGION LIST MATCH THE EXPORT&#39;S? The concordance below is an
+# inner join on (patient_id, annotation), so a region scored but not exported — or
+# exported but not scored — drops out silently and the correlation is computed over
+# fewer pairs than anyone intended. Print the comparison instead.
+.scored   &lt;- neoplastic |&gt;
+  transmute(patient_id = slide_key(SAMPLE), annotation, path_pct)
+.exported &lt;- mem$per_annotation |&gt; select(patient_id, annotation, source, n_inside)
+.recon &lt;- full_join(.scored, .exported, by = c(&quot;patient_id&quot;, &quot;annotation&quot;)) |&gt;
+  mutate(status = case_when(
+    is.na(path_pct) ~ &quot;exported, NOT scored&quot;,
+    is.na(source)   ~ &quot;scored, NOT exported&quot;,
+    TRUE            ~ &quot;matched&quot;)) |&gt;
+  arrange(patient_id, annotation)
+
+knitr::kable(.recon, caption = paste(
+  &quot;Pathologist-scored regions vs regions the export produced. Only `matched` rows&quot;,
+  &quot;reach the concordance below.&quot;))</code></pre>
+<table>
+<caption>Pathologist-scored regions vs regions the export produced. Only
+<code>matched</code> rows reach the concordance below.</caption>
+<colgroup>
+<col width="15%" />
+<col width="18%" />
+<col width="12%" />
+<col width="10%" />
+<col width="12%" />
+<col width="30%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="left">annotation</th>
+<th align="right">path_pct</th>
+<th align="left">source</th>
+<th align="right">n_inside</th>
+<th align="left">status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">ANNOTATION_1</td>
+<td align="right">50</td>
+<td align="left">sf</td>
+<td align="right">17453</td>
+<td align="left">matched</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">ANNOTATION_2</td>
+<td align="right">60</td>
+<td align="left">sf</td>
+<td align="right">3830</td>
+<td align="left">matched</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">ANNOTATION_3</td>
+<td align="right">50</td>
+<td align="left">sf</td>
+<td align="right">9873</td>
+<td align="left">matched</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="left">ANNOTATION_1</td>
+<td align="right">70</td>
+<td align="left">sf</td>
+<td align="right">17226</td>
+<td align="left">matched</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">ANNOTATION_2</td>
+<td align="right">50</td>
+<td align="left">sf</td>
+<td align="right">14303</td>
+<td align="left">matched</td>
+</tr>
+<tr class="even">
+<td align="left">10338</td>
+<td align="left">ANNOTATION_1</td>
+<td align="right">NA</td>
+<td align="left">sf</td>
+<td align="right">76782</td>
+<td align="left">exported, NOT scored</td>
+</tr>
+<tr class="odd">
+<td align="left">15897</td>
+<td align="left">ANNOTATION_1</td>
+<td align="right">NA</td>
+<td align="left">sf</td>
+<td align="right">56584</td>
+<td align="left">exported, NOT scored</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_1</td>
+<td align="right">80</td>
+<td align="left">sf</td>
+<td align="right">24655</td>
+<td align="left">matched</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_2</td>
+<td align="right">70</td>
+<td align="left">sf</td>
+<td align="right">20320</td>
+<td align="left">matched</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_3</td>
+<td align="right">70</td>
+<td align="left">sf</td>
+<td align="right">25796</td>
+<td align="left">matched</td>
+</tr>
+<tr class="odd">
+<td align="left">5456</td>
+<td align="left">ANNOTATION_1</td>
+<td align="right">70</td>
+<td align="left">sf</td>
+<td align="right">6166</td>
+<td align="left">matched</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="left">ANNOTATION_2</td>
+<td align="right">80</td>
+<td align="left">sf</td>
+<td align="right">28377</td>
+<td align="left">matched</td>
+</tr>
+<tr class="odd">
+<td align="left">5456</td>
+<td align="left">ANNOTATION_3</td>
+<td align="right">70</td>
+<td align="left">sf</td>
+<td align="right">19383</td>
+<td align="left">matched</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>.bad &lt;- filter(.recon, status != &quot;matched&quot;)
+if (nrow(.bad))
+  cat(&quot;\n&gt; **&quot;, nrow(.bad), &quot; region(s) do not line up** and are excluded from every&quot;,
+      &quot; correlation on this page. Reconcile `neoplastic_&quot;, ARM, &quot;` in&quot;,
+      &quot; `code/load_data.R` against the export before reading the numbers.\n&quot;, sep = &quot;&quot;)</code></pre>
+<pre><code>
+&gt; **2 region(s) do not line up** and are excluded from every correlation on this page. Reconcile `neoplastic_massimo1` in `code/load_data.R` against the export before reading the numbers.</code></pre>
+<pre class="r"><code># WHAT THE REGION FILES CONTAIN — printed, not assumed. Either each &lt;pid&gt;_&lt;L&gt;.csv holds
+# the whole slide with Out_of_annotation computed for region L, or it holds only that
+# region&#39;s cells. The layout cannot say which, the two give different cohort-level
+# denominators, and both look plausible — so the answer is reported here on every knit.
+# `ihc_data` is de-duplicated either way, which is a no-op in the second case.
+.rep &lt;- attr(ihc_data, &quot;overlap_report&quot;)
+if (!is.null(.rep) &amp;&amp; nrow(.rep)) {
+  cat(&quot;**Export shape:**&quot;, attr(.rep, &quot;verdict&quot;), &quot;\n\n&quot;)
+  knitr::kable(.rep, caption = paste(
+    &quot;Rows read per patient vs distinct cells after de-duplication.&quot;,
+    &quot;rows_per_cell near 1 means the region files partition the slide;&quot;,
+    &quot;near the file count means each file exports the whole slide.&quot;))
+}</code></pre>
+<pre><code>**Export shape:** whole-slide exports (files repeat cells) </code></pre>
+<table>
+<caption>Rows read per patient vs distinct cells after de-duplication.
+rows_per_cell near 1 means the region files partition the slide; near
+the file count means each file exports the whole slide.</caption>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="right">n_region_files</th>
+<th align="right">n_rows</th>
+<th align="right">n_unique_cells</th>
+<th align="right">rows_per_cell</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">046</td>
+<td align="right">3</td>
+<td align="right">1217091</td>
+<td align="right">405697</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="right">2</td>
+<td align="right">756388</td>
+<td align="right">378194</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="right">3</td>
+<td align="right">850893</td>
+<td align="right">283631</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="right">3</td>
+<td align="right">1148397</td>
+<td align="right">382799</td>
+<td align="right">3</td>
+</tr>
+</tbody>
+</table>
+<p>Cell labels:</p>
+<pre><code>tumour cell = phenotype_clean contains &quot;Tumor&quot;
+              (phenotype_clean = clean_phenotype(phenotype): the text inside the
+               parentheses when the gate label has any, the whole label otherwise)
+CD45+ cell  = marker_pos(cells, &quot;CD45&quot;) — the CD45 sign column, whichever of
+              CD45_sign / sign:CD45 / CD45_positive the export carries
+lineage(cell) = phenotype_clean collapsed via the phenotype_lineage table</code></pre>
+<p><code>slide_key()</code> maps every id to the shared numeric slide
+space (strip non-digits, apply the verified typo fix <code>15879</code>
+-&gt; <code>15897</code>).</p>
+</div>
+<div id="membership-counts" class="section level2">
+<h2>Membership counts</h2>
+<p>For a set of cells (either one annotation’s inside cells or the union
+inside cells), <code>region_ratios()</code> returns:</p>
+<pre><code>n_inside          = number of cells in the set
+n_inside_clean    = cells in the set after dropping Outlier == TRUE and
+                    Unknown-phenotype cells (QC-filtered denominator)
+n_tumor_inside    = tumour cells in the set
+n_tumor_clean     = tumour cells in the set that survive the same clean filter
+n_cd45_inside     = CD45+ cells in the set
+n_cd3cd45_inside  = CD45+ AND CD3+ cells (marker-gated T cells)
+n_gzmb_nk_inside  = NK-lineage cells that are GZMB+ (cytotoxic/activated NK)
+n_&lt;lineage&gt;       = cells in the set with that lineage
+                    (lineage in: CD8T, CD4T, Treg, NK, Immune_other, Stroma)
+
+tumor_over_inside       = n_tumor_inside / n_inside
+tumor_over_inside_clean = n_tumor_clean  / n_inside_clean  (outliers + Unknown removed)
+cd45_over_inside    = n_cd45_inside    / n_inside
+cd3cd45_over_inside = n_cd3cd45_inside / n_inside
+cd3cd45_over_cd45   = n_cd3cd45_inside / n_cd45_inside   (T cells among immune)
+gzmb_nk_over_inside = n_gzmb_nk_inside / n_inside
+gzmb_nk_over_nk     = n_gzmb_nk_inside / n_NK            (GZMB+ fraction of NK)
+frac_&lt;lineage&gt;      = n_&lt;lineage&gt;      / n_inside</code></pre>
+<p>Any fraction with a zero denominator is <code>NA</code>. The
+marker-gated subsets read the marker sign columns via
+<code>marker_pos()</code>, not the phenotype label; a marker the export
+never gated contributes no cells rather than aborting the report.</p>
+</div>
+<div id="tumour-content-ihc-vs-pathologist" class="section level2">
+<h2>Tumour content — IHC vs pathologist</h2>
+<p>The IHC tumour metric is shown under <strong>three
+normalizations</strong>, all restricted to the cells inside the
+annotation:</p>
+<pre><code>tumor_over_inside       = (tumour cells inside) / (all cells inside)     -&gt; 0..1
+tumor_over_inside_clean = (tumour cells inside) / (cells inside)  -&gt; 0..1
+                          with the cell set first cleaned: FlowPath Outlier == TRUE
+                          cells and Unknown-phenotype cells dropped from BOTH the
+                          numerator and the denominator (a QC-filtered version of
+                          tumor_over_inside; if a csv has no `Outlier` column no cell
+                          is treated as an outlier)
+tumor_over_cd45         = (tumour cells inside) / (CD45+ cells inside)   -&gt; can exceed 1
+dens_tumor_per_mm2      = (tumour cells inside) / (annotation area in mm^2)
+                          area_mm2 = polygon pixel area * 0.325^2 / 1e6
+
+pathologist (per annotation) = path_pct / 100, per scored region
+pathologist (union)          = mean of that patient&#39;s scored-region values / 100</code></pre>
+<p><code>tumor_over_inside_clean</code> answers the same
+IHC-vs-pathologist question as <code>tumor_over_inside</code> but
+removes debris/segmentation outliers and unclassified cells that dilute
+the denominator, so it is expected to track the pathologist’s tumour
+fraction more closely.</p>
+<p><code>dens_tumor_per_mm2</code> is the same tumour-cell density
+(cells/mm²) that periphery reports, computed here inside the whole
+annotation. It needs the polygon area, so it exists only where a polygon
+was read:</p>
+<p>it is defined for every patient with a geojson and <code>NA</code>
+for the fallback ones.</p>
+<p>Being a density rather than a 0..1 fraction, it is compared to the
+pathologist by <strong>rank</strong> (Spearman/Kendall), not the x=y
+line.</p>
+<p>Each normalization is computed both per-annotation (one polygon) and
+over the union of a patient’s polygons.</p>
+<pre class="r"><code># Membership was resolved in the parent report; from here on the two frames have the
+# same schema whichever mode produced them (see code/membership.R).
+ihc_tumor_per_ann &lt;- mem$per_annotation
+ihc_tumor_union   &lt;- mem$union
+
+# `neoplastic` is already long — one row per scored region — so there is no pivot.
+# Its `annotation` labels are the same vocabulary the metrics frames use, including
+# `whole_slide` for a patient with no annotation drawn, so the join below is direct.
+path_long &lt;- neoplastic |&gt;
+  mutate(patient_id = slide_key(SAMPLE), path_frac = path_pct / 100) |&gt;
+  filter(!is.na(path_pct)) |&gt;
+  select(patient_id, annotation, path_pct, path_frac)
+
+cc_ann &lt;- ihc_tumor_per_ann |&gt;
+  inner_join(path_long, by = c(&quot;patient_id&quot;, &quot;annotation&quot;)) |&gt;
+  filter(!is.na(tumor_over_inside), !is.na(path_frac))
+
+path_union &lt;- path_long |&gt;
+  group_by(patient_id) |&gt;
+  summarise(path_frac = mean(path_frac), .groups = &quot;drop&quot;)
+cc_union &lt;- ihc_tumor_union |&gt;
+  inner_join(path_union, by = &quot;patient_id&quot;) |&gt;
+  filter(!is.na(tumor_over_inside), !is.na(path_frac))
+
+cat(&quot;per-annotation pairs:&quot;, nrow(cc_ann), &quot; | union pairs:&quot;, nrow(cc_union), &quot;\n&quot;)</code></pre>
+<pre><code>per-annotation pairs: 11  | union pairs: 4 </code></pre>
+<pre class="r"><code># Diagnostic: the ACTUAL pairs that enter the correlation, largest gap first. Read
+# the top rows to tell WHY the correlation is what it is:
+#   - big gap + fallback `source` or tiny n_inside -&gt; suspect membership, not biology
+#   - big gap + a healthy primary-source patient   -&gt; genuine IHC/pathologist disagreement
+#   - per-annotation: verify each region letter lines up with the pathologist&#39;s score
+cc_union |&gt;
+  transmute(patient_id, source, n_inside,
+            area_mm2       = round(area_mm2, 3),
+            ihc_tumor_frac = round(tumor_over_inside, 3),
+            dens_tumor_mm2 = round(dens_tumor_per_mm2, 1),
+            path_frac      = round(path_frac, 3),
+            abs_gap        = round(abs(tumor_over_inside - path_frac), 3)) |&gt;
+  arrange(desc(abs_gap)) |&gt;
+  knitr::kable(caption = &quot;UNION concordance pairs (largest IHC-vs-pathologist gap first).&quot;)</code></pre>
+<table>
+<caption>UNION concordance pairs (largest IHC-vs-pathologist gap
+first).</caption>
+<colgroup>
+<col width="13%" />
+<col width="8%" />
+<col width="10%" />
+<col width="10%" />
+<col width="17%" />
+<col width="17%" />
+<col width="11%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="left">source</th>
+<th align="right">n_inside</th>
+<th align="right">area_mm2</th>
+<th align="right">ihc_tumor_frac</th>
+<th align="right">dens_tumor_mm2</th>
+<th align="right">path_frac</th>
+<th align="right">abs_gap</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">5456</td>
+<td align="left">flag</td>
+<td align="right">53926</td>
+<td align="right">NA</td>
+<td align="right">0.486</td>
+<td align="right">NA</td>
+<td align="right">0.733</td>
+<td align="right">0.247</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="left">flag</td>
+<td align="right">31528</td>
+<td align="right">NA</td>
+<td align="right">0.440</td>
+<td align="right">NA</td>
+<td align="right">0.600</td>
+<td align="right">0.160</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">flag</td>
+<td align="right">70772</td>
+<td align="right">NA</td>
+<td align="right">0.679</td>
+<td align="right">NA</td>
+<td align="right">0.733</td>
+<td align="right">0.054</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">flag</td>
+<td align="right">31157</td>
+<td align="right">NA</td>
+<td align="right">0.551</td>
+<td align="right">NA</td>
+<td align="right">0.533</td>
+<td align="right">0.018</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>cc_ann |&gt;
+  transmute(patient_id, annotation, source, n_inside,
+            ihc_tumor_frac = round(tumor_over_inside, 3),
+            path_frac      = round(path_frac, 3),
+            abs_gap        = round(abs(tumor_over_inside - path_frac), 3)) |&gt;
+  arrange(desc(abs_gap)) |&gt;
+  knitr::kable(caption = &quot;PER-ANNOTATION concordance pairs (largest gap first). Confirm each region letter maps to the pathologist&#39;s score for that region.&quot;)</code></pre>
+<table style="width:100%;">
+<caption>PER-ANNOTATION concordance pairs (largest gap first). Confirm
+each region letter maps to the pathologist’s score for that
+region.</caption>
+<colgroup>
+<col width="15%" />
+<col width="17%" />
+<col width="9%" />
+<col width="12%" />
+<col width="20%" />
+<col width="13%" />
+<col width="10%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="left">annotation</th>
+<th align="left">source</th>
+<th align="right">n_inside</th>
+<th align="right">ihc_tumor_frac</th>
+<th align="right">path_frac</th>
+<th align="right">abs_gap</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">5456</td>
+<td align="left">ANNOTATION_2</td>
+<td align="left">sf</td>
+<td align="right">28377</td>
+<td align="right">0.476</td>
+<td align="right">0.8</td>
+<td align="right">0.324</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">6166</td>
+<td align="right">0.464</td>
+<td align="right">0.7</td>
+<td align="right">0.236</td>
+</tr>
+<tr class="odd">
+<td align="left">5456</td>
+<td align="left">ANNOTATION_3</td>
+<td align="left">sf</td>
+<td align="right">19383</td>
+<td align="right">0.468</td>
+<td align="right">0.7</td>
+<td align="right">0.232</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">17226</td>
+<td align="right">0.482</td>
+<td align="right">0.7</td>
+<td align="right">0.218</td>
+</tr>
+<tr class="odd">
+<td align="left">052</td>
+<td align="left">ANNOTATION_2</td>
+<td align="left">sf</td>
+<td align="right">14303</td>
+<td align="right">0.374</td>
+<td align="right">0.5</td>
+<td align="right">0.126</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">24655</td>
+<td align="right">0.708</td>
+<td align="right">0.8</td>
+<td align="right">0.092</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">ANNOTATION_3</td>
+<td align="left">sf</td>
+<td align="right">9873</td>
+<td align="right">0.573</td>
+<td align="right">0.5</td>
+<td align="right">0.073</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_2</td>
+<td align="left">sf</td>
+<td align="right">20320</td>
+<td align="right">0.627</td>
+<td align="right">0.7</td>
+<td align="right">0.073</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_3</td>
+<td align="left">sf</td>
+<td align="right">25796</td>
+<td align="right">0.653</td>
+<td align="right">0.7</td>
+<td align="right">0.047</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">ANNOTATION_2</td>
+<td align="left">sf</td>
+<td align="right">3830</td>
+<td align="right">0.561</td>
+<td align="right">0.6</td>
+<td align="right">0.039</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">17453</td>
+<td align="right">0.522</td>
+<td align="right">0.5</td>
+<td align="right">0.022</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Concordance statistics.</strong>
+<code>paired_cor3(x, y)</code> reports three correlations between IHC
+and pathologist across the shared patients, each <code>NA</code> when
+<code>n &lt; 3</code> or either vector is constant:</p>
+<pre><code>Pearson r    = linear correlation
+Spearman rho = rank correlation (monotonic, robust to outliers)
+Kendall tau  = rank concordance (pairwise, best-behaved at small n)</code></pre>
+<pre class="r"><code># `metric` selects the IHC normalization; `unit_scale` draws the x=y line and forces
+# a 0..1 square (only meaningful for tumor_over_inside — tumor_over_cd45 is unbounded
+# and pathologist is 0..1, so their scatter is judged by RANK, not the diagonal).
+# Points are coloured by `patient_id` (from cc_ann / cc_union) so a single patient&#39;s
+# annotations read as one colour — useful in the per-annotation panel where a patient
+# contributes several points.
+plot_concordance &lt;- function(df, metric, subtitle, xlab, unit_scale = TRUE) {
+  d  &lt;- dplyr::filter(df, is.finite(.data[[metric]]), is.finite(path_frac))
+  cc &lt;- paired_cor3(d[[metric]], d$path_frac)   # Pearson + Spearman + Kendall
+  p &lt;- ggplot(d, aes(.data[[metric]], path_frac)) +
+    geom_point(aes(colour = patient_id), alpha = 0.7, size = 2) +
+    annotate(&quot;text&quot;, x = -Inf, y = Inf, hjust = -0.05, vjust = 1.2,
+             label = sprintf(&quot;Pearson r = %.2f\nSpearman rho = %.2f\nKendall tau = %.2f\n(n = %d)&quot;,
+                             cc$pearson, cc$spearman, cc$kendall, cc$n)) +
+    labs(title = &quot;Neoplastic cellularity: IHC vs pathologist&quot;, subtitle = subtitle,
+         x = xlab, y = &quot;Pathologist tumour fraction&quot;, colour = &quot;Patient&quot;)
+  if (unit_scale)
+    p &lt;- p + geom_abline(slope = 1, linetype = &quot;dashed&quot;, colour = REF_LINE) +
+             coord_equal(xlim = c(0, 1), ylim = c(0, 1))
+  p
+}
+
+norm_specs &lt;- list(
+  list(metric = &quot;tumor_over_inside&quot;,       xlab = &quot;IHC tumour / all cells inside&quot;,  unit = TRUE),
+  list(metric = &quot;tumor_over_inside_clean&quot;, xlab = &quot;IHC tumour / cells inside (excl. outliers + Unknown)&quot;, unit = TRUE),
+  list(metric = &quot;tumor_over_cd45&quot;,         xlab = &quot;IHC tumour / CD45+ cells inside&quot;, unit = FALSE),
+  list(metric = &quot;dens_tumor_per_mm2&quot;,      xlab = &quot;IHC tumour density (cells / mm²) inside&quot;, unit = FALSE)
+)
+
+for (s in norm_specs) {
+  if (nrow(cc_ann) &gt; 0)
+    print(plot_concordance(cc_ann, s$metric, paste0(s$metric, &quot; — per annotation&quot;),
+                           s$xlab, s$unit))
+  if (nrow(cc_union) &gt; 0)
+    print(plot_concordance(cc_union, s$metric, paste0(s$metric, &quot; — union&quot;),
+                           s$xlab, s$unit))
+}</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-2.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-3.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-4.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-5.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-6.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-7.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1.Rmd/tumor-content-plot-8.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div
+id="aggregation-strategy-how-collapsing-the-annotations-moves-the-answer"
+class="section level2">
+<h2>Aggregation strategy — how collapsing the annotations moves the
+answer</h2>
+<p>The concordance panels above compare neoplastic cellularity at two
+fixed levels: <strong>per annotation</strong> (one point per
+<code>ANNOTATION_k</code>) and <strong>union</strong> (one point per
+patient). The union level hides a choice, because a patient with several
+annotations has several IHC values <em>and</em> several pathologist
+values, and each side has to be collapsed to one number before they can
+be paired. That collapse is not neutral.</p>
+<p><strong>The mismatch this section exists to expose.</strong> The
+union pair above collapses the two sides by <em>different</em>
+rules:</p>
+<pre><code>pathologist   path_union      = mean(ANNOTATION_k / 100)          UNWEIGHTED mean
+IHC           ihc_tumor_union = tumour cells / all cells,
+                                over the POOLED cells of every
+                                annotation of that patient        CELL-WEIGHTED mean</code></pre>
+<p>For a patient whose annotations differ in size these are different
+summaries of the same slide. Take two annotations, 40 000 cells at 80%
+tumour and 4 000 cells at 50%: the cell-weighted IHC value is 0.77 while
+the unweighted pathologist value is 0.65. That 0.12 gap is
+<strong>aggregation artefact</strong>, not IHC-vs-pathologist
+disagreement — and the existing union panels cannot tell the two
+apart.</p>
+<p>So below, every IHC aggregator is paired against every pathologist
+aggregator:</p>
+<pre><code>IHC side (per patient)
+  pooled      cells of every annotation pooled and deduped, ratio recomputed
+              (exactly what the union panels above use)          cell-weighted
+  wmean_ann   per-annotation fractions averaged, weights = that annotation&#39;s
+              cell count                                          cell-weighted
+  mean_ann    per-annotation fractions averaged, every annotation equal
+  median_ann  median of the per-annotation fractions (only differs from mean_ann
+              at 3+ annotations)
+
+pathologist side (per patient)
+  wmean_cells ANNOTATION_k scores averaged, weights = that annotation&#39;s IHC cell
+              count — the pathologist analogue of pooling cells   cell-weighted
+  mean        plain mean over the patient&#39;s annotations (used by the union panels)
+  median      median over the annotations
+  max         the highest-scoring annotation (&quot;worst area governs&quot;)
+  min         the lowest-scoring annotation (most conservative)</code></pre>
+<p>The weight is always the denominator of the metric being aggregated:
+<code>n_inside</code> for <code>tumor_over_inside</code>,
+<code>n_inside_clean</code> for <code>tumor_over_inside_clean</code>.
+Weighting a clean-set metric by the unclean count would over-weight
+annotations whose cells were mostly discarded as outliers or
+Unknown.</p>
+<p>One consequence to watch in the tables: a patient whose IHC region is
+labelled <code>"csv"</code> rather than an <code>ANNOTATION_k</code>
+cannot be matched to a per-annotation pathologist score, so it
+contributes no weight and drops out of the <code>wmean_cells</code> rows
+while still appearing in the <code>mean</code> / <code>median</code> /
+<code>max</code> / <code>min</code> ones. That is why <code>n</code> is
+printed on every row of the grid — compare rows only at equal
+<code>n</code>.</p>
+<p><strong>Only two of the twenty combinations weight both sides the
+same way</strong> — <code>(pooled, wmean_cells)</code> and
+<code>(mean_ann, mean)</code>. Those are the pairs whose gap is
+interpretable as genuine disagreement; everywhere else part of the gap
+is the aggregation mismatch. They are shaded in the scatter grids and
+boxed in the heatmap.</p>
+<p><strong>A built-in check.</strong> <code>wmean_ann</code> should
+reproduce <code>pooled</code> almost exactly, since pooling cells
+<em>is</em> cell-weighting them. The only thing separating those two
+rows is the union’s dedup of cells falling inside two overlapping
+annotations — so a visible gap between them is a measurement of
+<strong>annotation overlap</strong>, not an aggregation error. Read
+those two rows against each other before trusting anything else
+here.</p>
+<pre class="r"><code># Every IHC aggregator x every pathologist aggregator, for both tumour-fraction
+# normalizations. $pairs = the per-patient points; $stats = paired_cor3 + bias per
+# combination. `bias` = mean(IHC - pathologist): the systematic offset that the
+# correlation coefficients are deliberately blind to (a method can correlate
+# perfectly and still read 15 points high).
+agg      &lt;- aggregation_grid(ihc_tumor_per_ann, ihc_tumor_union, path_long)
+baseline &lt;- per_annotation_baseline(ihc_tumor_per_ann, path_long)
+
+agg$stats |&gt;
+  transmute(metric, ihc = ihc_lab, pathologist = path_lab,
+            matched = if_else(matched, &quot;yes&quot;, &quot;&quot;),
+            n, pearson = round(pearson, 2), spearman = round(spearman, 2),
+            kendall = round(kendall, 2), bias = round(bias, 3)) |&gt;
+  knitr::kable(caption = paste(
+    &quot;Aggregation grid, best Spearman first within each metric.&quot;,
+    &quot;matched = both sides weighted the same way (the interpretable rows).&quot;,
+    &quot;bias = mean(IHC - pathologist).&quot;))</code></pre>
+<table>
+<caption>Aggregation grid, best Spearman first within each metric.
+matched = both sides weighted the same way (the interpretable rows).
+bias = mean(IHC - pathologist).</caption>
+<colgroup>
+<col width="17%" />
+<col width="25%" />
+<col width="25%" />
+<col width="5%" />
+<col width="2%" />
+<col width="5%" />
+<col width="6%" />
+<col width="5%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">metric</th>
+<th align="left">ihc</th>
+<th align="left">pathologist</th>
+<th align="left">matched</th>
+<th align="right">n</th>
+<th align="right">pearson</th>
+<th align="right">spearman</th>
+<th align="right">kendall</th>
+<th align="right">bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.42</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.072</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.38</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.073</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.49</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.061</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.46</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.072</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.18</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.197</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left">yes</td>
+<td align="right">4</td>
+<td align="right">0.28</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.122</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.18</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.097</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.11</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.198</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.22</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.123</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.11</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.098</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.25</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.186</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.35</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.111</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.25</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.086</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.22</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.197</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.32</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.122</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.22</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.097</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.18</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.124</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.12</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.125</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left">yes</td>
+<td align="right">4</td>
+<td align="right">0.25</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.113</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.22</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.124</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.47</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.056</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.41</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.062</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.50</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.049</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.49</td>
+<td align="right">0.45</td>
+<td align="right">0.41</td>
+<td align="right">-0.055</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.24</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.181</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left">yes</td>
+<td align="right">4</td>
+<td align="right">0.33</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.106</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.24</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.081</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.16</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.187</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.26</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.112</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.16</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.087</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.29</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.174</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.38</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.099</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.29</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.074</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.28</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.180</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.37</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.105</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.28</td>
+<td align="right">0.21</td>
+<td align="right">0.18</td>
+<td align="right">-0.080</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.23</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.107</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.16</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.114</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left">yes</td>
+<td align="right">4</td>
+<td align="right">0.28</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.101</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">4</td>
+<td align="right">0.27</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">-0.106</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>baseline |&gt;
+  transmute(metric, n, pearson = round(pearson, 2), spearman = round(spearman, 2),
+            kendall = round(kendall, 2), bias = round(bias, 3)) |&gt;
+  knitr::kable(caption = paste(
+    &quot;PER-ANNOTATION baseline: no aggregation at all, one point per&quot;,
+    &quot;(patient, annotation). The reference the aggregated rows above should be read&quot;,
+    &quot;against — it neither gains aggregation&#39;s smoothing nor loses the&quot;,
+    &quot;within-patient signal.&quot;))</code></pre>
+<table>
+<caption>PER-ANNOTATION baseline: no aggregation at all, one point per
+(patient, annotation). The reference the aggregated rows above should be
+read against — it neither gains aggregation’s smoothing nor loses the
+within-patient signal.</caption>
+<thead>
+<tr class="header">
+<th align="left">metric</th>
+<th align="right">n</th>
+<th align="right">pearson</th>
+<th align="right">spearman</th>
+<th align="right">kendall</th>
+<th align="right">bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="right">11</td>
+<td align="right">0.33</td>
+<td align="right">0.22</td>
+<td align="right">0.19</td>
+<td align="right">-0.118</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="right">11</td>
+<td align="right">0.40</td>
+<td align="right">0.25</td>
+<td align="right">0.23</td>
+<td align="right">-0.101</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read the correlations with the <code>n</code> beside
+them.</strong> This cohort gives a handful of patients, so a Spearman
+rho here has a confidence interval spanning most of the range, and the
+<em>ranking</em> of the twenty combinations is far less stable than the
+numbers suggest. The point of the grid is not to pick the winner by rho
+— that would be selecting on noise — but to see <strong>whether the
+choice matters at all</strong>. A flat grid means the conclusion is
+robust to the aggregation; a grid with a large spread means any single
+reported correlation is partly an artefact of the collapse rule.</p>
+<pre class="r"><code># Reading a ROW shows how much the pathologist aggregator matters; a COLUMN, how much
+# the IHC one does. Flat = the choice is immaterial for this cohort (the hoped-for
+# outcome). Boxed cells are the matched-weighting pairs.
+plot_aggregation_heatmap(agg$stats, &quot;spearman&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/aggregation-heatmap-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># tumour / all cells inside. Dashed line is x = y; vertical distance from it is the
+# disagreement. Shaded panels weight both sides the same way.
+plot_aggregation_grid(agg$pairs, &quot;tumor_over_inside&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/aggregation-scatter-raw-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># tumour / cells inside, with FlowPath Outlier == TRUE and Unknown-phenotype cells
+# removed from both numerator and denominator.
+plot_aggregation_grid(agg$pairs, &quot;tumor_over_inside_clean&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/aggregation-scatter-clean-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<div id="recommendation" class="section level3">
+<h3>Recommendation</h3>
+<p><strong>For method validation, prefer the per-annotation level over
+any aggregation.</strong> The pathologist reports one score per
+annotation, so the annotation — not the patient — is the natural unit at
+which the two methods can be compared like for like. It also uses every
+observation instead of averaging most of them away, which matters at
+this sample size. Aggregation is a compromise made necessary by the
+<em>clinical</em> joins (survival, response, blood counts), which are
+per patient.</p>
+<p><strong>When a patient-level number is required, use a matched
+pair.</strong> Reporting a cell-weighted IHC value against an unweighted
+pathologist value — what the union panels currently do — mixes a real
+effect with an artefact. Of the two matched options:</p>
+<ul>
+<li><code>(mean_ann, mean)</code> — treats each annotation as one
+observation on both sides. Preferred as the primary: it mirrors how the
+pathologist’s own numbers are produced (a per-region score, not a cell
+census), and one very large annotation cannot dominate the patient’s
+value.</li>
+<li><code>(pooled, wmean_cells)</code> — treats the patient’s tissue as
+a single specimen and asks what fraction of its cells are neoplastic.
+Report alongside as the sensitivity analysis. It is the more natural
+quantity if the annotations are arbitrary subdivisions of one tumour
+rather than distinct regions.</li>
+</ul>
+<p>If those two disagree materially, the disagreement is itself the
+finding: it means the patient’s annotations are heterogeneous in both
+size and tumour content, and no single patient-level number represents
+that slide well.</p>
+</div>
+</div>
+<div id="immune-infiltrate-ihc-vs-clinical-immune-phenotype"
+class="section level2">
+<h2>Immune infiltrate — IHC vs clinical immune phenotype</h2>
+<p>Per patient, over the <strong>union</strong> inside cells:</p>
+<pre><code>cd45_over_inside    = n_cd45_inside    / n_inside   (all CD45+ cells)
+frac_&lt;lineage&gt;      = n_&lt;lineage&gt;      / n_inside   (lineage in CD8T, CD4T, Treg, NK)
+cd3cd45_over_inside = n_cd3cd45_inside / n_inside   (marker CD3+CD45+ T cells)
+gzmb_nk_over_inside = n_gzmb_nk_inside / n_inside   (GZMB+ NK cells)</code></pre>
+<p><code>cd3cd45</code> (CD45+ AND CD3+) and <code>gzmb_nk</code> (NK
+lineage AND GZMB+) are <strong>marker-gated</strong> subsets — defined
+by <code>&lt;marker&gt;_sign</code>, not the phenotype label — so they
+sit alongside the phenotype lineages as extra readouts of overall immune
+(CD45+), T-cell (CD3+CD45+) and cytotoxic-NK (GZMB+ NK) content.</p>
+<p>Clinical references: <code>HOT score</code> (continuous) and
+<code>Immuno-phenotype</code> (categorical), joined on
+<code>slide_key(</code>ID PATIENT<code>)</code>.</p>
+<pre class="r"><code>clin &lt;- clinical_data |&gt;
+  mutate(patient_id = slide_key(`ID PATIENT`)) |&gt;
+  select(patient_id,
+         hot_score  = any_of(&quot;HOT score&quot;),
+         immuno_phe = any_of(&quot;Immuno-phenotype&quot;))
+
+infiltrate &lt;- ihc_tumor_union |&gt;
+  select(patient_id, cd45_over_inside, frac_CD8T, frac_CD4T, frac_Treg, frac_NK,
+         cd3cd45_over_inside, gzmb_nk_over_inside) |&gt;
+  inner_join(clin, by = &quot;patient_id&quot;)
+
+cat(&quot;patients with IHC infiltrate + clinical immune phenotype:&quot;, nrow(infiltrate), &quot;\n&quot;)</code></pre>
+<pre><code>patients with IHC infiltrate + clinical immune phenotype: 6 </code></pre>
+<p>Statistic: Spearman correlation between <code>cd45_over_inside</code>
+and the numeric <code>HOT score</code>.</p>
+<pre class="r"><code>if (&quot;hot_score&quot; %in% names(infiltrate) &amp;&amp;
+    sum(is.finite(suppressWarnings(as.numeric(infiltrate$hot_score)))) &gt; 2) {
+  df &lt;- infiltrate |&gt; mutate(hot_score = suppressWarnings(as.numeric(hot_score)))
+  st &lt;- paired_spearman(df$cd45_over_inside, df$hot_score)
+  ggplot(df, aes(cd45_over_inside, hot_score)) +
+    geom_point(alpha = 0.7, size = 2) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    annotate(&quot;text&quot;, x = -Inf, y = Inf, hjust = -0.1, vjust = 1.5,
+             label = sprintf(&quot;Spearman rho = %.2f (p = %.3g, n = %d)&quot;,
+                             st$rho, st$p, st$n)) +
+    labs(title = &quot;Immune infiltrate vs clinical HOT score&quot;,
+         x = &quot;IHC CD45+ fraction inside tumour region (unitless, 0-1)&quot;,
+         y = &quot;Clinical HOT score (unitless)&quot;)
+}</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-hotscore-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>Grouped by <code>Immuno-phenotype</code> (ordered cold -&gt;
+intermediate -&gt; hot); each box is the distribution of the IHC
+fraction within a phenotype group.</p>
+<p><strong>CD45+ is drawn on its own.</strong> It is the <em>total</em>
+immune fraction and the other six metrics are subsets of it, so it runs
+an order of magnitude higher than any of them. Sharing one facet grid
+therefore forces a choice between a common scale nothing else reaches
+and a seventh free-scale panel the eye reads as just another subset.
+Split in two, each figure asks a single scale question. The same split
+is repeated under the arcsin transform below, so there are four figures
+here.</p>
+<pre class="r"><code># The metrics carried into every immuno-phenotype comparison (all are 0..1 fractions
+# of the cells inside the tumour region, so the arcsin panels below can transform
+# them all), split into the total and its subsets — see the note above.
+infiltrate_cd45    &lt;- &quot;cd45_over_inside&quot;
+infiltrate_subsets &lt;- c(&quot;cd3cd45_over_inside&quot;, &quot;gzmb_nk_over_inside&quot;,
+                        &quot;frac_CD8T&quot;, &quot;frac_CD4T&quot;, &quot;frac_Treg&quot;, &quot;frac_NK&quot;)
+
+# One boxplot-by-phenotype figure over `metrics`; `transform` is applied to the
+# fraction so the same code draws the raw and the arcsin-sqrt panels, and `metrics`
+# so it draws the CD45+ figure and the subset figure.
+plot_infiltrate_phenotype &lt;- function(infiltrate, metrics, ylab, transform = identity) {
+  if (!(&quot;immuno_phe&quot; %in% names(infiltrate)) ||
+      dplyr::n_distinct(na.omit(infiltrate$immuno_phe)) &lt;= 1) return(invisible())
+  metrics &lt;- intersect(metrics, names(infiltrate))
+  if (!length(metrics)) return(invisible())
+  df &lt;- infiltrate |&gt;
+    pivot_longer(all_of(metrics), names_to = &quot;ihc_metric&quot;, values_to = &quot;frac&quot;) |&gt;
+    filter(!is.na(immuno_phe), is.finite(frac)) |&gt;
+    mutate(immuno_phe = hotcold_order(immuno_phe), value = transform(frac),
+           # Facet order is the DECLARED order, not the alphabetical order of the
+           # column names: the two marker-gated readouts belong beside each other
+           # and ahead of the four phenotype lineages, which is not what sorting
+           # `cd3cd45_over_inside` against `frac_CD4T` produces.
+           ihc_metric = factor(ihc_metric, levels = metrics)) |&gt;
+    filter(is.finite(value))
+  if (nrow(df) == 0) return(invisible())
+  p &lt;- ggplot(df, aes(immuno_phe, value, colour = immuno_phe)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.6) +
+    labs(x = NULL, y = ylab, colour = &quot;Immuno-phenotype&quot;) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  if (length(metrics) == 1) {
+    # One metric means one panel, and that panel&#39;s title IS the figure title, so the
+    # facet strip would only repeat it. With a single panel no patient can be present
+    # in one facet and absent from another, so the n belongs on the ticks.
+    p + scale_x_discrete(labels = label_n(df$immuno_phe)) +
+      labs(title = paste0(unname(flowpath_panel_label(metrics)),
+                          &quot;&quot;))
+  } else {
+    # Across facets a per-tick count would be wrong: a non-finite fraction drops a
+    # different set of patients in each metric, so the n goes in the subtitle and
+    # names its unit, as in the composition figure below.
+    p + facet_wrap(~ ihc_metric, scales = &quot;free_y&quot;, labeller = flowpath_labeller()) +
+      labs(title = &quot;FlowPath immune subsets by clinical immuno-phenotype&quot;,
+           subtitle = with_n(NULL, df$patient_id, &quot;patients&quot;))
+  }
+}
+
+plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
+                          &quot;Cell fraction inside \ntumour region&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-phenotype-cd45-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and
+GZMB+ NK readouts, and the four phenotype lineages — on a free y scale
+per panel:</p>
+<pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
+                          &quot;cell fraction inside tumour region (unitless, 0-1)&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-phenotype-subsets-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><strong>Arcsin-transformed.</strong> The same two figures under the
+arcsine square-root transform (<code>asin(sqrt(fraction))</code>), which
+stabilises the variance of a proportion by stretching the crowded 0/1
+tails — read the boxes as the transformed scale, not raw fractions.</p>
+<pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
+                          &quot;arcsin \u221afraction (radians)&quot;, transform = asin_sqrt)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-phenotype-cd45-arcsin-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
+                          &quot;arcsin \u221afraction (radians)&quot;, transform = asin_sqrt)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<div id="composition-under-three-denominators" class="section level3">
+<h3>Composition under three denominators</h3>
+<p>Same population counts, three denominators (each <code>NA</code> when
+its denominator is 0). Alongside the phenotype lineages, the
+marker-gated <strong>CD45+</strong>, <strong>CD3+ CD45+</strong> and
+<strong>GZMB+ NK</strong> populations are included:</p>
+<pre><code>frac_inside = n_&lt;population&gt; / n_inside         (of all cells inside)
+frac_tumor  = n_&lt;population&gt; / n_tumor_inside   (of tumour cells inside)
+frac_cd45   = n_&lt;population&gt; / n_cd45_inside    (of CD45+ cells inside)
+
+populations = CD8T, CD4T, Treg, NK, Immune_other        (phenotype lineages)
+            + CD45+, CD3+ CD45+, GZMB+ NK               (marker-gated subsets)</code></pre>
+<p>Note <code>frac_cd45</code> for the CD45+ population is 1 by
+construction (a self-normalisation check), and marker-gated subsets are
+shown under all three denominators for consistency with the
+lineages.</p>
+<pre class="r"><code># Marker-gated populations to add to the phenotype lineages (label -&gt; count column
+# from region_ratios). CD45+ = all immune; CD3+CD45+ = marker T cells; GZMB+ NK.
+comp_markers &lt;- c(&quot;CD45+&quot;      = &quot;n_cd45_inside&quot;,
+                  &quot;CD3+ CD45+&quot; = &quot;n_cd3cd45_inside&quot;,
+                  &quot;GZMB+ NK&quot;   = &quot;n_gzmb_nk_inside&quot;)
+
+# One composition figure (population x denominator); `transform` applied to the
+# fraction so the same code draws the raw and the arcsin-sqrt panels.
+plot_composition &lt;- function(region_metrics, ylab, caption, transform = identity) {
+  comp &lt;- region_composition(region_metrics, markers = comp_markers) |&gt;
+    pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
+                 names_to = &quot;normalization&quot;, values_to = &quot;frac&quot;) |&gt;
+    mutate(normalization = factor(
+             c(frac_inside = &quot;of all cells&quot;, frac_tumor = &quot;of tumour cells&quot;,
+               frac_cd45 = &quot;of CD45+ cells&quot;)[normalization],
+             levels = c(&quot;of all cells&quot;, &quot;of tumour cells&quot;, &quot;of CD45+ cells&quot;)),
+           value = transform(frac)) |&gt;
+    filter(is.finite(value))
+  if (nrow(comp) == 0) return(invisible())
+  # scale_fill_lineage(), NOT scale_fill_manual(values = oi): `oi` is an UNNAMED
+  # vector, so ggplot hands its colours out by factor position and CD8T&#39;s hue
+  # depends on which populations this particular call happens to include. That is
+  # how this panel used to draw CD8T blue while the Fig 5(a) map drew it
+  # vermillion. The named palette in plot_theme.R pins each population&#39;s colour
+  # across every figure in the project, and covers the marker-gated labels too.
+  ggplot(comp, aes(lineage, value, fill = lineage)) +
+    geom_boxplot(outlier.shape = NA, colour = &quot;grey30&quot;) +
+    geom_jitter(width = .15, alpha = .5, size = 1) +
+    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    scale_fill_lineage(guide = &quot;none&quot;) +
+    # n goes in the subtitle rather than the tick labels here: each facet drops a
+    # different set of patients (a denominator of zero is NA), so a single per-tick
+    # count would be wrong in two panels out of three.
+    labs(title = &quot;IHC immune composition inside the tumour region&quot;,
+         subtitle = with_n(NULL, comp$patient_id, &quot;patients&quot;),
+         x = NULL, y = ylab, caption = caption) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+}
+
+plot_composition(ihc_tumor_union, &quot;cell fraction (unitless, 0-1)&quot;,
+                 &quot;denominators: all cells / tumour cells / CD45+ cells inside&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-composition-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><strong>Arcsin-transformed.</strong> Same composition under the
+arcsine square-root transform of each fraction.</p>
+<pre class="r"><code>plot_composition(ihc_tumor_union, &quot;arcsin \u221afraction (radians)&quot;,
+                 &quot;arcsin-sqrt of: all cells / tumour cells / CD45+ cells inside&quot;,
+                 transform = asin_sqrt)</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/infiltrate-composition-arcsin-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div
+id="biological-validity-qc-whole-slide-ihc-immune-readout-vs-clinical-table"
+class="section level2">
+<h2>Biological-validity QC — whole-slide IHC immune readout vs clinical
+table</h2>
+<p>These use every imaged cell of every patient (<code>ihc_data</code>,
+the de-duplicated union of the region files, no annotation
+boundary).</p>
+<p>Per patient p, over that patient’s cells in scope:</p>
+<pre><code>lineage fraction:  frac(p, lineage) = (cells of p with that lineage) / (all cells of p)
+                                       [ihc_lineage_fraction]
+
+marker pos-fraction: &lt;marker&gt;_posfrac(p) =
+     (cells of p positive for &lt;marker&gt;) / (all in-scope cells of p)
+                                       [ihc_marker_fraction; a cell no gate
+                                        evaluated counts as not-positive]</code></pre>
+<pre class="r"><code>ihc_lin &lt;- ihc_lineage_fraction(mem$cells) |&gt;
+  filter(lineage %in% comparable_lineages) |&gt;
+  select(patient_id, lineage, frac) |&gt;
+  pivot_wider(names_from = lineage, values_from = frac, values_fill = 0)
+
+ihc_mk &lt;- ihc_marker_fraction(mem$cells) |&gt;
+  select(patient_id, any_of(c(&quot;CD45_posfrac&quot;, &quot;CD8_posfrac&quot;, &quot;FOXP3_posfrac&quot;)))
+
+ihc_immune &lt;- full_join(ihc_lin, ihc_mk, by = &quot;patient_id&quot;)
+
+clin_full &lt;- clinical_data |&gt;
+  mutate(patient_id = slide_key(`ID PATIENT`))
+
+ihc_clin &lt;- ihc_immune |&gt; inner_join(clin_full, by = &quot;patient_id&quot;)
+cat(&quot;patients with IHC immune metrics + a clinical row:&quot;, nrow(ihc_clin), &quot;\n&quot;)</code></pre>
+<pre><code>patients with IHC immune metrics + a clinical row: 6 </code></pre>
+<pre class="r"><code># ihc_immune_score = CD45_posfrac if present, else the CD8T lineage fraction.
+score_col &lt;- intersect(c(&quot;CD45_posfrac&quot;, &quot;CD8T&quot;), names(ihc_clin))[1]
+ihc_clin$ihc_immune_score &lt;- if (!is.na(score_col)) ihc_clin[[score_col]] else NA_real_</code></pre>
+<div id="tissue-vs-peripheral-blood-immunity" class="section level3">
+<h3>Tissue vs peripheral-blood immunity</h3>
+<pre><code>NLR(p) = BASAL VALUE OF NEUTROPHILS / BASAL VALUE OF LYMPHOCYTES</code></pre>
+<p>compared against <code>ihc_immune_score</code> by Spearman
+correlation (also for lymphocytes and PNI).</p>
+<pre class="r"><code>blood &lt;- ihc_clin |&gt;
+  transmute(
+    patient_id, ihc_immune_score,
+    lymphocytes = suppressWarnings(as.numeric(`BASAL VALUE OF LYMPHOCYTES`)),
+    neutrophils = suppressWarnings(as.numeric(`BASAL VALUE OF NEUTROPHILS`)),
+    pni         = suppressWarnings(as.numeric(`PROGNOSTIC NUTRITIONAL INDEX`))
+  ) |&gt;
+  mutate(nlr = neutrophils / lymphocytes)
+
+blood_long &lt;- blood |&gt;
+  pivot_longer(c(lymphocytes, nlr, pni), names_to = &quot;blood_metric&quot;, values_to = &quot;value&quot;) |&gt;
+  filter(is.finite(ihc_immune_score), is.finite(value))
+
+if (nrow(blood_long) &gt; 2) {
+  labs_tbl &lt;- blood_long |&gt;
+    group_by(blood_metric) |&gt;
+    group_modify(~ paired_spearman(.x$ihc_immune_score, .x$value)) |&gt;
+    mutate(lab = sprintf(&quot;rho = %.2f (p = %.3g, n = %d)&quot;, rho, p, n))
+  ggplot(blood_long, aes(ihc_immune_score, value)) +
+    geom_point(alpha = 0.7, size = 2) +
+    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+    geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
+              hjust = -0.05, vjust = 1.4, inherit.aes = FALSE, size = 3) +
+    facet_wrap(~ blood_metric, scales = &quot;free_y&quot;) +
+    labs(title = &quot;IHC immune score vs peripheral-blood immunity&quot;,
+         x = &quot;IHC immune score (CD45+ fraction)&quot;, y = NULL)
+}</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/blood-immunity-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="induction-treatment-response" class="section level3">
+<h3>Induction-treatment response</h3>
+<p><code>ihc_immune_score</code> distribution grouped by
+<code>RESPONSE</code> (factor ordered by ascending class value, 1 -&gt;
+3); no summary statistic beyond the group boxplots.</p>
+<pre class="r"><code>if (&quot;RESPONSE&quot; %in% names(ihc_clin)) {
+  df &lt;- ihc_clin |&gt;
+    filter(!is.na(RESPONSE), is.finite(ihc_immune_score))
+  df$RESPONSE &lt;- factor(as.character(df$RESPONSE),
+                        levels = as.character(sort(unique(as.numeric(as.character(df$RESPONSE))))))
+  if (dplyr::n_distinct(df$RESPONSE) &gt; 1 &amp;&amp; nrow(df) &gt; 3) {
+    ggplot(df, aes(RESPONSE, ihc_immune_score, colour = RESPONSE)) +
+      geom_boxplot(outlier.shape = NA) +
+      geom_jitter(width = 0.2, alpha = 0.6) +
+      labs(title = &quot;IHC immune score by induction response&quot;,
+           x = NULL, y = &quot;IHC immune score (CD45+ fraction)&quot;) +
+      theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = &quot;none&quot;)
+  }
+}</code></pre>
+<p><img src="figure/clinical_massimo1.Rmd/response-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="survival" class="section level3">
+<h3>Survival</h3>
+<pre><code>group(p) = &quot;high&quot; if ihc_immune_score(p) &gt;= median, else &quot;low&quot;   -&gt; Kaplan-Meier
+HR       = exp( Cox coefficient of ihc_immune_score )            (univariable coxph)</code></pre>
+<p>Event coding (<code>coerce_event</code>): yes/dead/relapse/1 -&gt; 1;
+no/alive/censored/0 -&gt; 0. Time = <code>OS</code>/<code>PFS</code>
+(months); event = <code>FOLLOW UP</code> (death) /
+<code>PERSISTENCE OR RELAPSE?</code> (progression).</p>
+<pre class="r"><code>surv_cfg &lt;- list(
+  OS  = list(time = &quot;OS&quot;,  event = &quot;FOLLOW UP&quot;),
+  PFS = list(time = &quot;PFS&quot;, event = &quot;PERSISTENCE OR RELAPSE?&quot;)
+)
+
+coerce_event &lt;- function(x) {
+  if (is.numeric(x)) return(as.integer(x &gt; 0))
+  v &lt;- tolower(trimws(as.character(x)))
+  dplyr::case_when(
+    v %in% c(&quot;1&quot;,&quot;yes&quot;,&quot;y&quot;,&quot;dead&quot;,&quot;death&quot;,&quot;deceased&quot;,&quot;event&quot;,&quot;relapse&quot;,
+             &quot;progression&quot;,&quot;progressed&quot;,&quot;true&quot;) ~ 1L,
+    v %in% c(&quot;0&quot;,&quot;no&quot;,&quot;n&quot;,&quot;alive&quot;,&quot;ned&quot;,&quot;censored&quot;,&quot;false&quot;) ~ 0L,
+    TRUE ~ NA_integer_
+  )
+}
+
+run_survival &lt;- function(cfg, label) {
+  if (!requireNamespace(&quot;survival&quot;, quietly = TRUE)) {
+    message(&quot;survival package not installed — skipping &quot;, label); return(invisible())
+  }
+  if (!all(c(cfg$time, cfg$event) %in% names(ihc_clin))) {
+    message(&quot;missing &quot;, cfg$time, &quot;/&quot;, cfg$event, &quot; — skipping &quot;, label); return(invisible())
+  }
+  d &lt;- ihc_clin |&gt;
+    transmute(ihc_immune_score,
+              .time  = suppressWarnings(as.numeric(.data[[cfg$time]])),
+              .event = coerce_event(.data[[cfg$event]])) |&gt;
+    filter(is.finite(.time), !is.na(.event), is.finite(ihc_immune_score))
+  if (nrow(d) &lt; 5 || dplyr::n_distinct(d$.event) &lt; 2) {
+    message(&quot;too few informative rows for &quot;, label, &quot; (n = &quot;, nrow(d), &quot;)&quot;); return(invisible())
+  }
+  d &lt;- d |&gt; mutate(immune_group = if_else(ihc_immune_score &gt;= median(ihc_immune_score),
+                                          &quot;IHC-immune high&quot;, &quot;IHC-immune low&quot;))
+  fit  &lt;- survival::survfit(survival::Surv(.time, .event) ~ immune_group, data = d)
+  cox  &lt;- survival::coxph(survival::Surv(.time, .event) ~ ihc_immune_score, data = d)
+  hr   &lt;- exp(stats::coef(cox))[1]; pcox &lt;- summary(cox)$coefficients[1, &quot;Pr(&gt;|z|)&quot;]
+  cat(sprintf(&quot;%s: Cox HR per unit IHC immune score = %.2f (p = %.3g, n = %d)\n&quot;,
+              label, hr, pcox, nrow(d)))
+  if (requireNamespace(&quot;survminer&quot;, quietly = TRUE)) {
+    # survminer defaults to its own theme_survminer (grey grid, large type), which
+    # would make these the only figures on the site off-style — force the house
+    # theme and the house categorical palette onto it.
+    print(survminer::ggsurvplot(fit, data = d, pval = TRUE, risk.table = TRUE,
+                                title = paste(label, &quot;by IHC immune score (median split)&quot;),
+                                legend.title = &quot;&quot;, palette = unname(oi),
+                                ggtheme = theme_paper())$plot)
+  } else {
+    plot(fit, col = c(oi[2], oi[1]), xlab = &quot;time&quot;, ylab = &quot;survival&quot;,
+         main = paste(label, &quot;by IHC immune score&quot;))
+    legend(&quot;topright&quot;, levels(factor(d$immune_group)),
+           col = c(oi[2], oi[1]), lty = 1, bty = &quot;n&quot;)
+  }
+}
+
+invisible(purrr::iwalk(surv_cfg, ~ run_survival(.x, .y)))</code></pre>
+</div>
+</div>
+<div id="notes" class="section level2">
+<h2>Notes</h2>
+<ul>
+<li>Membership is <strong>sf point-in-polygon</strong>, and each
+region’s cells are scored against <strong>that region’s own
+polygon</strong> — the export pairs them, so no cell is tested against a
+region it was not exported for. Centroids are mapped to the geojson
+pixel frame by <code>/0.325</code>.</li>
+<li>A patient with <strong>no annotation directory</strong> is entirely
+inside: the export layout’s stated convention, marked
+<code>whole_slide</code> in the <code>source</code> column. That is the
+one case with no <code>area_mm2</code>, hence no densities.</li>
+<li>Marker fractions count a cell no gate evaluated for that marker as
+not-positive, not as missing, so a sparsely-gated marker reads low
+rather than dropping out. <code>marker_gated()</code> (see
+<code>code/cell_tables.R</code>) is what separates the two.</li>
+<li>Cohorts are small; every correlation is Spearman with its
+<code>n</code> reported. Read associations as descriptive.</li>
+</ul>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices datasets  utils     methods  
+[8] base     
+
+other attached packages:
+ [1] data.table_1.18.4           fs_2.1.0                   
+ [3] readxl_1.5.0                DESeq2_1.42.1              
+ [5] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+ [7] MatrixGenerics_1.14.0       matrixStats_1.5.0          
+ [9] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[11] IRanges_2.36.0              S4Vectors_0.40.2           
+[13] BiocGenerics_0.48.1         sf_1.1-2                   
+[15] here_1.0.2                  forcats_1.0.1              
+[17] stringr_1.6.0               ggplot2_4.0.3              
+[19] purrr_1.2.2                 readr_2.2.0                
+[21] tidyr_1.3.2                 tibble_3.3.1               
+[23] dplyr_1.2.1                 workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+ [1] tidyselect_1.2.1        farver_2.1.2            S7_0.2.2               
+ [4] bitops_1.1-0            fastmap_1.2.0           RCurl_1.98-1.20        
+ [7] promises_1.5.0          digest_0.6.39           lifecycle_1.0.5        
+[10] processx_3.9.0          magrittr_2.0.5          compiler_4.3.2         
+[13] rlang_1.2.0             sass_0.4.10             tools_4.3.2            
+[16] yaml_2.3.12             knitr_1.51              labeling_0.4.3         
+[19] S4Arrays_1.2.1          classInt_0.4-11         DelayedArray_0.28.0    
+[22] RColorBrewer_1.1-3      BiocParallel_1.36.0     abind_1.4-8            
+[25] KernSmooth_2.23-27      withr_3.0.3             grid_4.3.2             
+[28] git2r_0.33.0            e1071_1.7-17            scales_1.4.0           
+[31] cli_3.6.6               rmarkdown_2.31          crayon_1.5.3           
+[34] generics_0.1.4          otel_0.2.0              rstudioapi_0.15.0      
+[37] httr_1.4.7              tzdb_0.5.0              DBI_1.3.0              
+[40] cachem_1.1.0            proxy_0.4-29            zlibbioc_1.48.2        
+[43] parallel_4.3.2          cellranger_1.1.0        XVector_0.42.0         
+[46] vctrs_0.7.3             Matrix_1.6-5            jsonlite_2.0.0         
+[49] callr_3.7.6             hms_1.1.4               locfit_1.5-9.12        
+[52] jquerylib_0.1.4         units_1.0-1             glue_1.8.1             
+[55] codetools_0.2-20        ps_1.9.3                stringi_1.8.7          
+[58] gtable_0.3.6            later_1.4.8             pillar_1.11.1          
+[61] htmltools_0.5.9         GenomeInfoDbData_1.2.11 R6_2.6.1               
+[64] rprojroot_2.1.1         evaluate_1.0.5          lattice_0.23-1         
+[67] renv_1.2.3              httpuv_1.6.12           bslib_0.9.0            
+[70] class_7.3-24            Rcpp_1.1.1-1.1          SparseArray_1.2.4      
+[73] whisker_0.4.1           xfun_0.58               getPass_0.2-4          
+[76] pkgconfig_2.0.3        </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
