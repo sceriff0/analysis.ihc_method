@@ -287,19 +287,37 @@ union_tbl <- function(a, prefix, cols) {
   rename_with(out, ~ paste0(prefix, .x), -patient_id)
 }
 
-# --- The IHC immune score (arm 1), both scopes -------------------------------
-# `_wholeslide` reproduces the site's "IHC immune score by induction response"
-# figure exactly: CD45_posfrac over EVERY imaged cell of the patient, no polygon
-# consulted (clinical_body.Rmd). `_inside` is the same protein over the cells
-# inside the tumour union. They are different denominators and will not agree;
-# both are here so the difference is visible instead of being a choice made
-# silently upstream.
+# --- Whole-slide marker positivity, per arm ----------------------------------
+# `posfrac_<arm>_<marker>` = cells of that patient positive for the marker, over
+# ALL of that patient's imaged cells. This is the IHC side of the bulk-RNA
+# comparison, and it is the reason the export carries a whole-slide quantity at
+# all when everything else here is annotation-scoped.
+#
+# WHOLE SLIDE IS NOT A CHOICE HERE, IT IS FORCED. Bulk RNA is sequenced from the
+# whole block and has no annotation boundary, so the only IHC scope comparable to
+# it is the one that consults no polygon. Pairing an in-annotation fraction
+# against bulk RNA would put a tumour-restricted numerator against a whole-block
+# denominator and call the mismatch a correlation.
 #
 # marker_pos() counts a cell no gate evaluated as NOT positive, so a sparsely
-# gated marker reads low rather than dropping out — check marker_gated() before
-# reading a near-zero score as biology.
-immune_ws <- ihc_marker_fraction(mem$massimo1$cells) |>
-  select(patient_id, immune_score_massimo1_wholeslide = CD45_posfrac)
+# gated marker reads LOW rather than dropping out — check marker_gated() before
+# reading a near-zero posfrac as biology rather than as a channel nobody gated.
+posfrac_tbl <- function(a) {
+  ihc_marker_fraction(mem[[a]]$cells) |>
+    select(patient_id, all_of(paste0(RNA_MARKERS, "_posfrac"))) |>
+    rename_with(~ paste0("posfrac_", a, "_", sub("_posfrac$", "", .x)), -patient_id)
+}
+
+# --- The IHC immune score (arm 1), both scopes -------------------------------
+# `_wholeslide` is what the site's "IHC immune score by induction response" figure
+# plots. It IS posfrac_massimo1_CD45 — the same number under the name the response
+# figure calls it — and it is DERIVED from that column rather than recomputed, so
+# the two cannot drift apart and a reader comparing them can only ever find them
+# equal. `_inside` is the same protein over the cells inside the tumour union:
+# a different denominator, kept beside it so the scope difference is visible
+# instead of being a choice made silently upstream.
+immune_ws <- posfrac_tbl("massimo1") |>
+  select(patient_id, immune_score_massimo1_wholeslide = posfrac_massimo1_CD45)
 
 immune_in <- mem$massimo1$union |>
   select(patient_id, immune_score_massimo1_inside = cd45_over_inside)
@@ -359,6 +377,7 @@ patient_tbl <- list(
   path_patient("massimo1"), path_patient("massimo2"),
   union_tbl("massimo1", "massimo1_", "tumor_over_inside"),
   union_tbl("massimo2", "massimo2_", FRACTION_COLS),
+  posfrac_tbl("massimo1"), posfrac_tbl("massimo2"),
   immune_ws, immune_in
 ) |>
   purrr::reduce(full_join, by = "patient_id") |>
@@ -374,7 +393,7 @@ patient_tbl <- patient_tbl |>
          starts_with("rna_"), starts_with("gene_"),
          starts_with("path_pct_"), starts_with("n_regions_"),
          starts_with("massimo1_"), starts_with("massimo2_"),
-         starts_with("immune_score_"),
+         starts_with("posfrac_"), starts_with("immune_score_"),
          any_of(c("response", "immuno_phenotype", "immuno_phenotype_rank",
                   "hot_score")),
          everything())
