@@ -263,6 +263,16 @@ path_patient <- function(a) {
 # --- The union scope, per arm ------------------------------------------------
 # One row per patient: the cells inside the DISSOLVED union of that patient's
 # polygons, de-duplicated so a cell falling in two overlapping regions counts once.
+#
+# `mem$union` IS TAKEN WHOLE — deliberately not filtered to `annotation == "union"`.
+# A patient whose arm has no annotation drawn for it (massimo2's 24086) carries a
+# union row labelled `whole_slide` instead, and under that arm's own convention
+# (`bare_region_is`) the whole slide IS its annotated region — so that row is its
+# annotation_all value and belongs in these columns. Filtering on the label would
+# empty every massimo2_* cell for that patient while the rest of the row stayed
+# populated, which reads as a failed measurement rather than as a patient nobody
+# annotated. code/scope_compare.R's .scope_union_labels() states the same rule for
+# the site's three-scope figures.
 union_tbl <- function(a, prefix, cols) {
   cols <- intersect(cols, names(mem[[a]]$union))
   out  <- mem[[a]]$union |>

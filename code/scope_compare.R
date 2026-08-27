@@ -11,7 +11,10 @@
 #   annotation_all  the cells inside the DISSOLVED union polygon — massimo1's
 #                   `annotation_all/`, or the dissolved per-region polygons for an
 #                   arm without that tier. One value per patient, like whole_slide,
-#                   but restricted to tissue the pathologist bounded.
+#                   but restricted to tissue the pathologist bounded. For a patient
+#                   in an arm whose convention is that an unsuffixed region file
+#                   means the whole slide (massimo2's `bare_region_is`), this IS
+#                   the whole-slide value — see .scope_union_labels().
 #   annotation_k    one pathologist region. SEVERAL values per patient, and the
 #                   only scope the per-region pathologist scores can be joined to.
 #
@@ -72,14 +75,42 @@ arm_wholeslide_ratios <- function(cells, um_per_px = 0.325) {
   })
 }
 
+# --- Which union rows ARE `annotation_all` — and it is per arm ----------------
+# A patient with no annotation directory gets a union row labelled `whole_slide`
+# rather than `union` (arm_metrics()). Whether that row counts as an ANNOTATED
+# scope is the arm's own call, and the registry already states it per arm:
+# `bare_region_is`.
+#
+# massimo2 declares `bare_region_is = "whole_slide"` — its stated convention is
+# that a region file with no suffix means the whole slide IS the annotated region.
+# Under that convention 24086's annotation_all and its whole_slide are the SAME
+# NUMBER by construction, and dropping it from annotation_all reported the patient
+# as having no annotated scope when the arm's own rule says its annotated scope is
+# the whole slide. The value is not invented here: it is the union row the arm
+# already produced, carried through with `source = "whole_slide"` so the provenance
+# still says how membership was decided.
+#
+# IT STAYS ARM-CONDITIONAL rather than becoming a global rule, for exactly the
+# reason arms.R spells out for `bare_region_is` itself: everywhere else a missing
+# polygon is a reason to DROP a patient, and promoting one globally would turn a
+# data problem — a geojson that failed to parse, a tree symlinked to the wrong
+# root — into a silently 100 %-inside patient sitting on the x = y line looking
+# like a result. A `mem` with no `mode` (the hand-built lists in the tests, and
+# the mirage mode, which has no registry entry) keeps the strict reading.
+.scope_union_labels <- function(mem) {
+  spec <- if (!is.null(mem$mode)) ARM_SPECS[[mem$mode]] else NULL
+  if (!is.null(spec) && identical(spec$bare_region_is, "whole_slide"))
+    c("union", "whole_slide") else "union"
+}
+
 # --- The three scopes as one long frame --------------------------------------
 # One row per (patient_id, scope, annotation). `scope` is the named-palette level;
 # `annotation` keeps the region label so a per-region point can still be identified.
 #
-# An arm whose union rows are labelled "whole_slide" (massimo2's 24086, which has no
-# annotation directory) is NOT relabelled: that patient genuinely has no annotated
-# scope, so it contributes to whole_slide alone and is absent from the other two.
-# Forcing it into annotation_all would claim a polygon nobody drew.
+# Which union rows enter `annotation_all` is .scope_union_labels()'s decision, not
+# a filter written twice — scope_aggregator_pairs() below asks the same question,
+# and the two disagreeing would put 24086 in the annotation_all figure while the
+# `pooled` aggregator quietly omitted it.
 scope_table <- function(mem, metric = "tumor_over_inside", um_per_px = 0.325) {
   ws <- arm_wholeslide_ratios(mem$cells, um_per_px)
 
@@ -93,7 +124,7 @@ scope_table <- function(mem, metric = "tumor_over_inside", um_per_px = 0.325) {
   }
 
   un  <- if (!is.null(mem$union) && nrow(mem$union))
-    dplyr::filter(mem$union, annotation == "union") else tibble::tibble()
+    dplyr::filter(mem$union, annotation %in% .scope_union_labels(mem)) else tibble::tibble()
   per <- if (!is.null(mem$per_annotation) && nrow(mem$per_annotation))
     dplyr::filter(mem$per_annotation, grepl("^ANNOTATION_[0-9]+$", annotation))
   else tibble::tibble()
@@ -160,7 +191,7 @@ scope_aggregator_pairs <- function(scope_tbl, mem, metric = "tumor_over_inside")
   # scope IS that, so annotation_all enters the comparison as one aggregator among
   # the rest rather than as a separate figure.
   un <- if (!is.null(mem$union) && nrow(mem$union))
-    dplyr::filter(mem$union, annotation == "union") else tibble::tibble()
+    dplyr::filter(mem$union, annotation %in% .scope_union_labels(mem)) else tibble::tibble()
 
   aggregate_ihc(per, un, metric) |>
     dplyr::inner_join(ws, by = "patient_id") |>

@@ -536,8 +536,14 @@ interchangeable:
 They nest — `annotation_k` ⊆ `annotation_all` ⊆ `whole_slide` — so the difference
 between them is not noise. It is exactly the effect of the annotation, and the point
 of putting all three on one figure is to *size* that effect rather than assume it is
-small. `whole_slide` is the only one that exists for a slide nobody annotated, and
-the only one that cannot be blamed on where a line was drawn.
+small. `whole_slide` is the only one that cannot be blamed on where a line was drawn.
+
+Where an arm's convention says an unsuffixed region file means the whole slide **is**
+the annotated region — `massimo2`'s `bare_region_is`, which is what 24086 is — that
+patient's `annotation_all` and `whole_slide` are the same measurement, so it appears
+in both scopes carrying one number rather than dropping out of the comparison. It
+still has no `annotation_k` row. In an arm without that convention a missing polygon
+stays missing; the rule is read per arm, never applied globally.
 
 Comparing one number against several is the real difficulty, so it is done three
 ways below: directly (`whole_slide` vs `annotation_all`, both single values), visually

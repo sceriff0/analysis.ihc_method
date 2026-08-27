@@ -388,9 +388,21 @@ the three levels recur across panels that do not all contain all three, and an u
 scale assigns by factor position, so `annotation_all` would change hue in a panel that
 happens to omit `whole_slide`.
 
-A patient with no annotation at all (massimo2's 24086) appears in `whole_slide` **only**
-— it is absent from the other two rather than substituted into them, because forcing it
-into `annotation_all` would claim a polygon nobody drew.
+A patient with no annotation at all is handled **per arm**, by the registry's own
+`bare_region_is` field, and `.scope_union_labels()` is the one place that reads it.
+massimo2 declares `bare_region_is = "whole_slide"` — an unsuffixed region file means
+the whole slide **is** the annotated region — so its 24086 appears in `annotation_all`
+as well as `whole_slide`, carrying the very same number, because under that arm's own
+convention the two are the same measurement. It still has no `annotation_k` row, and
+gets none invented for it; `source` stays `whole_slide`, so the scope says what was
+compared while the provenance says how membership was decided.
+
+An arm that does **not** declare the convention keeps the strict reading: there a
+`whole_slide`-labelled union row is a missing polygon — a geojson that failed to
+parse, a tree symlinked to the wrong root — not a stated rule, and promoting it would
+turn a data problem into a silently 100 %-inside patient sitting on the x = y line
+looking like a result. `tests/testthat/test-scope-compare.R` reads one fixture under
+both arms and requires them to disagree.
 
 ## Figure style
 

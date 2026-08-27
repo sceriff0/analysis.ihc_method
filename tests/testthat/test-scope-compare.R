@@ -52,20 +52,49 @@ test_that("scope_table stacks the three scopes with the named palette's levels",
   expect_setequal(dplyr::filter(st, scope == "whole_slide")$patient_id, c("046", "052"))
 })
 
-test_that("a patient with no annotation appears ONLY in the whole-slide scope", {
-  # massimo2's 24086: no annotation directory, so its metrics row is labelled
-  # `whole_slide` rather than `union`. Forcing it into annotation_all would claim a
-  # polygon nobody drew, and it would then plot against a pathologist score for a
-  # region that does not exist.
-  mem <- list(
+# A patient with no annotation directory (massimo2's 24086) gets a union row
+# labelled `whole_slide`. Whether that counts as an ANNOTATED scope is the arm's
+# own call, stated in the registry as `bare_region_is` — so the next two tests are
+# the same fixture read under two arms, and they must disagree.
+.mem_bare <- function(mode = NULL) {
+  m <- list(
     cells = dplyr::bind_rows(.cells("046", 100, 0.3), .cells("24086", 100, 0.7)),
     union = dplyr::bind_rows(.metrics("046", "union", 0.4),
                              .metrics("24086", "whole_slide", 0.7, source = "whole_slide")),
     per_annotation = .metrics("046", "ANNOTATION_1", 0.45))
-  st <- scope_table(mem)
+  if (!is.null(mode)) m$mode <- mode
+  m
+}
+
+test_that("massimo2's bare-region patient IS its own annotation_all", {
+  # arm 2 declares bare_region_is = "whole_slide": an unsuffixed region file means
+  # the whole slide IS the annotated region. So 24086's annotation_all and its
+  # whole_slide are the same number BY CONSTRUCTION, and it belongs in both scopes.
+  st  <- scope_table(.mem_bare("massimo2"))
   s24 <- dplyr::filter(st, patient_id == "24086")
-  expect_equal(nrow(s24), 1)
-  expect_equal(as.character(s24$scope), "whole_slide")
+  expect_setequal(as.character(s24$scope), c("whole_slide", "annotation_all"))
+  # Same number in both — not a second measurement, the same union row carried
+  # through. If these ever differ, annotation_all stopped reading the arm's row.
+  expect_equal(dplyr::n_distinct(s24$value), 1L)
+  # The provenance survives the promotion: the scope says annotation_all, `source`
+  # still says membership was decided by the arm's convention, not by a polygon.
+  expect_equal(unique(dplyr::filter(s24, scope == "annotation_all")$source),
+               "whole_slide")
+  # It has no ANNOTATION_k row, and gets none invented for it.
+  expect_false("annotation_k" %in% as.character(s24$scope))
+})
+
+test_that("an arm with no bare-region convention leaves such a patient out", {
+  # massimo1 does NOT declare bare_region_is, so there a `whole_slide` union row is
+  # a missing polygon -- a geojson that failed to parse, a tree linked to the wrong
+  # root -- not a stated convention. Promoting it would turn that data problem into
+  # a silently 100 %-inside patient sitting on the x = y line looking like a result.
+  for (mode in list("massimo1", NULL)) {   # NULL = a hand-built mem / the mirage mode
+    st  <- scope_table(.mem_bare(mode))
+    s24 <- dplyr::filter(st, patient_id == "24086")
+    expect_equal(nrow(s24), 1)
+    expect_equal(as.character(s24$scope), "whole_slide")
+  }
 })
 
 test_that("one-vs-many reports whether the single value sits inside the region span", {
