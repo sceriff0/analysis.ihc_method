@@ -22,6 +22,7 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `registration_arms.R` | the **arm sweep** on the real slides — one run per configuration (both registration backends), ranked, with the cross-arm comparability guard |
 | `run_qc.R` | the **run's own** QC on the study samples: readers for mirage's per-patient QC artifacts, plus `build_run_qc_figs()` |
 | `paper_figures.R` | the **manuscript panels** — re-cuts of existing quantities in the shape each figure legend asks for |
+| `export_summary_table.R` | the **cross-source export** — RNA markers, pathologist cellularity, in-annotation fractions and the immune score as two csvs for analysis OUTSIDE this repo |
 
 The dependency order is `cell_tables.R` + `arms.R` → `validation_helpers.R` → `membership.R`
 (→ `mirage_cells.R`, `arm_cells.R`); sourcing `validation_helpers.R` pulls in the first two and
