@@ -14,6 +14,7 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `arm_cells.R` | the **arm cell source** — one reader for all three arms: region tier, whole-slide tier, metrics, provenance |
 | `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob each clinical page turns |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |
+| `scope_compare.R` | **whole slide vs `annotation_all` vs per-region** — one quantity at three nested scopes, and three ways to compare a single value against several |
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
 | `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
@@ -351,6 +352,44 @@ Two differences are real rather than cosmetic:
 
 `tests/testthat/test-cell-tables.R` asserts every phenotype `panel.yaml` can emit is
 mapped — if mirage adds a leaf, that test fails rather than the panels going quiet.
+
+## Annotation scope — one slide, three answers
+
+`scope_compare.R` owns the comparison the clinical pages make just before the immune
+section. The tumour fraction of a slide has three defensible values and they nest —
+`annotation_k` ⊆ `annotation_all` ⊆ `whole_slide` — so the difference between them is
+not noise, it is the effect of the annotation:
+
+| scope | which cells count | values per patient |
+|---|---|---|
+| `whole_slide` | every cell in the export, **no polygon consulted** | one |
+| `annotation_all` | inside the dissolved union polygon | one |
+| `annotation_k` | inside one pathologist region | **several** |
+
+`whole_slide` is the only scope that exists for a slide nobody annotated, and the only
+one that cannot be blamed on where a line was drawn. It is computed from
+`membership_data()$cells` — the COHORT set, one row per physical cell — because the raw
+region tier counts a cell once per region file it appears in.
+
+**Comparing one number to several** has no single right answer, so three are offered
+together: `plot_scope_scatter()` (the two single values against each other, x = y),
+`plot_scope_range()` (each patient's region spread with the single values marked on it
+— the question a correlation cannot answer), and `plot_scope_aggregators()` +
+`scope_aggregator_stats()` (which *aggregate* of the regions reproduces the unannotated
+number, reported with **bias** as well as correlation, since an aggregator can rank
+patients perfectly and still read high on all of them). The aggregators are
+`aggregation_compare.R`'s existing vocabulary, not a second one — read the
+**cell-weighted** mean first, because a plain mean lets a 2,000-cell region and a
+200,000-cell one vote equally.
+
+Colours come from the NAMED `SCOPE_COLS` palette via `scale_*_scope()`. Not optional:
+the three levels recur across panels that do not all contain all three, and an unnamed
+scale assigns by factor position, so `annotation_all` would change hue in a panel that
+happens to omit `whole_slide`.
+
+A patient with no annotation at all (massimo2's 24086) appears in `whole_slide` **only**
+— it is absent from the other two rather than substituted into them, because forcing it
+into `annotation_all` would claim a polygon nobody drew.
 
 ## Figure style
 

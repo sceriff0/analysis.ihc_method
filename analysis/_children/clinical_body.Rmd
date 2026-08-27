@@ -522,6 +522,92 @@ If those two disagree materially, the disagreement is itself the finding: it mea
 the patient's annotations are heterogeneous in both size and tumour content, and no
 single patient-level number represents that slide well.
 
+## Annotation scope — one slide, three answers
+
+The tumour fraction of a slide has **three** defensible values, and they are not
+interchangeable:
+
+| scope | which cells count | values per patient |
+|---|---|---|
+| `whole_slide` | every cell in the export — **no polygon consulted at all** | one |
+| `annotation_all` | inside the dissolved union polygon | one |
+| `annotation_k` | inside one pathologist region | **several** |
+
+They nest — `annotation_k` ⊆ `annotation_all` ⊆ `whole_slide` — so the difference
+between them is not noise. It is exactly the effect of the annotation, and the point
+of putting all three on one figure is to *size* that effect rather than assume it is
+small. `whole_slide` is the only one that exists for a slide nobody annotated, and
+the only one that cannot be blamed on where a line was drawn.
+
+Comparing one number against several is the real difficulty, so it is done three
+ways below: directly (`whole_slide` vs `annotation_all`, both single values), visually
+(each patient's region spread with the single values marked on it), and quantitatively
+(which *aggregate* of the regions reproduces the unannotated number). Read the
+cell-weighted aggregator first — a patient's regions differ in size by an order of
+magnitude, so a plain mean lets a 2,000-cell region and a 200,000-cell one vote
+equally, which is a statement about the pathologist's drawing habits rather than about
+the tissue.
+
+```{r scope-table, eval = have_arm}
+# `mem$cells` is the COHORT set — one row per physical cell per patient — so the
+# whole-slide fraction is computed once per cell. Handing the raw region tier here
+# would count a cell once per region file it appears in and still look plausible.
+scope_tbl <- scope_table(mem)
+one_many  <- scope_one_vs_many(scope_tbl)
+
+one_many |>
+  transmute(patient_id,
+            n_annotations = n_ann,
+            whole_slide    = round(whole_slide, 3),
+            annotation_all = round(annotation_all, 3),
+            ann_range      = if_else(is.finite(ann_min),
+                                     sprintf("%.3f – %.3f", ann_min, ann_max), NA_character_),
+            whole_inside_range = case_when(inside_range ~ "yes",
+                                           !inside_range ~ "NO", TRUE ~ NA_character_),
+            gap_whole_minus_union = round(gap_to_union, 3)) |>
+  knitr::kable(caption = paste(
+    "Tumour fraction at each scope. `whole_inside_range` = does the unannotated",
+    "value fall within the span this patient's own regions cover? A `NO` means the",
+    "annotation is selecting tissue that differs systematically from the rest of the",
+    "slide — which is a finding about the annotation, not an error."))
+```
+
+```{r scope-scatter, eval = have_arm, fig.width = fig_width("single"), fig.height = fig_height("single")}
+# Both axes are the same fraction of the same quantity, so x = y is the target and
+# vertical distance from it is the effect of restricting to the pathologist's line.
+print(plot_scope_scatter(one_many))
+```
+
+Points **above** the dashed line are patients whose annotation is tumour-richer than
+the slide as a whole — the usual direction, since a pathologist draws around tumour.
+A point **below** it means the annotation excluded tumour the rest of the slide
+carries, which is worth checking against that patient's region count.
+
+```{r scope-range, eval = have_arm, fig.height = 4.5}
+# The comparison a correlation cannot show: is the single value INSIDE the span its
+# own regions cover? Patients ordered by whole-slide fraction.
+print(plot_scope_range(one_many, scope_tbl))
+```
+
+```{r scope-aggregators, eval = have_arm, fig.height = 6.5}
+# Which way of collapsing the regions reproduces the unannotated number best?
+scope_pairs <- scope_aggregator_pairs(scope_tbl, mem)
+print(plot_scope_aggregators(scope_pairs))
+```
+
+```{r scope-aggregator-stats, eval = have_arm}
+scope_aggregator_stats(scope_pairs) |>
+  transmute(aggregator = ihc_lab, n,
+            pearson = round(pearson, 2), spearman = round(spearman, 2),
+            kendall = round(kendall, 2), bias = round(bias, 3)) |>
+  knitr::kable(caption = paste(
+    "Each aggregate of a patient's annotations against that patient's whole-slide",
+    "value, best Spearman first. `bias` = mean(aggregate − whole slide): the",
+    "systematic offset the correlation coefficients are blind to. An aggregator can",
+    "rank patients perfectly and still read high on every one of them."))
+```
+
+
 ## Immune infiltrate — IHC vs clinical immune phenotype
 
 Per patient, over the **union** inside cells:

@@ -407,6 +407,44 @@ scale_fill_lineage <- function(..., drop = TRUE, name = NULL, labels = .lineage_
                     labels = labels, na.value = "grey85", ...)
 scale_color_lineage <- scale_colour_lineage
 
+# --- Measurement SCOPE -------------------------------------------------------
+# The three nested answers to "which cells count?", which appear together on every
+# arm's scope-comparison figure and separately elsewhere. A NAMED palette because
+# the same three levels recur across panels that do not all contain all three: an
+# unnamed scale would assign by factor POSITION, so `union` would be blue in a panel
+# that happens to omit `whole_slide` and orange in one that does not.
+#
+#   whole_slide     every cell in the export, no polygon consulted at all
+#   annotation_all  inside the dissolved union polygon (massimo1's annotation_all)
+#   annotation_k    one pathologist region, ANNOTATION_1..k
+SCOPE_COLS <- c(
+  whole_slide    = "#000000",   # Okabe-Ito black — the widest set, the reference
+  annotation_all = "#0072B2",   # blue  — one value per patient, like whole_slide
+  annotation_k   = "#E69F00"    # orange — many values per patient
+)
+
+SCOPE_LABELS <- c(
+  whole_slide    = "whole slide (no annotation)",
+  annotation_all = "annotation_all (union polygon)",
+  annotation_k   = "single annotation"
+)
+
+# Order widest -> narrowest, which is also nesting order, so a legend reads as a
+# progression rather than alphabetically.
+scope_factor <- function(x) factor(as.character(x), levels = names(SCOPE_COLS))
+
+.scope_labels <- function(breaks) {
+  b <- as.character(breaks)
+  ifelse(b %in% names(SCOPE_LABELS), SCOPE_LABELS[b], b)
+}
+scale_colour_scope <- function(..., drop = TRUE, name = NULL, labels = .scope_labels)
+  scale_colour_manual(values = SCOPE_COLS, drop = drop, name = name,
+                      labels = labels, na.value = "grey85", ...)
+scale_fill_scope <- function(..., drop = TRUE, name = NULL, labels = .scope_labels)
+  scale_fill_manual(values = SCOPE_COLS, drop = drop, name = name,
+                    labels = labels, na.value = "grey85", ...)
+scale_color_scope <- scale_colour_scope
+
 scale_colour_arm <- function(..., drop = TRUE, name = NULL)
   scale_colour_manual(values = ARM_KIND_COLS, drop = drop, name = name, ...)
 scale_fill_arm <- function(..., drop = TRUE, name = NULL)

@@ -39,6 +39,7 @@ invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
 source(here("code", "validation_helpers.R"))
 source(here("code", "membership.R"))           # membership_data(): the one variant knob
 source(here("code", "aggregation_compare.R"))  # annotation-aggregation sensitivity grid
+source(here("code", "scope_compare.R"))       # whole-slide vs annotation_all vs per-region scopes
 source(here("code", "pdf_export.R"))           # export_pdf_figures(): plots -> output/figures/
 
 SLUG <- "clinical_massimo2"
