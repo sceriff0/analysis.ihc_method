@@ -305,11 +305,41 @@ immune_in <- mem$massimo1$union |>
   select(patient_id, immune_score_massimo1_inside = cd45_over_inside)
 
 # --- Clinical ----------------------------------------------------------------
-# RESPONSE is the induction-treatment response the immune score is grouped by.
+# The three CRF fields the figures group by: RESPONSE (induction-treatment
+# response, for the immune-score panel) and the clinical immune call, which the
+# CRF carries twice — `Immuno-phenotype` as a category and `HOT score` as a
+# continuous value. Both are kept: the fractions are grouped BY the category and
+# correlated AGAINST the score, and picking one here would silently decide which
+# of those two questions the file can answer.
+#
+# `any_of()` rather than a bare name so a CRF missing one of them narrows the file
+# instead of aborting the export; the per-column count in the log says which
+# arrived. `HOT score` is coerced because the CRF stores it as text — the same
+# coercion the clinical pages apply — and an all-NA column shows up as 0/6 there.
 clin_tbl <- clinical_data |>
   mutate(patient_id = slide_key(`ID PATIENT`)) |>
-  select(patient_id, response = any_of("RESPONSE")) |>
+  select(patient_id,
+         response         = any_of("RESPONSE"),
+         immuno_phenotype = any_of("Immuno-phenotype"),
+         hot_score        = any_of("HOT score")) |>
   distinct()
+if ("hot_score" %in% names(clin_tbl))
+  clin_tbl$hot_score <- suppressWarnings(as.numeric(clin_tbl$hot_score))
+
+# The cold -> intermediate -> hot ORDER, as an integer a reader outside this repo
+# can sort on. IT IS A SORT KEY, NOT A THREE-LEVEL CODE: hotcold_order() builds its
+# levels from the values actually present, so a CRF spelling the call five ways
+# ("cold", "desert", "Intermediate", "Hot", "INFLAMED") yields ranks 1..5 — still
+# correctly ordered, but 4 is not "a fourth category". Sort on it; group on
+# `immuno_phenotype`. It is derived by CALLING hotcold_order() rather than by re-testing
+# the strings, because the CRF spells these several ways (cold/desert,
+# intermediate/variable/mixed/excluded, hot/inflamed) and a second copy of that
+# pattern list here would drift from plot_theme.R's the first time one was edited
+# — leaving the csv ordered one way and every figure on the site the other.
+if ("immuno_phenotype" %in% names(clin_tbl)) {
+  .lv <- levels(hotcold_order(clin_tbl$immuno_phenotype))
+  clin_tbl$immuno_phenotype_rank <- match(as.character(clin_tbl$immuno_phenotype), .lv)
+}
 
 # --- Assemble ----------------------------------------------------------------
 # FULL joins across the MEASUREMENTS, so the spine is the union of every measured
@@ -344,7 +374,9 @@ patient_tbl <- patient_tbl |>
          starts_with("rna_"), starts_with("gene_"),
          starts_with("path_pct_"), starts_with("n_regions_"),
          starts_with("massimo1_"), starts_with("massimo2_"),
-         starts_with("immune_score_"), any_of("response"),
+         starts_with("immune_score_"),
+         any_of(c("response", "immuno_phenotype", "immuno_phenotype_rank",
+                  "hot_score")),
          everything())
 
 # --- Write -------------------------------------------------------------------
