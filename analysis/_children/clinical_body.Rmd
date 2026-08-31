@@ -674,8 +674,10 @@ the distribution of the IHC fraction within a phenotype group.
 metrics are subsets of it, so it runs an order of magnitude higher than any of them.
 Sharing one facet grid therefore forces a choice between a common scale nothing else
 reaches and a seventh free-scale panel the eye reads as just another subset. Split in
-two, each figure asks a single scale question. The same split is repeated under the
-arcsin transform below, so there are four figures here.
+two, each figure asks a single scale question — and with CD45+ out of the grid the
+six subsets share ONE y axis, so a panel that sits higher than its neighbour is
+higher, not just scaled differently. The same split is repeated under the arcsin
+transform below, so there are four figures here.
 
 ```{r infiltrate-phenotype-cd45, eval = have_arm, fig.width = fig_width("single"), fig.height = fig_height("single")}
 # The metrics carried into every immuno-phenotype comparison (all are 0..1 fractions
@@ -720,7 +722,12 @@ plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = ide
     # Across facets a per-tick count would be wrong: a non-finite fraction drops a
     # different set of patients in each metric, so the n goes in the subtitle and
     # names its unit, as in the composition figure below.
-    p + facet_wrap(~ ihc_metric, scales = "free_y", labeller = flowpath_labeller()) +
+    # ONE shared y across the six panels. All six are fractions of the cells inside
+    # the tumour region, on 0..1, measured on the same denominator — so a per-panel
+    # y was rescaling comparable numbers and making a 2% subset look like a 40% one.
+    # This is what splitting CD45+ into its own figure above bought: with the total
+    # gone, no panel forces a range the others cannot reach.
+    p + facet_wrap(~ ihc_metric, labeller = flowpath_labeller()) +
       labs(title = "FlowPath immune subsets by clinical immuno-phenotype",
            subtitle = with_n(NULL, df$patient_id, "patients"))
   }
@@ -731,7 +738,8 @@ plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
 ```
 
 The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and GZMB+ NK
-readouts, and the four phenotype lineages — on a free y scale per panel:
+readouts, and the four phenotype lineages — on one shared y scale, so the panels can
+be read against each other:
 
 ```{r infiltrate-phenotype-subsets, eval = have_arm}
 plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
@@ -801,7 +809,11 @@ plot_composition <- function(region_metrics, ylab, caption, transform = identity
   ggplot(comp, aes(lineage, value, fill = lineage)) +
     geom_boxplot(outlier.shape = NA, colour = "grey30") +
     geom_jitter(width = .15, alpha = .5, size = 1) +
-    facet_wrap(~ normalization, scales = "free_y") +
+    # One shared y across the three denominators. All three are fractions on 0..1;
+    # only the denominator changes, and the SIZE of that change is the finding —
+    # "of CD45+ cells" running far higher than "of all cells" is what the figure is
+    # for. A free y per panel drew all three at the same apparent height and hid it.
+    facet_wrap(~ normalization) +
     scale_fill_lineage(guide = "none") +
     # n goes in the subtitle rather than the tick labels here: each facet drops a
     # different set of patients (a denominator of zero is NA), so a single per-tick
@@ -898,6 +910,11 @@ if (nrow(blood_long) > 2) {
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
               hjust = -0.05, vjust = 1.4, inherit.aes = FALSE, size = 3) +
+    # Free y STAYS here, and this is the exception that proves the rule elsewhere on
+    # the page: the three panels are three different quantities in three different
+    # units (lymphocytes in 10^9/L, NLR a bare ratio, PNI a nutritional index in the
+    # tens). A shared range would put PNI at the top and squash the other two onto
+    # the axis, which is not a comparison — there is nothing to compare.
     facet_wrap(~ blood_metric, scales = "free_y") +
     labs(title = "IHC immune score vs peripheral-blood immunity",
          x = "IHC immune score (CD45+ fraction)", y = NULL)

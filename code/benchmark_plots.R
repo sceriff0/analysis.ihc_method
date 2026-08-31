@@ -97,7 +97,12 @@ powerlaw_plot <- function(df, ycol, point_col, title, ylab) {
   ggplot(d, aes(input_gb, .data[[ycol]])) +
     geom_point(alpha = .6, colour = point_col) +
     geom_line(data = pl, aes(x, y), colour = oi[2], linewidth = .6) +
-    facet_wrap(~ proc, scales = "free", labeller = labeller(proc = relabel)) +
+    # free_y, not free: every process was run on the SAME set of input sizes, so a
+    # free x gave each panel a different span of the same axis and made the sweeps
+    # look like they covered different experiments. y stays free because peak RSS
+    # and runtime differ by orders of magnitude between processes, and the panel is
+    # read for the SHAPE of the curve (beta, in the strip), which a shared y flattens.
+    facet_wrap(~ proc, scales = "free_y", labeller = labeller(proc = relabel)) +
     labs(title = title,
          subtitle = "Linear axes; curve = fitted power law. beta = log-log slope (1 = linear, >1 super-linear, <1 sub-linear).",
          x = "input (GiB)", y = ylab)
@@ -159,9 +164,16 @@ if (nrow(knob_df) > 0) {
     summarise(y = mean(y), .groups = "drop") %>%
     ggplot(aes(fct_inseq(value), y)) +
     geom_col(fill = oi[1], width = .6) +
-    facet_wrap(~ paste0(axis, "  (", proc, ")"), scales = "free", ncol = 3) +
+    # free_x, the mirror image of the scaling plots above: every panel measures the
+    # same quantity (mean realtime in seconds), so y is SHARED and the panels can be
+    # ranked against each other — which knob actually costs is the question this
+    # figure exists to answer, and a free y made every knob look equally expensive.
+    # x must stay free: the knob VALUES differ per panel (iteration counts vs a
+    # TRUE/FALSE), and a shared discrete x would draw the union of all of them in
+    # every panel as empty slots.
+    facet_wrap(~ paste0(axis, "  (", proc, ")"), scales = "free_x", ncol = 3) +
     labs(title = "OFAT knob effects (single param varied off baseline)",
-         subtitle = "Mean realtime (s) per knob value; each panel is one knob, free y-scale.",
+         subtitle = "Mean realtime (s) per knob value; each panel is one knob. Shared y, so knobs are compared on one runtime scale; x is per-knob because the knob values differ.",
          x = NULL, y = "realtime (s)") +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
   save_fig(p5, "05_ofat_knob_effects")
@@ -220,7 +232,9 @@ p8 <- m %>% filter(varied_axis %in% size_axes, is.finite(input_gb), input_gb > 0
                    proc %in% c("REGISTER","PREPROCESS","SEGMENT","QUANTIFY")) %>%
   ggplot(aes(input_gb, peak_rss_gb, colour = factor(n_channels))) +
   geom_point(alpha = .6) + geom_smooth(method = "lm", se = FALSE, linewidth = .6, formula = y ~ x) +
-  facet_wrap(~ proc, scales = "free") +
+  # Shared x (the same input sizes were run for every process), free y (peak RSS
+  # differs by orders of magnitude between processes and the reading is the slope).
+  facet_wrap(~ proc, scales = "free_y") +
   scale_colour_manual(values = oi[c(1,2)], name = "channels") +
   labs(title = "Channel-count effect on memory scaling", x = "input (GiB)", y = "peak RSS (GiB)")
 save_fig(p8, "08_channel_effect")

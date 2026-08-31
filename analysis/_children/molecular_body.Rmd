@@ -234,9 +234,10 @@ knitr::kable(rna_summary, digits = 3,
 Scatter per marker: `ihc_posfrac` against `log1p(rna_expr)` (`log1p` keeps zeros),
 with an OLS fit line.
 
-**Split into two figures.** `marker_gene_map` carries 19 markers, and 19 free-scale
-facets on one double-column figure gives each panel about 35mm — too small to read a
-fit line off. The first figure takes the ten lineage and structural markers the panel
+**Split into two figures.** `marker_gene_map` carries 19 markers, and 19 facets on
+one double-column figure gives each panel about 35mm — too small to read a fit line
+off. Within each figure the panels share both axes, so a marker whose points sit far
+right (high IHC fraction) or high (high expression) is visibly so. The first figure takes the ten lineage and structural markers the panel
 was designed around; the second takes the remaining nine. The split is by *reading
 order*, not by quality: no marker is dropped, and the Spearman table above still
 covers all of them together.
@@ -271,7 +272,12 @@ plot_rna_concordance <- function(rna_paired, clin, markers, title) {
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
     # Panels are titled by the population counted, not by the column that carried
     # it, so a strip here and a strip on the clinical page name the same thing.
-    facet_wrap(~ marker, scales = "free", labeller = flowpath_labeller()) +
+    # Shared x AND y. Both axes carry one unit across every panel — x is the
+    # positive-cell fraction on 0..1, y is log1p DESeq2-normalised counts — so free
+    # scales were giving each marker a private zoom level, which made every panel
+    # look equally well correlated and equally well expressed. The point spread is
+    # the evidence; it only reads as evidence on a common axis.
+    facet_wrap(~ marker, labeller = flowpath_labeller()) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = title,
@@ -660,7 +666,10 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
 }
 ```
 
-Scatter of `ihc_frac` (x) vs `score` (y), faceted method by lineage.
+Scatter of `ihc_frac` (x) vs `score` (y), faceted method by lineage. The x axis is
+shared across the whole grid (one unit, IHC fraction of all cells); the y axis is
+shared along each method's row and free BETWEEN methods, because deconvolution
+scores are not on a common scale from one method to the next.
 
 ```{r deconv-concordance-plot, eval = have_arm}
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
@@ -673,17 +682,24 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   ggplot(df, aes(ihc_frac, score)) +
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_grid(method ~ lineage, scales = "free") +
+    facet_grid(method ~ lineage, scales = "free_y") +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
-    # Every panel here has its OWN x and y range (scales = "free"), because the
-    # methods' scores are on incomparable scales. theme_paper_panels() draws the
-    # border and the wider gutter that say so — without them twenty panels sit edge
-    # to edge and read as one continuous field on a shared axis, which is the single
-    # wrong conclusion this figure can produce.
+    # `free_y`, NOT `free`, and in facet_grid that distinction is the whole design.
+    # x is `ihc_frac`: one unit, the same meaning in all twenty panels, so a free x
+    # gave every panel its own slice of 0..1 and the same IHC value landed at a
+    # different place in every row — the one axis that WAS comparable was the one
+    # being rescaled. facet_grid's `free_y` frees y by ROW, which is exactly the
+    # split the data has: the methods' scores are on genuinely incomparable scales,
+    # so a y shared between methods would be a lie, while a y shared across lineages
+    # within one method is the comparison a reader actually wants.
+    #
+    # theme_paper_panels() stays: twenty small panels edge to edge still read as one
+    # continuous field, and the y axis still changes from row to row, so the hairline
+    # border and the wider gutter are still saying something true.
     theme_paper_panels() +
     labs(title = "IHC lineage fraction vs bulk-RNA deconvolution score",
-         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales",
+         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients; x is shared across the grid, y is shared within a method row",
          x = "IHC fraction of all cells (unitless, 0-1)",
          y = "Deconvolution score (unitless)")
 }
@@ -1163,7 +1179,10 @@ if (nrow(comp) > 0) {
   ggplot(comp, aes(lineage, frac, fill = lineage)) +
     geom_boxplot(outlier.shape = NA, colour = "grey30") +
     geom_jitter(width = .15, alpha = .5, size = 1) +
-    facet_wrap(~ normalization, scales = "free_y") +
+    # One shared y across the three denominators: all three are fractions on 0..1
+    # and only the denominator changes, so the size of the gap between them is the
+    # finding. A free y per panel drew all three at the same apparent height.
+    facet_wrap(~ normalization) +
     # Named lineage palette, not positional `oi` — see the note on the same plot
     # in clinical_flowpath.Rmd. These are the same populations as that figure and
     # must therefore be the same colours.
@@ -1205,7 +1224,10 @@ if (nrow(comp_hc) > 0 && dplyr::n_distinct(na.omit(comp_hc$immuno_phe)) > 1) {
     geom_boxplot(outlier.shape = NA, position = position_dodge(width = .75)) +
     geom_point(position = position_jitterdodge(jitter.width = .12, dodge.width = .75),
                alpha = .6, size = 1) +
-    facet_wrap(~ normalization, scales = "free_y") +
+    # One shared y across the three denominators: all three are fractions on 0..1
+    # and only the denominator changes, so the size of the gap between them is the
+    # finding. A free y per panel drew all three at the same apparent height.
+    facet_wrap(~ normalization) +
     scale_colour_manual(values = hotcold_cols(levels(comp_hc$immuno_phe)),
                         name = "Immuno-phenotype") +   # hot = red, cold = light blue
     labs(title = paste0("Invasive-margin cell-type fractions: hot vs cold (d = ", D_MAIN, " µm)"),

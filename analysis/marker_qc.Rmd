@@ -267,8 +267,10 @@ knitr::kable(channel_qc, digits = 3,
 ```
 
 Density of the z-scores per marker, over cells with a finite z-score that a gate
-actually evaluated (`gated`), split by the positive call (`sign +` / `sign -`);
-facets are free-scaled.
+actually evaluated (`gated`), split by the positive call (`sign +` / `sign -`). All
+panels share one z-score x axis, so where a marker's humps sit and how far apart they
+are can be read across markers; y (density) stays free, since a density curve's height
+is fixed by the spread of the marker it belongs to and carries no cross-panel meaning.
 
 ```{r channel-qc-plot, eval = have_arm, fig.height=8}
 ihc_marker_long(ihc_data) |>
@@ -276,7 +278,11 @@ ihc_marker_long(ihc_data) |>
   mutate(call = if_else(pos, "sign +", "sign -")) |>
   ggplot(aes(zscore, fill = call)) +
     geom_density(alpha = 0.55, colour = NA) +
-    facet_wrap(~ marker, scales = "free") +
+    # Shared x: the z-score is one unit across every channel, and "two separated
+    # humps" is a claim about WHERE on that axis they sit, so a per-marker x made
+    # every channel look equally well separated. y is free because density height is
+    # a normalisation artefact of each marker's own spread, not a measurement.
+    facet_wrap(~ marker, scales = "free_y") +
     scale_fill_manual(values = c("sign +" = oi[1], "sign -" = oi[2]), name = NULL) +
     labs(title = "Marker z-score by sign call",
          subtitle = "Clean channels show two separated humps; failed channels overlap or are unimodal.",
@@ -295,7 +301,9 @@ circularity = 4 * pi * area / perimeter^2
 
 Over typed cells, each feature is pivoted long and filtered to finite values; the
 plot is a per-phenotype boxplot (phenotypes ordered by median feature value,
-outliers hidden, facets free-scaled).
+outliers hidden). Facets stay free-scaled here, unlike the z-score densities above:
+each panel is a different feature in a different unit — area in px², perimeter in px,
+eccentricity and solidity on 0..1 — so there is no shared range to put them on.
 
 ```{r morphology, eval = have_arm}
 morph_feats <- intersect(c("area", "perimeter", "eccentricity", "solidity"),
@@ -312,6 +320,9 @@ morph <- ihc_data |>
 ggplot(morph, aes(reorder(phenotype_clean, value, FUN = median), value,
                   fill = phenotype_clean)) +
   geom_boxplot(outlier.shape = NA, width = .6, colour = "grey30") +
+  # Free scales STAY: the panels are different features in different units (px²,
+  # px, unitless 0..1). Forcing one range would put area in the thousands and press
+  # eccentricity and solidity flat against the axis.
   facet_wrap(~ feature, scales = "free") +
   coord_flip() +
   scale_fill_ordinal(guide = "none") +
