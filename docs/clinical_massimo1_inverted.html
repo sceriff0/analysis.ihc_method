@@ -476,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-26
+<strong>Last updated:</strong> 2026-08-31
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -644,6 +644,8 @@ Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    data/
     Ignored:    output/figures/
+    Ignored:    output/summary_patient.csv
+    Ignored:    output/summary_region.csv
     Ignored:    renv/library/
     Ignored:    renv/staging/
 
@@ -692,6 +694,41 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/775b18a41fb4d480d3db2bb599175f89687e5b43/analysis/clinical_massimo1_inverted.Rmd" target="_blank">775b18a</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-27
+</td>
+<td>
+:sparkles: Compare tumour fraction at three annotation scopes on every
+arm
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/clinical_massimo1_inverted.html" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+<td>
+:wrench: full site with various annotations
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -863,19 +900,18 @@ whole     &lt;- setdiff(intersect(neo_ids, ihc_ids), have_poly)  # cells but no 
 
 cat(&quot;patients loaded:&quot;, length(ihc_ids),
     &quot;[&quot;, paste(sort(ihc_ids), collapse = &quot;, &quot;), &quot;]\n&quot;)</code></pre>
-<pre><code>patients loaded: 2 [ 052, 5456 ]</code></pre>
+<pre><code>patients loaded: 6 [ 046, 052, 10338, 15897, 24086, 5456 ]</code></pre>
 <pre class="r"><code>cat(&quot;patients with a pathologist score AND IHC cells:&quot;,
     length(intersect(neo_ids, ihc_ids)),
     &quot;| scored per region against a polygon:&quot;, length(intersect(neo_ids, have_poly)),
     &quot;| whole-slide (no annotation directory):&quot;, length(whole), &quot;\n&quot;)</code></pre>
-<pre><code>patients with a pathologist score AND IHC cells: 2 | scored per region against a polygon: 2 | whole-slide (no annotation directory): 0 </code></pre>
+<pre><code>patients with a pathologist score AND IHC cells: 6 | scored per region against a polygon: 6 | whole-slide (no annotation directory): 0 </code></pre>
 <pre class="r"><code>if (length(whole))
   cat(&quot;whole-slide patients (every cell counts, by the layout convention):&quot;,
       paste(sort(whole), collapse = &quot;, &quot;), &quot;\n&quot;)
 if (length(missing))
   cat(&quot;pathologist patients with NO cell csv (absent from every IHC metric):&quot;,
       paste(sort(missing), collapse = &quot;, &quot;), &quot;\n&quot;)</code></pre>
-<pre><code>pathologist patients with NO cell csv (absent from every IHC metric): 046, 10338, 15897, 24086 </code></pre>
 <pre class="r"><code># DOES THE PATHOLOGIST&#39;S REGION LIST MATCH THE EXPORT&#39;S? The concordance below is an
 # inner join on (patient_id, annotation), so a region scored but not exported — or
 # exported but not scored — drops out silently and the correlation is computed over
@@ -896,14 +932,6 @@ knitr::kable(.recon, caption = paste(
 <table>
 <caption>Pathologist-scored regions vs regions the export produced. Only
 <code>matched</code> rows reach the concordance below.</caption>
-<colgroup>
-<col width="15%" />
-<col width="18%" />
-<col width="12%" />
-<col width="10%" />
-<col width="12%" />
-<col width="30%" />
-</colgroup>
 <thead>
 <tr class="header">
 <th align="left">patient_id</th>
@@ -918,31 +946,31 @@ knitr::kable(.recon, caption = paste(
 <tr class="odd">
 <td align="left">046</td>
 <td align="left">ANNOTATION_1</td>
-<td align="right">50</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">scored, NOT exported</td>
+<td align="right">50.0</td>
+<td align="left">sf</td>
+<td align="right">17453</td>
+<td align="left">matched</td>
 </tr>
 <tr class="even">
 <td align="left">046</td>
 <td align="left">ANNOTATION_2</td>
-<td align="right">60</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">scored, NOT exported</td>
+<td align="right">60.0</td>
+<td align="left">sf</td>
+<td align="right">3830</td>
+<td align="left">matched</td>
 </tr>
 <tr class="odd">
 <td align="left">046</td>
 <td align="left">ANNOTATION_3</td>
-<td align="right">50</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">scored, NOT exported</td>
+<td align="right">50.0</td>
+<td align="left">sf</td>
+<td align="right">9873</td>
+<td align="left">matched</td>
 </tr>
 <tr class="even">
 <td align="left">052</td>
 <td align="left">ANNOTATION_1</td>
-<td align="right">70</td>
+<td align="right">70.0</td>
 <td align="left">sf</td>
 <td align="right">17226</td>
 <td align="left">matched</td>
@@ -950,7 +978,7 @@ knitr::kable(.recon, caption = paste(
 <tr class="odd">
 <td align="left">052</td>
 <td align="left">ANNOTATION_2</td>
-<td align="right">50</td>
+<td align="right">50.0</td>
 <td align="left">sf</td>
 <td align="right">14303</td>
 <td align="left">matched</td>
@@ -958,47 +986,47 @@ knitr::kable(.recon, caption = paste(
 <tr class="even">
 <td align="left">10338</td>
 <td align="left">ANNOTATION_1</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">exported, NOT scored</td>
+<td align="right">77.5</td>
+<td align="left">sf</td>
+<td align="right">76782</td>
+<td align="left">matched</td>
 </tr>
 <tr class="odd">
 <td align="left">15897</td>
 <td align="left">ANNOTATION_1</td>
-<td align="right">NA</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">exported, NOT scored</td>
+<td align="right">70.0</td>
+<td align="left">sf</td>
+<td align="right">56584</td>
+<td align="left">matched</td>
 </tr>
 <tr class="even">
 <td align="left">24086</td>
 <td align="left">ANNOTATION_1</td>
-<td align="right">80</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">scored, NOT exported</td>
+<td align="right">80.0</td>
+<td align="left">sf</td>
+<td align="right">24655</td>
+<td align="left">matched</td>
 </tr>
 <tr class="odd">
 <td align="left">24086</td>
 <td align="left">ANNOTATION_2</td>
-<td align="right">70</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">scored, NOT exported</td>
+<td align="right">70.0</td>
+<td align="left">sf</td>
+<td align="right">20320</td>
+<td align="left">matched</td>
 </tr>
 <tr class="even">
 <td align="left">24086</td>
 <td align="left">ANNOTATION_3</td>
-<td align="right">70</td>
-<td align="left">NA</td>
-<td align="right">NA</td>
-<td align="left">scored, NOT exported</td>
+<td align="right">70.0</td>
+<td align="left">sf</td>
+<td align="right">25796</td>
+<td align="left">matched</td>
 </tr>
 <tr class="odd">
 <td align="left">5456</td>
 <td align="left">ANNOTATION_1</td>
-<td align="right">70</td>
+<td align="right">70.0</td>
 <td align="left">sf</td>
 <td align="right">6166</td>
 <td align="left">matched</td>
@@ -1006,7 +1034,7 @@ knitr::kable(.recon, caption = paste(
 <tr class="even">
 <td align="left">5456</td>
 <td align="left">ANNOTATION_2</td>
-<td align="right">80</td>
+<td align="right">80.0</td>
 <td align="left">sf</td>
 <td align="right">28377</td>
 <td align="left">matched</td>
@@ -1014,7 +1042,7 @@ knitr::kable(.recon, caption = paste(
 <tr class="odd">
 <td align="left">5456</td>
 <td align="left">ANNOTATION_3</td>
-<td align="right">70</td>
+<td align="right">70.0</td>
 <td align="left">sf</td>
 <td align="right">19383</td>
 <td align="left">matched</td>
@@ -1026,8 +1054,6 @@ if (nrow(.bad))
   cat(&quot;\n&gt; **&quot;, nrow(.bad), &quot; region(s) do not line up** and are excluded from every&quot;,
       &quot; correlation on this page. Reconcile `neoplastic_&quot;, ARM, &quot;` in&quot;,
       &quot; `code/load_data.R` against the export before reading the numbers.\n&quot;, sep = &quot;&quot;)</code></pre>
-<pre><code>
-&gt; **8 region(s) do not line up** and are excluded from every correlation on this page. Reconcile `neoplastic_massimo1_inverted` in `code/load_data.R` against the export before reading the numbers.</code></pre>
 <pre class="r"><code># WHAT THE REGION FILES CONTAIN — printed, not assumed. Either each &lt;pid&gt;_&lt;L&gt;.csv holds
 # the whole slide with Out_of_annotation computed for region L, or it holds only that
 # region&#39;s cells. The layout cannot say which, the two give different cohort-level
@@ -1068,6 +1094,20 @@ the file count means each file exports the whole slide.</caption>
 <td align="right">3</td>
 <td align="right">1148397</td>
 <td align="right">382799</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="right">3</td>
+<td align="right">1217091</td>
+<td align="right">405697</td>
+<td align="right">3</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="right">3</td>
+<td align="right">850893</td>
+<td align="right">283631</td>
 <td align="right">3</td>
 </tr>
 </tbody>
@@ -1170,7 +1210,7 @@ cc_union &lt;- ihc_tumor_union |&gt;
   filter(!is.na(tumor_over_inside), !is.na(path_frac))
 
 cat(&quot;per-annotation pairs:&quot;, nrow(cc_ann), &quot; | union pairs:&quot;, nrow(cc_union), &quot;\n&quot;)</code></pre>
-<pre><code>per-annotation pairs: 5  | union pairs: 2 </code></pre>
+<pre><code>per-annotation pairs: 13  | union pairs: 6 </code></pre>
 <pre class="r"><code># Diagnostic: the ACTUAL pairs that enter the correlation, largest gap first. Read
 # the top rows to tell WHY the correlation is what it is:
 #   - big gap + fallback `source` or tiny n_inside -&gt; suspect membership, not biology
@@ -1222,6 +1262,16 @@ first).</caption>
 <td align="right">0.288</td>
 </tr>
 <tr class="even">
+<td align="left">10338</td>
+<td align="left">sf</td>
+<td align="right">76782</td>
+<td align="right">9.884</td>
+<td align="right">0.650</td>
+<td align="right">5046.8</td>
+<td align="right">0.775</td>
+<td align="right">0.125</td>
+</tr>
+<tr class="odd">
 <td align="left">5456</td>
 <td align="left">sf</td>
 <td align="right">53926</td>
@@ -1230,6 +1280,36 @@ first).</caption>
 <td align="right">7607.1</td>
 <td align="right">0.733</td>
 <td align="right">0.060</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">sf</td>
+<td align="right">70771</td>
+<td align="right">6.426</td>
+<td align="right">0.679</td>
+<td align="right">7478.1</td>
+<td align="right">0.733</td>
+<td align="right">0.054</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">sf</td>
+<td align="right">31156</td>
+<td align="right">3.076</td>
+<td align="right">0.551</td>
+<td align="right">5580.6</td>
+<td align="right">0.533</td>
+<td align="right">0.018</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="left">sf</td>
+<td align="right">56584</td>
+<td align="right">6.521</td>
+<td align="right">0.705</td>
+<td align="right">6116.2</td>
+<td align="right">0.700</td>
+<td align="right">0.005</td>
 </tr>
 </tbody>
 </table>
@@ -1271,7 +1351,7 @@ region.</caption>
 <td align="left">sf</td>
 <td align="right">28377</td>
 <td align="right">0.375</td>
-<td align="right">0.8</td>
+<td align="right">0.800</td>
 <td align="right">0.425</td>
 </tr>
 <tr class="even">
@@ -1280,7 +1360,7 @@ region.</caption>
 <td align="left">sf</td>
 <td align="right">17226</td>
 <td align="right">0.405</td>
-<td align="right">0.7</td>
+<td align="right">0.700</td>
 <td align="right">0.295</td>
 </tr>
 <tr class="odd">
@@ -1289,7 +1369,7 @@ region.</caption>
 <td align="left">sf</td>
 <td align="right">19383</td>
 <td align="right">0.491</td>
-<td align="right">0.7</td>
+<td align="right">0.700</td>
 <td align="right">0.209</td>
 </tr>
 <tr class="even">
@@ -1298,7 +1378,7 @@ region.</caption>
 <td align="left">sf</td>
 <td align="right">6166</td>
 <td align="right">0.506</td>
-<td align="right">0.7</td>
+<td align="right">0.700</td>
 <td align="right">0.194</td>
 </tr>
 <tr class="odd">
@@ -1307,8 +1387,80 @@ region.</caption>
 <td align="left">sf</td>
 <td align="right">14303</td>
 <td align="right">0.331</td>
-<td align="right">0.5</td>
+<td align="right">0.500</td>
 <td align="right">0.169</td>
+</tr>
+<tr class="even">
+<td align="left">10338</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">76782</td>
+<td align="right">0.650</td>
+<td align="right">0.775</td>
+<td align="right">0.125</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">24655</td>
+<td align="right">0.708</td>
+<td align="right">0.800</td>
+<td align="right">0.092</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">ANNOTATION_3</td>
+<td align="left">sf</td>
+<td align="right">9873</td>
+<td align="right">0.573</td>
+<td align="right">0.500</td>
+<td align="right">0.073</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_2</td>
+<td align="left">sf</td>
+<td align="right">20320</td>
+<td align="right">0.627</td>
+<td align="right">0.700</td>
+<td align="right">0.073</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">ANNOTATION_3</td>
+<td align="left">sf</td>
+<td align="right">25796</td>
+<td align="right">0.653</td>
+<td align="right">0.700</td>
+<td align="right">0.047</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">ANNOTATION_2</td>
+<td align="left">sf</td>
+<td align="right">3830</td>
+<td align="right">0.561</td>
+<td align="right">0.600</td>
+<td align="right">0.039</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">17453</td>
+<td align="right">0.522</td>
+<td align="right">0.500</td>
+<td align="right">0.022</td>
+</tr>
+<tr class="odd">
+<td align="left">15897</td>
+<td align="left">ANNOTATION_1</td>
+<td align="left">sf</td>
+<td align="right">56584</td>
+<td align="right">0.705</td>
+<td align="right">0.700</td>
+<td align="right">0.005</td>
 </tr>
 </tbody>
 </table>
@@ -1356,7 +1508,310 @@ for (s in norm_specs) {
     print(plot_concordance(cc_union, s$metric, paste0(s$metric, &quot; — union&quot;),
                            s$xlab, s$unit))
 }</code></pre>
-<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-2.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-3.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-4.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-5.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-6.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-7.png" alt="" width="864" style="display: block; margin: auto;" /><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-8.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-1">
+Past versions of tumor-content-plot-1.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-2">
+Past versions of tumor-content-plot-2.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-2.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-3">
+Past versions of tumor-content-plot-3.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-3.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-4">
+Past versions of tumor-content-plot-4.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-4.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-5.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-5">
+Past versions of tumor-content-plot-5.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-5.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-6.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-6">
+Past versions of tumor-content-plot-6.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-6.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-7.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-7">
+Past versions of tumor-content-plot-7.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-7" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-7.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-8.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-tumor-content-plot-8">
+Past versions of tumor-content-plot-8.png
+</button>
+</p>
+<div id="fig-tumor-content-plot-8" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/tumor-content-plot-8.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div
 id="aggregation-strategy-how-collapsing-the-annotations-moves-the-answer"
@@ -1478,443 +1933,443 @@ bias = mean(IHC - pathologist).</caption>
 <tbody>
 <tr class="odd">
 <td align="left">tumor_over_inside</td>
-<td align="left">mean of annotations</td>
-<td align="left">max of ANNOTATION_k</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">min of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.337</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside</td>
-<td align="left">mean of annotations</td>
-<td align="left">mean of ANNOTATION_k</td>
-<td align="left">yes</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.254</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside</td>
-<td align="left">mean of annotations</td>
-<td align="left">median of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.237</td>
+<td align="right">6</td>
+<td align="right">0.80</td>
+<td align="right">0.56</td>
+<td align="right">0.39</td>
+<td align="right">-0.051</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside</td>
 <td align="left">mean of annotations</td>
 <td align="left">min of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.187</td>
+<td align="right">6</td>
+<td align="right">0.63</td>
+<td align="right">0.52</td>
+<td align="right">0.39</td>
+<td align="right">-0.080</td>
 </tr>
 <tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.67</td>
+<td align="right">0.52</td>
+<td align="right">0.39</td>
+<td align="right">-0.074</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.61</td>
+<td align="right">0.52</td>
+<td align="right">0.39</td>
+<td align="right">-0.085</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.57</td>
+<td align="right">0.52</td>
+<td align="right">0.30</td>
+<td align="right">-0.068</td>
+</tr>
+<tr class="even">
 <td align="left">tumor_over_inside</td>
 <td align="left">mean of annotations</td>
-<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left">median of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.268</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside</td>
-<td align="left">median of annotations</td>
-<td align="left">max of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.320</td>
+<td align="right">6</td>
+<td align="right">0.45</td>
+<td align="right">0.46</td>
+<td align="right">0.30</td>
+<td align="right">-0.097</td>
 </tr>
 <tr class="odd">
-<td align="left">tumor_over_inside</td>
-<td align="left">median of annotations</td>
-<td align="left">mean of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.237</td>
-</tr>
-<tr class="even">
 <td align="left">tumor_over_inside</td>
 <td align="left">median of annotations</td>
 <td align="left">median of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.220</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside</td>
-<td align="left">median of annotations</td>
-<td align="left">min of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.170</td>
+<td align="right">6</td>
+<td align="right">0.47</td>
+<td align="right">0.46</td>
+<td align="right">0.30</td>
+<td align="right">-0.091</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside</td>
-<td align="left">median of annotations</td>
-<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.251</td>
+<td align="right">6</td>
+<td align="right">0.44</td>
+<td align="right">0.46</td>
+<td align="right">0.30</td>
+<td align="right">-0.102</td>
 </tr>
 <tr class="odd">
 <td align="left">tumor_over_inside</td>
 <td align="left">pooled cells (union)</td>
 <td align="left">max of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.257</td>
+<td align="right">6</td>
+<td align="right">0.43</td>
+<td align="right">0.44</td>
+<td align="right">0.36</td>
+<td align="right">-0.134</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside</td>
 <td align="left">pooled cells (union)</td>
 <td align="left">mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.174</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside</td>
-<td align="left">pooled cells (union)</td>
-<td align="left">median of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.157</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside</td>
-<td align="left">pooled cells (union)</td>
-<td align="left">min of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.107</td>
+<td align="right">6</td>
+<td align="right">0.66</td>
+<td align="right">0.41</td>
+<td align="right">0.14</td>
+<td align="right">-0.084</td>
 </tr>
 <tr class="odd">
 <td align="left">tumor_over_inside</td>
 <td align="left">pooled cells (union)</td>
 <td align="left">cell-weighted mean of ANNOTATION_k</td>
 <td align="left">yes</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.188</td>
+<td align="right">6</td>
+<td align="right">0.60</td>
+<td align="right">0.37</td>
+<td align="right">0.07</td>
+<td align="right">-0.086</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">max of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.348</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">mean of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.265</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">median of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.248</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">min of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.198</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">cell-weighted mean of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.279</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">mean of annotations</td>
-<td align="left">max of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.265</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside_clean</td>
 <td align="left">mean of annotations</td>
 <td align="left">mean of ANNOTATION_k</td>
 <td align="left">yes</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.182</td>
+<td align="right">6</td>
+<td align="right">0.46</td>
+<td align="right">0.29</td>
+<td align="right">0.14</td>
+<td align="right">-0.113</td>
 </tr>
 <tr class="odd">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">mean of annotations</td>
-<td align="left">median of ANNOTATION_k</td>
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.165</td>
+<td align="right">6</td>
+<td align="right">0.48</td>
+<td align="right">0.29</td>
+<td align="right">0.14</td>
+<td align="right">-0.108</td>
 </tr>
 <tr class="even">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">mean of annotations</td>
-<td align="left">min of ANNOTATION_k</td>
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.44</td>
+<td align="right">0.29</td>
+<td align="right">0.14</td>
+<td align="right">-0.118</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.37</td>
+<td align="right">0.20</td>
+<td align="right">0.07</td>
 <td align="right">-0.115</td>
 </tr>
-<tr class="odd">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">mean of annotations</td>
+<tr class="even">
+<td align="left">tumor_over_inside</td>
+<td align="left">median of annotations</td>
 <td align="left">cell-weighted mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.193</td>
+<td align="right">6</td>
+<td align="right">0.39</td>
+<td align="right">0.20</td>
+<td align="right">0.07</td>
+<td align="right">-0.109</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.35</td>
+<td align="right">0.20</td>
+<td align="right">0.07</td>
+<td align="right">-0.120</td>
 </tr>
 <tr class="even">
-<td align="left">tumor_over_inside_clean</td>
+<td align="left">tumor_over_inside</td>
+<td align="left">mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.13</td>
+<td align="right">0.09</td>
+<td align="right">0.07</td>
+<td align="right">-0.163</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside</td>
 <td align="left">median of annotations</td>
 <td align="left">max of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.259</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">median of annotations</td>
-<td align="left">mean of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.176</td>
+<td align="right">6</td>
+<td align="right">0.14</td>
+<td align="right">0.09</td>
+<td align="right">0.07</td>
+<td align="right">-0.158</td>
 </tr>
 <tr class="even">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">median of annotations</td>
-<td align="left">median of ANNOTATION_k</td>
+<td align="left">tumor_over_inside</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.159</td>
+<td align="right">6</td>
+<td align="right">0.11</td>
+<td align="right">0.09</td>
+<td align="right">0.07</td>
+<td align="right">-0.168</td>
 </tr>
 <tr class="odd">
 <td align="left">tumor_over_inside_clean</td>
 <td align="left">median of annotations</td>
 <td align="left">min of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.77</td>
+<td align="right">0.65</td>
+<td align="right">0.54</td>
+<td align="right">-0.042</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.60</td>
+<td align="right">0.58</td>
+<td align="right">0.45</td>
+<td align="right">-0.058</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.85</td>
+<td align="right">0.56</td>
+<td align="right">0.39</td>
+<td align="right">-0.026</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.75</td>
+<td align="right">0.52</td>
+<td align="right">0.39</td>
+<td align="right">-0.040</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">min of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.75</td>
+<td align="right">0.52</td>
+<td align="right">0.39</td>
+<td align="right">-0.043</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.64</td>
+<td align="right">0.52</td>
+<td align="right">0.30</td>
+<td align="right">-0.043</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.60</td>
+<td align="right">0.46</td>
+<td align="right">0.30</td>
+<td align="right">-0.057</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">median of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.60</td>
+<td align="right">0.46</td>
+<td align="right">0.30</td>
+<td align="right">-0.059</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">pooled cells (union)</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.50</td>
+<td align="right">0.44</td>
+<td align="right">0.36</td>
 <td align="right">-0.109</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside_clean</td>
-<td align="left">median of annotations</td>
-<td align="left">cell-weighted mean of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.187</td>
-</tr>
-<tr class="odd">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">pooled cells (union)</td>
-<td align="left">max of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.224</td>
-</tr>
-<tr class="even">
-<td align="left">tumor_over_inside_clean</td>
 <td align="left">pooled cells (union)</td>
 <td align="left">mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.141</td>
+<td align="right">6</td>
+<td align="right">0.72</td>
+<td align="right">0.41</td>
+<td align="right">0.14</td>
+<td align="right">-0.059</td>
 </tr>
 <tr class="odd">
 <td align="left">tumor_over_inside_clean</td>
-<td align="left">pooled cells (union)</td>
-<td align="left">median of ANNOTATION_k</td>
+<td align="left">median of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.124</td>
+<td align="right">6</td>
+<td align="right">0.61</td>
+<td align="right">0.38</td>
+<td align="right">0.28</td>
+<td align="right">-0.075</td>
 </tr>
 <tr class="even">
-<td align="left">tumor_over_inside_clean</td>
-<td align="left">pooled cells (union)</td>
-<td align="left">min of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.074</td>
-</tr>
-<tr class="odd">
 <td align="left">tumor_over_inside_clean</td>
 <td align="left">pooled cells (union)</td>
 <td align="left">cell-weighted mean of ANNOTATION_k</td>
 <td align="left">yes</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.152</td>
+<td align="right">6</td>
+<td align="right">0.68</td>
+<td align="right">0.37</td>
+<td align="right">0.07</td>
+<td align="right">-0.059</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.54</td>
+<td align="right">0.31</td>
+<td align="right">0.20</td>
+<td align="right">-0.075</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside_clean</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">max of ANNOTATION_k</td>
-<td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.269</td>
+<td align="left">mean of annotations</td>
+<td align="left">mean of ANNOTATION_k</td>
+<td align="left">yes</td>
+<td align="right">6</td>
+<td align="right">0.61</td>
+<td align="right">0.29</td>
+<td align="right">0.14</td>
+<td align="right">-0.074</td>
 </tr>
 <tr class="odd">
 <td align="left">tumor_over_inside_clean</td>
 <td align="left">cell-weighted mean of annotations</td>
 <td align="left">mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.186</td>
+<td align="right">6</td>
+<td align="right">0.61</td>
+<td align="right">0.29</td>
+<td align="right">0.14</td>
+<td align="right">-0.076</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside_clean</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">median of ANNOTATION_k</td>
+<td align="left">mean of annotations</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.169</td>
+<td align="right">6</td>
+<td align="right">0.54</td>
+<td align="right">0.20</td>
+<td align="right">0.07</td>
+<td align="right">-0.074</td>
 </tr>
 <tr class="odd">
 <td align="left">tumor_over_inside_clean</td>
 <td align="left">cell-weighted mean of annotations</td>
-<td align="left">min of ANNOTATION_k</td>
+<td align="left">cell-weighted mean of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.119</td>
+<td align="right">6</td>
+<td align="right">0.54</td>
+<td align="right">0.20</td>
+<td align="right">0.07</td>
+<td align="right">-0.076</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside_clean</td>
-<td align="left">cell-weighted mean of annotations</td>
-<td align="left">cell-weighted mean of ANNOTATION_k</td>
+<td align="left">mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
 <td align="left"></td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">-0.197</td>
+<td align="right">6</td>
+<td align="right">0.30</td>
+<td align="right">0.09</td>
+<td align="right">0.07</td>
+<td align="right">-0.124</td>
+</tr>
+<tr class="odd">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">cell-weighted mean of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.30</td>
+<td align="right">0.09</td>
+<td align="right">0.07</td>
+<td align="right">-0.126</td>
+</tr>
+<tr class="even">
+<td align="left">tumor_over_inside_clean</td>
+<td align="left">median of annotations</td>
+<td align="left">max of ANNOTATION_k</td>
+<td align="left"></td>
+<td align="right">6</td>
+<td align="right">0.28</td>
+<td align="right">0.00</td>
+<td align="right">-0.07</td>
+<td align="right">-0.125</td>
 </tr>
 </tbody>
 </table>
@@ -1944,19 +2399,19 @@ within-patient signal.</caption>
 <tbody>
 <tr class="odd">
 <td align="left">tumor_over_inside</td>
-<td align="right">5</td>
-<td align="right">0.41</td>
+<td align="right">13</td>
+<td align="right">0.30</td>
+<td align="right">0.28</td>
 <td align="right">0.22</td>
-<td align="right">0.12</td>
-<td align="right">-0.258</td>
+<td align="right">-0.121</td>
 </tr>
 <tr class="even">
 <td align="left">tumor_over_inside_clean</td>
-<td align="right">5</td>
-<td align="right">0.73</td>
-<td align="right">0.45</td>
-<td align="right">0.36</td>
-<td align="right">-0.186</td>
+<td align="right">13</td>
+<td align="right">0.53</td>
+<td align="right">0.40</td>
+<td align="right">0.34</td>
+<td align="right">-0.079</td>
 </tr>
 </tbody>
 </table>
@@ -1974,14 +2429,125 @@ reported correlation is partly an artefact of the collapse rule.</p>
 # outcome). Boxed cells are the matched-weighting pairs.
 plot_aggregation_heatmap(agg$stats, &quot;spearman&quot;)</code></pre>
 <p><img src="figure/clinical_massimo1_inverted.Rmd/aggregation-heatmap-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-aggregation-heatmap-1">
+Past versions of aggregation-heatmap-1.png
+</button>
+</p>
+<div id="fig-aggregation-heatmap-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/aggregation-heatmap-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># tumour / all cells inside. Dashed line is x = y; vertical distance from it is the
 # disagreement. Shaded panels weight both sides the same way.
 plot_aggregation_grid(agg$pairs, &quot;tumor_over_inside&quot;)</code></pre>
 <p><img src="figure/clinical_massimo1_inverted.Rmd/aggregation-scatter-raw-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-aggregation-scatter-raw-1">
+Past versions of aggregation-scatter-raw-1.png
+</button>
+</p>
+<div id="fig-aggregation-scatter-raw-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/aggregation-scatter-raw-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># tumour / cells inside, with FlowPath Outlier == TRUE and Unknown-phenotype cells
 # removed from both numerator and denominator.
 plot_aggregation_grid(agg$pairs, &quot;tumor_over_inside_clean&quot;)</code></pre>
 <p><img src="figure/clinical_massimo1_inverted.Rmd/aggregation-scatter-clean-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-aggregation-scatter-clean-1">
+Past versions of aggregation-scatter-clean-1.png
+</button>
+</p>
+<div id="fig-aggregation-scatter-clean-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/aggregation-scatter-clean-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <div id="recommendation" class="section level3">
 <h3>Recommendation</h3>
 <p><strong>For method validation, prefer the per-annotation level over
@@ -2014,6 +2580,259 @@ size and tumour content, and no single patient-level number represents
 that slide well.</p>
 </div>
 </div>
+<div id="annotation-scope-one-slide-three-answers"
+class="section level2">
+<h2>Annotation scope — one slide, three answers</h2>
+<p>The tumour fraction of a slide has <strong>three</strong> defensible
+values, and they are not interchangeable:</p>
+<table>
+<colgroup>
+<col width="33%" />
+<col width="33%" />
+<col width="33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>scope</th>
+<th>which cells count</th>
+<th>values per patient</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>whole_slide</code></td>
+<td>every cell in the export — <strong>no polygon consulted at
+all</strong></td>
+<td>one</td>
+</tr>
+<tr class="even">
+<td><code>annotation_all</code></td>
+<td>inside the dissolved union polygon</td>
+<td>one</td>
+</tr>
+<tr class="odd">
+<td><code>annotation_k</code></td>
+<td>inside one pathologist region</td>
+<td><strong>several</strong></td>
+</tr>
+</tbody>
+</table>
+<p>They nest — <code>annotation_k</code> ⊆ <code>annotation_all</code> ⊆
+<code>whole_slide</code> — so the difference between them is not noise.
+It is exactly the effect of the annotation, and the point of putting all
+three on one figure is to <em>size</em> that effect rather than assume
+it is small. <code>whole_slide</code> is the only one that cannot be
+blamed on where a line was drawn.</p>
+<p>Where an arm’s convention says an unsuffixed region file means the
+whole slide <strong>is</strong> the annotated region —
+<code>massimo2</code>’s <code>bare_region_is</code>, which is what 24086
+is — that patient’s <code>annotation_all</code> and
+<code>whole_slide</code> are the same measurement, so it appears in both
+scopes carrying one number rather than dropping out of the comparison.
+It still has no <code>annotation_k</code> row. In an arm without that
+convention a missing polygon stays missing; the rule is read per arm,
+never applied globally.</p>
+<p>Comparing one number against several is the real difficulty, so it is
+done three ways below: directly (<code>whole_slide</code> vs
+<code>annotation_all</code>, both single values), visually (each
+patient’s region spread with the single values marked on it), and
+quantitatively (which <em>aggregate</em> of the regions reproduces the
+unannotated number). Read the cell-weighted aggregator first — a
+patient’s regions differ in size by an order of magnitude, so a plain
+mean lets a 2,000-cell region and a 200,000-cell one vote equally, which
+is a statement about the pathologist’s drawing habits rather than about
+the tissue.</p>
+<pre class="r"><code># `mem$cells` is the COHORT set — one row per physical cell per patient — so the
+# whole-slide fraction is computed once per cell. Handing the raw region tier here
+# would count a cell once per region file it appears in and still look plausible.
+scope_tbl &lt;- scope_table(mem)
+one_many  &lt;- scope_one_vs_many(scope_tbl)
+
+one_many |&gt;
+  transmute(patient_id,
+            n_annotations = n_ann,
+            whole_slide    = round(whole_slide, 3),
+            annotation_all = round(annotation_all, 3),
+            ann_range      = if_else(is.finite(ann_min),
+                                     sprintf(&quot;%.3f – %.3f&quot;, ann_min, ann_max), NA_character_),
+            whole_inside_range = case_when(inside_range ~ &quot;yes&quot;,
+                                           !inside_range ~ &quot;NO&quot;, TRUE ~ NA_character_),
+            gap_whole_minus_union = round(gap_to_union, 3)) |&gt;
+  knitr::kable(caption = paste(
+    &quot;Tumour fraction at each scope. `whole_inside_range` = does the unannotated&quot;,
+    &quot;value fall within the span this patient&#39;s own regions cover? A `NO` means the&quot;,
+    &quot;annotation is selecting tissue that differs systematically from the rest of the&quot;,
+    &quot;slide — which is a finding about the annotation, not an error.&quot;))</code></pre>
+<table>
+<caption>Tumour fraction at each scope. <code>whole_inside_range</code>
+= does the unannotated value fall within the span this patient’s own
+regions cover? A <code>NO</code> means the annotation is selecting
+tissue that differs systematically from the rest of the slide — which is
+a finding about the annotation, not an error.</caption>
+<colgroup>
+<col width="10%" />
+<col width="13%" />
+<col width="11%" />
+<col width="14%" />
+<col width="13%" />
+<col width="17%" />
+<col width="20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">patient_id</th>
+<th align="right">n_annotations</th>
+<th align="right">whole_slide</th>
+<th align="right">annotation_all</th>
+<th align="left">ann_range</th>
+<th align="left">whole_inside_range</th>
+<th align="right">gap_whole_minus_union</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">046</td>
+<td align="right">3</td>
+<td align="right">0.338</td>
+<td align="right">0.551</td>
+<td align="left">0.522 – 0.573</td>
+<td align="left">NO</td>
+<td align="right">-0.213</td>
+</tr>
+<tr class="even">
+<td align="left">052</td>
+<td align="right">2</td>
+<td align="right">0.303</td>
+<td align="right">0.312</td>
+<td align="left">0.331 – 0.405</td>
+<td align="left">NO</td>
+<td align="right">-0.009</td>
+</tr>
+<tr class="odd">
+<td align="left">10338</td>
+<td align="right">1</td>
+<td align="right">0.574</td>
+<td align="right">0.650</td>
+<td align="left">0.650 – 0.650</td>
+<td align="left">NO</td>
+<td align="right">-0.075</td>
+</tr>
+<tr class="even">
+<td align="left">15897</td>
+<td align="right">1</td>
+<td align="right">0.460</td>
+<td align="right">0.705</td>
+<td align="left">0.705 – 0.705</td>
+<td align="left">NO</td>
+<td align="right">-0.244</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="right">3</td>
+<td align="right">0.682</td>
+<td align="right">0.679</td>
+<td align="left">0.627 – 0.708</td>
+<td align="left">yes</td>
+<td align="right">0.003</td>
+</tr>
+<tr class="even">
+<td align="left">5456</td>
+<td align="right">3</td>
+<td align="right">0.639</td>
+<td align="right">0.673</td>
+<td align="left">0.375 – 0.506</td>
+<td align="left">NO</td>
+<td align="right">-0.034</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code># Both axes are the same fraction of the same quantity, so x = y is the target and
+# vertical distance from it is the effect of restricting to the pathologist&#39;s line.
+print(plot_scope_scatter(one_many))</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/scope-scatter-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>Points <strong>above</strong> the dashed line are patients whose
+annotation is tumour-richer than the slide as a whole — the usual
+direction, since a pathologist draws around tumour. A point
+<strong>below</strong> it means the annotation excluded tumour the rest
+of the slide carries, which is worth checking against that patient’s
+region count.</p>
+<pre class="r"><code># The comparison a correlation cannot show: is the single value INSIDE the span its
+# own regions cover? Patients ordered by whole-slide fraction.
+print(plot_scope_range(one_many, scope_tbl))</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/scope-range-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># Which way of collapsing the regions reproduces the unannotated number best?
+scope_pairs &lt;- scope_aggregator_pairs(scope_tbl, mem)
+print(plot_scope_aggregators(scope_pairs))</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/scope-aggregators-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>scope_aggregator_stats(scope_pairs) |&gt;
+  transmute(aggregator = ihc_lab, n,
+            pearson = round(pearson, 2), spearman = round(spearman, 2),
+            kendall = round(kendall, 2), bias = round(bias, 3)) |&gt;
+  knitr::kable(caption = paste(
+    &quot;Each aggregate of a patient&#39;s annotations against that patient&#39;s whole-slide&quot;,
+    &quot;value, best Spearman first. `bias` = mean(aggregate − whole slide): the&quot;,
+    &quot;systematic offset the correlation coefficients are blind to. An aggregator can&quot;,
+    &quot;rank patients perfectly and still read high on every one of them.&quot;))</code></pre>
+<table>
+<caption>Each aggregate of a patient’s annotations against that
+patient’s whole-slide value, best Spearman first. <code>bias</code> =
+mean(aggregate − whole slide): the systematic offset the correlation
+coefficients are blind to. An aggregator can rank patients perfectly and
+still read high on every one of them.</caption>
+<colgroup>
+<col width="50%" />
+<col width="4%" />
+<col width="11%" />
+<col width="13%" />
+<col width="11%" />
+<col width="8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">aggregator</th>
+<th align="right">n</th>
+<th align="right">pearson</th>
+<th align="right">spearman</th>
+<th align="right">kendall</th>
+<th align="right">bias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">pooled cells (union)</td>
+<td align="right">6</td>
+<td align="right">0.76</td>
+<td align="right">0.66</td>
+<td align="right">0.60</td>
+<td align="right">0.096</td>
+</tr>
+<tr class="even">
+<td align="left">mean of annotations</td>
+<td align="right">6</td>
+<td align="right">0.43</td>
+<td align="right">0.43</td>
+<td align="right">0.33</td>
+<td align="right">0.066</td>
+</tr>
+<tr class="odd">
+<td align="left">median of annotations</td>
+<td align="right">6</td>
+<td align="right">0.46</td>
+<td align="right">0.43</td>
+<td align="right">0.33</td>
+<td align="right">0.072</td>
+</tr>
+<tr class="even">
+<td align="left">cell-weighted mean of annotations</td>
+<td align="right">6</td>
+<td align="right">0.39</td>
+<td align="right">0.43</td>
+<td align="right">0.33</td>
+<td align="right">0.062</td>
+</tr>
+</tbody>
+</table>
+</div>
 <div id="immune-infiltrate-ihc-vs-clinical-immune-phenotype"
 class="section level2">
 <h2>Immune infiltrate — IHC vs clinical immune phenotype</h2>
@@ -2042,7 +2861,7 @@ infiltrate &lt;- ihc_tumor_union |&gt;
   inner_join(clin, by = &quot;patient_id&quot;)
 
 cat(&quot;patients with IHC infiltrate + clinical immune phenotype:&quot;, nrow(infiltrate), &quot;\n&quot;)</code></pre>
-<pre><code>patients with IHC infiltrate + clinical immune phenotype: 2 </code></pre>
+<pre><code>patients with IHC infiltrate + clinical immune phenotype: 6 </code></pre>
 <p>Statistic: Spearman correlation between <code>cd45_over_inside</code>
 and the numeric <code>HOT score</code>.</p>
 <pre class="r"><code>if (&quot;hot_score&quot; %in% names(infiltrate) &amp;&amp;
@@ -2059,6 +2878,7 @@ and the numeric <code>HOT score</code>.</p>
          x = &quot;IHC CD45+ fraction inside tumour region (unitless, 0-1)&quot;,
          y = &quot;Clinical HOT score (unitless)&quot;)
 }</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-hotscore-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>Grouped by <code>Immuno-phenotype</code> (ordered cold -&gt;
 intermediate -&gt; hot); each box is the distribution of the IHC
 fraction within a phenotype group.</p>
@@ -2067,9 +2887,11 @@ immune fraction and the other six metrics are subsets of it, so it runs
 an order of magnitude higher than any of them. Sharing one facet grid
 therefore forces a choice between a common scale nothing else reaches
 and a seventh free-scale panel the eye reads as just another subset.
-Split in two, each figure asks a single scale question. The same split
-is repeated under the arcsin transform below, so there are four figures
-here.</p>
+Split in two, each figure asks a single scale question — and with CD45+
+out of the grid the six subsets share ONE y axis, so a panel that sits
+higher than its neighbour is higher, not just scaled differently. The
+same split is repeated under the arcsin transform below, so there are
+four figures here.</p>
 <pre class="r"><code># The metrics carried into every immuno-phenotype comparison (all are 0..1 fractions
 # of the cells inside the tumour region, so the arcsin panels below can transform
 # them all), split into the total and its subsets — see the note above.
@@ -2112,7 +2934,12 @@ plot_infiltrate_phenotype &lt;- function(infiltrate, metrics, ylab, transform = 
     # Across facets a per-tick count would be wrong: a non-finite fraction drops a
     # different set of patients in each metric, so the n goes in the subtitle and
     # names its unit, as in the composition figure below.
-    p + facet_wrap(~ ihc_metric, scales = &quot;free_y&quot;, labeller = flowpath_labeller()) +
+    # ONE shared y across the six panels. All six are fractions of the cells inside
+    # the tumour region, on 0..1, measured on the same denominator — so a per-panel
+    # y was rescaling comparable numbers and making a 2% subset look like a 40% one.
+    # This is what splitting CD45+ into its own figure above bought: with the total
+    # gone, no panel forces a range the others cannot reach.
+    p + facet_wrap(~ ihc_metric, labeller = flowpath_labeller()) +
       labs(title = &quot;FlowPath immune subsets by clinical immuno-phenotype&quot;,
            subtitle = with_n(NULL, df$patient_id, &quot;patients&quot;))
   }
@@ -2120,19 +2947,23 @@ plot_infiltrate_phenotype &lt;- function(infiltrate, metrics, ylab, transform = 
 
 plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
                           &quot;Cell fraction inside \ntumour region&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-phenotype-cd45-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 <p>The six subsets of that CD45+ total — the marker-gated CD3+CD45+ and
-GZMB+ NK readouts, and the four phenotype lineages — on a free y scale
-per panel:</p>
+GZMB+ NK readouts, and the four phenotype lineages — on one shared y
+scale, so the panels can be read against each other:</p>
 <pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           &quot;cell fraction inside tumour region (unitless, 0-1)&quot;)</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-phenotype-subsets-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p><strong>Arcsin-transformed.</strong> The same two figures under the
 arcsine square-root transform (<code>asin(sqrt(fraction))</code>), which
 stabilises the variance of a proportion by stretching the crowded 0/1
 tails — read the boxes as the transformed scale, not raw fractions.</p>
 <pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
                           &quot;arcsin \u221afraction (radians)&quot;, transform = asin_sqrt)</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-phenotype-cd45-arcsin-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           &quot;arcsin \u221afraction (radians)&quot;, transform = asin_sqrt)</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <div id="composition-under-three-denominators" class="section level3">
 <h3>Composition under three denominators</h3>
 <p>Same population counts, three denominators (each <code>NA</code> when
@@ -2177,7 +3008,11 @@ plot_composition &lt;- function(region_metrics, ylab, caption, transform = ident
   ggplot(comp, aes(lineage, value, fill = lineage)) +
     geom_boxplot(outlier.shape = NA, colour = &quot;grey30&quot;) +
     geom_jitter(width = .15, alpha = .5, size = 1) +
-    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    # One shared y across the three denominators. All three are fractions on 0..1;
+    # only the denominator changes, and the SIZE of that change is the finding —
+    # &quot;of CD45+ cells&quot; running far higher than &quot;of all cells&quot; is what the figure is
+    # for. A free y per panel drew all three at the same apparent height and hid it.
+    facet_wrap(~ normalization) +
     scale_fill_lineage(guide = &quot;none&quot;) +
     # n goes in the subtitle rather than the tick labels here: each facet drops a
     # different set of patients (a denominator of zero is NA), so a single per-tick
@@ -2191,12 +3026,86 @@ plot_composition &lt;- function(region_metrics, ylab, caption, transform = ident
 plot_composition(ihc_tumor_union, &quot;cell fraction (unitless, 0-1)&quot;,
                  &quot;denominators: all cells / tumour cells / CD45+ cells inside&quot;)</code></pre>
 <p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-composition-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-infiltrate-composition-1">
+Past versions of infiltrate-composition-1.png
+</button>
+</p>
+<div id="fig-infiltrate-composition-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/infiltrate-composition-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><strong>Arcsin-transformed.</strong> Same composition under the
 arcsine square-root transform of each fraction.</p>
 <pre class="r"><code>plot_composition(ihc_tumor_union, &quot;arcsin \u221afraction (radians)&quot;,
                  &quot;arcsin-sqrt of: all cells / tumour cells / CD45+ cells inside&quot;,
                  transform = asin_sqrt)</code></pre>
 <p><img src="figure/clinical_massimo1_inverted.Rmd/infiltrate-composition-arcsin-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-infiltrate-composition-arcsin-1">
+Past versions of infiltrate-composition-arcsin-1.png
+</button>
+</p>
+<div id="fig-infiltrate-composition-arcsin-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/infiltrate-composition-arcsin-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div
@@ -2230,7 +3139,7 @@ clin_full &lt;- clinical_data |&gt;
 
 ihc_clin &lt;- ihc_immune |&gt; inner_join(clin_full, by = &quot;patient_id&quot;)
 cat(&quot;patients with IHC immune metrics + a clinical row:&quot;, nrow(ihc_clin), &quot;\n&quot;)</code></pre>
-<pre><code>patients with IHC immune metrics + a clinical row: 2 </code></pre>
+<pre><code>patients with IHC immune metrics + a clinical row: 6 </code></pre>
 <pre class="r"><code># ihc_immune_score = CD45_posfrac if present, else the CD8T lineage fraction.
 score_col &lt;- intersect(c(&quot;CD45_posfrac&quot;, &quot;CD8T&quot;), names(ihc_clin))[1]
 ihc_clin$ihc_immune_score &lt;- if (!is.na(score_col)) ihc_clin[[score_col]] else NA_real_</code></pre>
@@ -2262,11 +3171,53 @@ if (nrow(blood_long) &gt; 2) {
     geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_text(data = labs_tbl, aes(x = -Inf, y = Inf, label = lab),
               hjust = -0.05, vjust = 1.4, inherit.aes = FALSE, size = 3) +
+    # Free y STAYS here, and this is the exception that proves the rule elsewhere on
+    # the page: the three panels are three different quantities in three different
+    # units (lymphocytes in 10^9/L, NLR a bare ratio, PNI a nutritional index in the
+    # tens). A shared range would put PNI at the top and squash the other two onto
+    # the axis, which is not a comparison — there is nothing to compare.
     facet_wrap(~ blood_metric, scales = &quot;free_y&quot;) +
     labs(title = &quot;IHC immune score vs peripheral-blood immunity&quot;,
          x = &quot;IHC immune score (CD45+ fraction)&quot;, y = NULL)
 }</code></pre>
 <p><img src="figure/clinical_massimo1_inverted.Rmd/blood-immunity-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-blood-immunity-1">
+Past versions of blood-immunity-1.png
+</button>
+</p>
+<div id="fig-blood-immunity-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo1_inverted.Rmd/blood-immunity-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="induction-treatment-response" class="section level3">
 <h3>Induction-treatment response</h3>
@@ -2287,6 +3238,7 @@ if (nrow(blood_long) &gt; 2) {
       theme(axis.text.x = element_text(angle = 30, hjust = 1), legend.position = &quot;none&quot;)
   }
 }</code></pre>
+<p><img src="figure/clinical_massimo1_inverted.Rmd/response-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
 <div id="survival" class="section level3">
 <h3>Survival</h3>

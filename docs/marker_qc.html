@@ -476,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-26
+<strong>Last updated:</strong> 2026-08-31
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -644,6 +644,8 @@ Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    data/
     Ignored:    output/figures/
+    Ignored:    output/summary_patient.csv
+    Ignored:    output/summary_region.csv
     Ignored:    renv/library/
     Ignored:    renv/staging/
 
@@ -691,6 +693,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/a444e83b9d32450c9daab860188e025091e840af/analysis/marker_qc.Rmd" target="_blank">a444e83</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-08-31
+</td>
+<td>
+:art: Put the multi-panel figures on shared scales
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/marker_qc.html" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+<td>
+:wrench: full site with various annotations
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1500,14 +1536,21 @@ separability</caption>
 </table>
 <p>Density of the z-scores per marker, over cells with a finite z-score
 that a gate actually evaluated (<code>gated</code>), split by the
-positive call (<code>sign +</code> / <code>sign -</code>); facets are
-free-scaled.</p>
+positive call (<code>sign +</code> / <code>sign -</code>). All panels
+share one z-score x axis, so where a marker’s humps sit and how far
+apart they are can be read across markers; y (density) stays free, since
+a density curve’s height is fixed by the spread of the marker it belongs
+to and carries no cross-panel meaning.</p>
 <pre class="r"><code>ihc_marker_long(ihc_data) |&gt;
   filter(!is.na(zscore), gated) |&gt;
   mutate(call = if_else(pos, &quot;sign +&quot;, &quot;sign -&quot;)) |&gt;
   ggplot(aes(zscore, fill = call)) +
     geom_density(alpha = 0.55, colour = NA) +
-    facet_wrap(~ marker, scales = &quot;free&quot;) +
+    # Shared x: the z-score is one unit across every channel, and &quot;two separated
+    # humps&quot; is a claim about WHERE on that axis they sit, so a per-marker x made
+    # every channel look equally well separated. y is free because density height is
+    # a normalisation artefact of each marker&#39;s own spread, not a measurement.
+    facet_wrap(~ marker, scales = &quot;free_y&quot;) +
     scale_fill_manual(values = c(&quot;sign +&quot; = oi[1], &quot;sign -&quot; = oi[2]), name = NULL) +
     labs(title = &quot;Marker z-score by sign call&quot;,
          subtitle = &quot;Clean channels show two separated humps; failed channels overlap or are unimodal.&quot;,
@@ -1593,7 +1636,10 @@ are present in <code>ihc_data</code>, plus circularity when both
 <pre><code>circularity = 4 * pi * area / perimeter^2</code></pre>
 <p>Over typed cells, each feature is pivoted long and filtered to finite
 values; the plot is a per-phenotype boxplot (phenotypes ordered by
-median feature value, outliers hidden, facets free-scaled).</p>
+median feature value, outliers hidden). Facets stay free-scaled here,
+unlike the z-score densities above: each panel is a different feature in
+a different unit — area in px², perimeter in px, eccentricity and
+solidity on 0..1 — so there is no shared range to put them on.</p>
 <pre class="r"><code>morph_feats &lt;- intersect(c(&quot;area&quot;, &quot;perimeter&quot;, &quot;eccentricity&quot;, &quot;solidity&quot;),
                          names(ihc_data))
 
@@ -1608,6 +1654,9 @@ morph &lt;- ihc_data |&gt;
 ggplot(morph, aes(reorder(phenotype_clean, value, FUN = median), value,
                   fill = phenotype_clean)) +
   geom_boxplot(outlier.shape = NA, width = .6, colour = &quot;grey30&quot;) +
+  # Free scales STAY: the panels are different features in different units (px²,
+  # px, unitless 0..1). Forcing one range would put area in the thousands and press
+  # eccentricity and solidity flat against the axis.
   facet_wrap(~ feature, scales = &quot;free&quot;) +
   coord_flip() +
   scale_fill_ordinal(guide = &quot;none&quot;) +

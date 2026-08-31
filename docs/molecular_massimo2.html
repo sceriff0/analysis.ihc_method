@@ -476,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-26
+<strong>Last updated:</strong> 2026-08-31
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree0dc471e233b68430699b8accc39642d91948a943targetblank0dc471ea">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/0dc471e233b68430699b8accc39642d91948a943" target="_blank">0dc471e</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree0dc471e233b68430699b8accc39642d91948a943targetblank0dc471ea"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/0dc471e233b68430699b8accc39642d91948a943" target="_blank">0dc471e</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -642,9 +642,10 @@ were generated:
 Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
-    Ignored:    analysis/figure/
     Ignored:    data/
     Ignored:    output/figures/
+    Ignored:    output/summary_patient.csv
+    Ignored:    output/summary_region.csv
     Ignored:    renv/library/
     Ignored:    renv/staging/
 
@@ -692,6 +693,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/molecular_massimo2.html" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+<td>
+:wrench: full site with various annotations
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1127,12 +1145,14 @@ expression</caption>
 <code>log1p(rna_expr)</code> (<code>log1p</code> keeps zeros), with an
 OLS fit line.</p>
 <p><strong>Split into two figures.</strong> <code>marker_gene_map</code>
-carries 19 markers, and 19 free-scale facets on one double-column figure
-gives each panel about 35mm — too small to read a fit line off. The
-first figure takes the ten lineage and structural markers the panel was
-designed around; the second takes the remaining nine. The split is by
-<em>reading order</em>, not by quality: no marker is dropped, and the
-Spearman table above still covers all of them together.</p>
+carries 19 markers, and 19 facets on one double-column figure gives each
+panel about 35mm — too small to read a fit line off. Within each figure
+the panels share both axes, so a marker whose points sit far right (high
+IHC fraction) or high (high expression) is visibly so. The first figure
+takes the ten lineage and structural markers the panel was designed
+around; the second takes the remaining nine. The split is by <em>reading
+order</em>, not by quality: no marker is dropped, and the Spearman table
+above still covers all of them together.</p>
 <pre class="r"><code># The ten checked first. Ordered as listed, not alphabetically, so the facet grid
 # reads down the immune lineage (CD45 -&gt; CD3 -&gt; CD8/CD4 -&gt; GZMB/FOXP3 -&gt; CD56) and
 # then the structural markers (SMA, PANCK, VIMENTIN).
@@ -1162,7 +1182,12 @@ plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
     # Panels are titled by the population counted, not by the column that carried
     # it, so a strip here and a strip on the clinical page name the same thing.
-    facet_wrap(~ marker, scales = &quot;free&quot;, labeller = flowpath_labeller()) +
+    # Shared x AND y. Both axes carry one unit across every panel — x is the
+    # positive-cell fraction on 0..1, y is log1p DESeq2-normalised counts — so free
+    # scales were giving each marker a private zoom level, which made every panel
+    # look equally well correlated and equally well expressed. The point spread is
+    # the evidence; it only reads as evidence on a common axis.
+    facet_wrap(~ marker, labeller = flowpath_labeller()) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
     labs(title = title,
@@ -1175,6 +1200,43 @@ plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
   plot_rna_concordance(rna_paired, clin, rna_primary_markers,
                        &quot;FlowPath marker+ fraction vs bulk-RNA expression&quot;)</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/rna-concordance-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-concordance-plot-1">
+Past versions of rna-concordance-plot-1.png
+</button>
+</p>
+<div id="fig-rna-concordance-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/rna-concordance-plot-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The remaining markers — everything in <code>marker_gene_map</code>
 the figure above does not cover, in the order the map declares them:</p>
 <pre class="r"><code>if (nrow(rna_paired) &gt; 0) {
@@ -1183,6 +1245,43 @@ the figure above does not cover, in the order the map declares them:</p>
                        &quot;FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)&quot;)
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/rna-concordance-plot-rest-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-concordance-plot-rest-1">
+Past versions of rna-concordance-plot-rest-1.png
+</button>
+</p>
+<div id="fig-rna-concordance-plot-rest-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/rna-concordance-plot-rest-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Sensitivity: replace the hard-threshold positive fraction with the
 per-patient mean staining intensity (mean z-score over non-NA
 cells):</p>
@@ -1654,7 +1753,10 @@ where: n_lineages = the number of lineages with a finite Spearman value.</code><
                caption = &quot;Method ranking by mean Spearman across lineages&quot;)
 }</code></pre>
 <p>Scatter of <code>ihc_frac</code> (x) vs <code>score</code> (y),
-faceted method by lineage.</p>
+faceted method by lineage. The x axis is shared across the whole grid
+(one unit, IHC fraction of all cells); the y axis is shared along each
+method’s row and free BETWEEN methods, because deconvolution scores are
+not on a common scale from one method to the next.</p>
 <pre class="r"><code>if (!is.null(deconv_paired) &amp;&amp; nrow(deconv_paired) &gt; 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
@@ -1665,17 +1767,24 @@ faceted method by lineage.</p>
   ggplot(df, aes(ihc_frac, score)) +
     geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_grid(method ~ lineage, scales = &quot;free&quot;) +
+    facet_grid(method ~ lineage, scales = &quot;free_y&quot;) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
-    # Every panel here has its OWN x and y range (scales = &quot;free&quot;), because the
-    # methods&#39; scores are on incomparable scales. theme_paper_panels() draws the
-    # border and the wider gutter that say so — without them twenty panels sit edge
-    # to edge and read as one continuous field on a shared axis, which is the single
-    # wrong conclusion this figure can produce.
+    # `free_y`, NOT `free`, and in facet_grid that distinction is the whole design.
+    # x is `ihc_frac`: one unit, the same meaning in all twenty panels, so a free x
+    # gave every panel its own slice of 0..1 and the same IHC value landed at a
+    # different place in every row — the one axis that WAS comparable was the one
+    # being rescaled. facet_grid&#39;s `free_y` frees y by ROW, which is exactly the
+    # split the data has: the methods&#39; scores are on genuinely incomparable scales,
+    # so a y shared between methods would be a lie, while a y shared across lineages
+    # within one method is the comparison a reader actually wants.
+    #
+    # theme_paper_panels() stays: twenty small panels edge to edge still read as one
+    # continuous field, and the y axis still changes from row to row, so the hairline
+    # border and the wider gutter are still saying something true.
     theme_paper_panels() +
     labs(title = &quot;IHC lineage fraction vs bulk-RNA deconvolution score&quot;,
-         subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales&quot;,
+         subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients; x is shared across the grid, y is shared within a method row&quot;,
          x = &quot;IHC fraction of all cells (unitless, 0-1)&quot;,
          y = &quot;Deconvolution score (unitless)&quot;)
 }</code></pre>
@@ -2049,6 +2158,43 @@ if (nrow(df) &gt; 2) {
          y = &quot;Clinical HOT score (unitless)&quot;)
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-hot-score-fraction-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-hot-score-fraction-1">
+Past versions of margin-hot-score-fraction-1.png
+</button>
+</p>
+<div id="fig-margin-hot-score-fraction-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-hot-score-fraction-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>df &lt;- margin_union |&gt;
   filter(is.finite(dens_cd45_per_mm2), is.finite(hot_score))
 if (nrow(df) &gt; 2) {
@@ -2074,6 +2220,43 @@ if (nrow(df) &gt; 2) {
          y = &quot;Clinical HOT score (unitless)&quot;)
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-hot-score-density-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-hot-score-density-1">
+Past versions of margin-hot-score-density-1.png
+</button>
+</p>
+<div id="fig-margin-hot-score-density-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-hot-score-density-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-immunity-by-clinical-immuno-phenotype"
 class="section level3">
@@ -2096,6 +2279,43 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) &gt; 1 &amp;&amp; nrow(df) &gt; 3)
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-phenotype-boxplot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-phenotype-boxplot-1">
+Past versions of margin-phenotype-boxplot-1.png
+</button>
+</p>
+<div id="fig-margin-phenotype-boxplot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-phenotype-boxplot-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-vs-core-exclusion-score" class="section level3">
 <h3>Margin-vs-core exclusion score</h3>
@@ -2206,6 +2426,43 @@ if (nrow(sc) &gt; 1) {
   print(p)
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-core-scatter-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-core-scatter-1">
+Past versions of margin-core-scatter-1.png
+</button>
+</p>
+<div id="fig-margin-core-scatter-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-core-scatter-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>df &lt;- mc |&gt;
   filter(!is.na(immuno_phe), is.finite(exclusion_frac)) |&gt;
   mutate(immuno_phe = hotcold_order(immuno_phe))
@@ -2220,6 +2477,43 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) &gt; 1 &amp;&amp; nrow(df) &gt; 3)
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-exclusion-by-phenotype-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-exclusion-by-phenotype-1">
+Past versions of margin-exclusion-by-phenotype-1.png
+</button>
+</p>
+<div id="fig-margin-exclusion-by-phenotype-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-exclusion-by-phenotype-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="single-annotations-vs-union" class="section level3">
 <h3>Single annotations vs union</h3>
@@ -2246,6 +2540,43 @@ if (nrow(cmp) &gt; 1) {
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-per-ann-vs-union-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-per-ann-vs-union-1">
+Past versions of margin-per-ann-vs-union-1.png
+</button>
+</p>
+<div id="fig-margin-per-ann-vs-union-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-per-ann-vs-union-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-composition-three-denominators" class="section level3">
 <h3>Margin composition (three denominators)</h3>
@@ -2269,7 +2600,10 @@ if (nrow(comp) &gt; 0) {
   ggplot(comp, aes(lineage, frac, fill = lineage)) +
     geom_boxplot(outlier.shape = NA, colour = &quot;grey30&quot;) +
     geom_jitter(width = .15, alpha = .5, size = 1) +
-    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    # One shared y across the three denominators: all three are fractions on 0..1
+    # and only the denominator changes, so the size of the gap between them is the
+    # finding. A free y per panel drew all three at the same apparent height.
+    facet_wrap(~ normalization) +
     # Named lineage palette, not positional `oi` — see the note on the same plot
     # in clinical_flowpath.Rmd. These are the same populations as that figure and
     # must therefore be the same colours.
@@ -2280,6 +2614,43 @@ if (nrow(comp) &gt; 0) {
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-composition-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-composition-1">
+Past versions of margin-composition-1.png
+</button>
+</p>
+<div id="fig-margin-composition-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-composition-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-cell-type-fractions-hot-vs-cold" class="section level3">
 <h3>Margin cell-type fractions: hot vs cold</h3>
@@ -2308,7 +2679,10 @@ if (nrow(comp_hc) &gt; 0 &amp;&amp; dplyr::n_distinct(na.omit(comp_hc$immuno_phe
     geom_boxplot(outlier.shape = NA, position = position_dodge(width = .75)) +
     geom_point(position = position_jitterdodge(jitter.width = .12, dodge.width = .75),
                alpha = .6, size = 1) +
-    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    # One shared y across the three denominators: all three are fractions on 0..1
+    # and only the denominator changes, so the size of the gap between them is the
+    # finding. A free y per panel drew all three at the same apparent height.
+    facet_wrap(~ normalization) +
     scale_colour_manual(values = hotcold_cols(levels(comp_hc$immuno_phe)),
                         name = &quot;Immuno-phenotype&quot;) +   # hot = red, cold = light blue
     labs(title = paste0(&quot;Invasive-margin cell-type fractions: hot vs cold (d = &quot;, D_MAIN, &quot; µm)&quot;),
@@ -2318,6 +2692,43 @@ if (nrow(comp_hc) &gt; 0 &amp;&amp; dplyr::n_distinct(na.omit(comp_hc$immuno_phe
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo2.Rmd/margin-composition-hotcold-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-composition-hotcold-1">
+Past versions of margin-composition-hotcold-1.png
+</button>
+</p>
+<div id="fig-margin-composition-hotcold-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo2.Rmd/margin-composition-hotcold-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="notes-2" class="section level3">
 <h3>Notes</h3>

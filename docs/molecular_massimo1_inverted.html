@@ -476,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-26
+<strong>Last updated:</strong> 2026-08-31
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree6036fc018bebb9ef5facf898124e4db86be4bf52targetblank6036fc0a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/6036fc018bebb9ef5facf898124e4db86be4bf52" target="_blank">6036fc0</a>.
+<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -644,6 +644,8 @@ Ignored files:
     Ignored:    .Rproj.user/
     Ignored:    data/
     Ignored:    output/figures/
+    Ignored:    output/summary_patient.csv
+    Ignored:    output/summary_region.csv
     Ignored:    renv/library/
     Ignored:    renv/staging/
 
@@ -692,6 +694,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/molecular_massimo1_inverted.html" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+<td>
+:wrench: full site with various annotations
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -967,7 +986,7 @@ where:
 
 cat(&quot;IHC patients:&quot;, dplyr::n_distinct(ihc_marker_frac$patient_id),
     &quot;| RNA patients:&quot;, dplyr::n_distinct(marker_expr$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>IHC patients: 2 | RNA patients: 6 </code></pre>
+<pre><code>IHC patients: 6 | RNA patients: 6 </code></pre>
 </div>
 <div id="marker-by-marker-concordance" class="section level3">
 <h3>Marker-by-marker concordance</h3>
@@ -986,7 +1005,7 @@ descending correlation.</p>
 
 cat(&quot;shared patients (RNA + IHC):&quot;,
     dplyr::n_distinct(rna_paired$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>shared patients (RNA + IHC): 2 </code></pre>
+<pre><code>shared patients (RNA + IHC): 6 </code></pre>
 <pre class="r"><code>rna_summary &lt;- rna_paired |&gt;
   group_by(marker) |&gt;
   group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |&gt;
@@ -1008,118 +1027,118 @@ expression</caption>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">ARID1A</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">FOXP3</td>
+<td align="right">6</td>
+<td align="right">0.886</td>
+<td align="right">0.033</td>
 </tr>
 <tr class="even">
-<td align="left">CD14</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">CD163</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">CD3</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
 <td align="left">CD4</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">CD45</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">CD56</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">CD74</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.771</td>
+<td align="right">0.103</td>
 </tr>
 <tr class="odd">
 <td align="left">CD8</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.771</td>
+<td align="right">0.103</td>
 </tr>
 <tr class="even">
-<td align="left">FOXP3</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">FSP1</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">GZMB</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">CD163</td>
+<td align="right">6</td>
+<td align="right">0.714</td>
+<td align="right">0.136</td>
 </tr>
 <tr class="odd">
 <td align="left">L1CAM</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.714</td>
+<td align="right">0.136</td>
 </tr>
 <tr class="even">
-<td align="left">P53</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">CD14</td>
+<td align="right">6</td>
+<td align="right">0.600</td>
+<td align="right">0.242</td>
 </tr>
 <tr class="odd">
-<td align="left">PANCK</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">CD45</td>
+<td align="right">6</td>
+<td align="right">0.600</td>
+<td align="right">0.242</td>
 </tr>
 <tr class="even">
-<td align="left">PD1</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">VIMENTIN</td>
+<td align="right">6</td>
+<td align="right">0.600</td>
+<td align="right">0.242</td>
 </tr>
 <tr class="odd">
+<td align="left">CD3</td>
+<td align="right">6</td>
+<td align="right">0.543</td>
+<td align="right">0.297</td>
+</tr>
+<tr class="even">
 <td align="left">PDL1</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.486</td>
+<td align="right">0.356</td>
+</tr>
+<tr class="odd">
+<td align="left">CD56</td>
+<td align="right">6</td>
+<td align="right">0.257</td>
+<td align="right">0.658</td>
 </tr>
 <tr class="even">
 <td align="left">SMA</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.257</td>
+<td align="right">0.658</td>
 </tr>
 <tr class="odd">
-<td align="left">VIMENTIN</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">PD1</td>
+<td align="right">6</td>
+<td align="right">0.213</td>
+<td align="right">0.686</td>
+</tr>
+<tr class="even">
+<td align="left">GZMB</td>
+<td align="right">6</td>
+<td align="right">0.058</td>
+<td align="right">0.913</td>
+</tr>
+<tr class="odd">
+<td align="left">CD74</td>
+<td align="right">6</td>
+<td align="right">-0.029</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">PANCK</td>
+<td align="right">6</td>
+<td align="right">-0.086</td>
+<td align="right">0.919</td>
+</tr>
+<tr class="odd">
+<td align="left">ARID1A</td>
+<td align="right">6</td>
+<td align="right">-0.200</td>
+<td align="right">0.714</td>
+</tr>
+<tr class="even">
+<td align="left">FSP1</td>
+<td align="right">6</td>
+<td align="right">-0.200</td>
+<td align="right">0.714</td>
+</tr>
+<tr class="odd">
+<td align="left">P53</td>
+<td align="right">6</td>
+<td align="right">-0.257</td>
+<td align="right">0.658</td>
 </tr>
 </tbody>
 </table>
@@ -1127,12 +1146,14 @@ expression</caption>
 <code>log1p(rna_expr)</code> (<code>log1p</code> keeps zeros), with an
 OLS fit line.</p>
 <p><strong>Split into two figures.</strong> <code>marker_gene_map</code>
-carries 19 markers, and 19 free-scale facets on one double-column figure
-gives each panel about 35mm — too small to read a fit line off. The
-first figure takes the ten lineage and structural markers the panel was
-designed around; the second takes the remaining nine. The split is by
-<em>reading order</em>, not by quality: no marker is dropped, and the
-Spearman table above still covers all of them together.</p>
+carries 19 markers, and 19 facets on one double-column figure gives each
+panel about 35mm — too small to read a fit line off. Within each figure
+the panels share both axes, so a marker whose points sit far right (high
+IHC fraction) or high (high expression) is visibly so. The first figure
+takes the ten lineage and structural markers the panel was designed
+around; the second takes the remaining nine. The split is by <em>reading
+order</em>, not by quality: no marker is dropped, and the Spearman table
+above still covers all of them together.</p>
 <pre class="r"><code># The ten checked first. Ordered as listed, not alphabetically, so the facet grid
 # reads down the immune lineage (CD45 -&gt; CD3 -&gt; CD8/CD4 -&gt; GZMB/FOXP3 -&gt; CD56) and
 # then the structural markers (SMA, PANCK, VIMENTIN).
@@ -1162,7 +1183,12 @@ plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
     # Panels are titled by the population counted, not by the column that carried
     # it, so a strip here and a strip on the clinical page name the same thing.
-    facet_wrap(~ marker, scales = &quot;free&quot;, labeller = flowpath_labeller()) +
+    # Shared x AND y. Both axes carry one unit across every panel — x is the
+    # positive-cell fraction on 0..1, y is log1p DESeq2-normalised counts — so free
+    # scales were giving each marker a private zoom level, which made every panel
+    # look equally well correlated and equally well expressed. The point spread is
+    # the evidence; it only reads as evidence on a common axis.
+    facet_wrap(~ marker, labeller = flowpath_labeller()) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
     labs(title = title,
@@ -1175,6 +1201,43 @@ plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
   plot_rna_concordance(rna_paired, clin, rna_primary_markers,
                        &quot;FlowPath marker+ fraction vs bulk-RNA expression&quot;)</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/rna-concordance-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-concordance-plot-1">
+Past versions of rna-concordance-plot-1.png
+</button>
+</p>
+<div id="fig-rna-concordance-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/rna-concordance-plot-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The remaining markers — everything in <code>marker_gene_map</code>
 the figure above does not cover, in the order the map declares them:</p>
 <pre class="r"><code>if (nrow(rna_paired) &gt; 0) {
@@ -1183,6 +1246,43 @@ the figure above does not cover, in the order the map declares them:</p>
                        &quot;FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)&quot;)
 }</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/rna-concordance-plot-rest-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-concordance-plot-rest-1">
+Past versions of rna-concordance-plot-rest-1.png
+</button>
+</p>
+<div id="fig-rna-concordance-plot-rest-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/rna-concordance-plot-rest-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Sensitivity: replace the hard-threshold positive fraction with the
 per-patient mean staining intensity (mean z-score over non-NA
 cells):</p>
@@ -1221,118 +1321,118 @@ if (nrow(paired_z) &gt; 0) {
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">ARID1A</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">PANCK</td>
+<td align="right">6</td>
+<td align="right">0.771</td>
+<td align="right">0.103</td>
 </tr>
 <tr class="even">
-<td align="left">CD14</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">CD163</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">CD3</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">CD4</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">CD45</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">CD56</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">CD74</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">CD8</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">FOXP3</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
 <td align="left">FSP1</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">GZMB</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.600</td>
+<td align="right">0.242</td>
 </tr>
 <tr class="odd">
 <td align="left">L1CAM</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.600</td>
+<td align="right">0.242</td>
 </tr>
 <tr class="even">
-<td align="left">P53</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">PANCK</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">PD1</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="odd">
-<td align="left">PDL1</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-</tr>
-<tr class="even">
-<td align="left">SMA</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="left">CD14</td>
+<td align="right">6</td>
+<td align="right">0.543</td>
+<td align="right">0.297</td>
 </tr>
 <tr class="odd">
 <td align="left">VIMENTIN</td>
-<td align="right">2</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
+<td align="right">6</td>
+<td align="right">0.486</td>
+<td align="right">0.356</td>
+</tr>
+<tr class="even">
+<td align="left">CD163</td>
+<td align="right">6</td>
+<td align="right">0.143</td>
+<td align="right">0.803</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8</td>
+<td align="right">6</td>
+<td align="right">-0.029</td>
+<td align="right">1.000</td>
+</tr>
+<tr class="even">
+<td align="left">ARID1A</td>
+<td align="right">6</td>
+<td align="right">-0.143</td>
+<td align="right">0.803</td>
+</tr>
+<tr class="odd">
+<td align="left">CD45</td>
+<td align="right">6</td>
+<td align="right">-0.143</td>
+<td align="right">0.803</td>
+</tr>
+<tr class="even">
+<td align="left">CD4</td>
+<td align="right">6</td>
+<td align="right">-0.200</td>
+<td align="right">0.714</td>
+</tr>
+<tr class="odd">
+<td align="left">SMA</td>
+<td align="right">6</td>
+<td align="right">-0.257</td>
+<td align="right">0.658</td>
+</tr>
+<tr class="even">
+<td align="left">CD56</td>
+<td align="right">6</td>
+<td align="right">-0.314</td>
+<td align="right">0.564</td>
+</tr>
+<tr class="odd">
+<td align="left">P53</td>
+<td align="right">6</td>
+<td align="right">-0.371</td>
+<td align="right">0.497</td>
+</tr>
+<tr class="even">
+<td align="left">GZMB</td>
+<td align="right">6</td>
+<td align="right">-0.377</td>
+<td align="right">0.461</td>
+</tr>
+<tr class="odd">
+<td align="left">CD3</td>
+<td align="right">6</td>
+<td align="right">-0.429</td>
+<td align="right">0.419</td>
+</tr>
+<tr class="even">
+<td align="left">FOXP3</td>
+<td align="right">6</td>
+<td align="right">-0.429</td>
+<td align="right">0.419</td>
+</tr>
+<tr class="odd">
+<td align="left">CD74</td>
+<td align="right">6</td>
+<td align="right">-0.543</td>
+<td align="right">0.297</td>
+</tr>
+<tr class="even">
+<td align="left">PD1</td>
+<td align="right">6</td>
+<td align="right">-0.698</td>
+<td align="right">0.123</td>
+</tr>
+<tr class="odd">
+<td align="left">PDL1</td>
+<td align="right">6</td>
+<td align="right">-0.771</td>
+<td align="right">0.103</td>
 </tr>
 </tbody>
 </table>
@@ -1606,7 +1706,7 @@ ihc_lin &lt;- expand.grid(patient_id = unique(slide_key(ihc_data$patient_id)),
   mutate(ihc_frac = ifelse(is.na(ihc_frac), 0, ihc_frac))
 
 cat(&quot;IHC patients with lineage fractions:&quot;, dplyr::n_distinct(ihc_lin$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>IHC patients with lineage fractions: 2 </code></pre>
+<pre><code>IHC patients with lineage fractions: 6 </code></pre>
 </div>
 <div id="method-vs-ihc-per-lineage-concordance" class="section level3">
 <h3>Method vs IHC — per-lineage concordance</h3>
@@ -1654,7 +1754,10 @@ where: n_lineages = the number of lineages with a finite Spearman value.</code><
                caption = &quot;Method ranking by mean Spearman across lineages&quot;)
 }</code></pre>
 <p>Scatter of <code>ihc_frac</code> (x) vs <code>score</code> (y),
-faceted method by lineage.</p>
+faceted method by lineage. The x axis is shared across the whole grid
+(one unit, IHC fraction of all cells); the y axis is shared along each
+method’s row and free BETWEEN methods, because deconvolution scores are
+not on a common scale from one method to the next.</p>
 <pre class="r"><code>if (!is.null(deconv_paired) &amp;&amp; nrow(deconv_paired) &gt; 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
@@ -1665,17 +1768,24 @@ faceted method by lineage.</p>
   ggplot(df, aes(ihc_frac, score)) +
     geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_grid(method ~ lineage, scales = &quot;free&quot;) +
+    facet_grid(method ~ lineage, scales = &quot;free_y&quot;) +
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
-    # Every panel here has its OWN x and y range (scales = &quot;free&quot;), because the
-    # methods&#39; scores are on incomparable scales. theme_paper_panels() draws the
-    # border and the wider gutter that say so — without them twenty panels sit edge
-    # to edge and read as one continuous field on a shared axis, which is the single
-    # wrong conclusion this figure can produce.
+    # `free_y`, NOT `free`, and in facet_grid that distinction is the whole design.
+    # x is `ihc_frac`: one unit, the same meaning in all twenty panels, so a free x
+    # gave every panel its own slice of 0..1 and the same IHC value landed at a
+    # different place in every row — the one axis that WAS comparable was the one
+    # being rescaled. facet_grid&#39;s `free_y` frees y by ROW, which is exactly the
+    # split the data has: the methods&#39; scores are on genuinely incomparable scales,
+    # so a y shared between methods would be a lie, while a y shared across lineages
+    # within one method is the comparison a reader actually wants.
+    #
+    # theme_paper_panels() stays: twenty small panels edge to edge still read as one
+    # continuous field, and the y axis still changes from row to row, so the hairline
+    # border and the wider gutter are still saying something true.
     theme_paper_panels() +
     labs(title = &quot;IHC lineage fraction vs bulk-RNA deconvolution score&quot;,
-         subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients; every panel has its own scales&quot;,
+         subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients; x is shared across the grid, y is shared within a method row&quot;,
          x = &quot;IHC fraction of all cells (unitless, 0-1)&quot;,
          y = &quot;Deconvolution score (unitless)&quot;)
 }</code></pre>
@@ -1868,7 +1978,7 @@ if (have_margin) {
       &quot;| patients:&quot;, dplyr::n_distinct(peri_union$patient_id),
       &quot;| per-annotation rows:&quot;, nrow(peri_per_ann), &quot;\n&quot;)
 }</code></pre>
-<pre><code>union rows: 12 | patients: 2 | per-annotation rows: 30 </code></pre>
+<pre><code>union rows: 24 | patients: 4 | per-annotation rows: 66 </code></pre>
 </div>
 <div id="per-region-quantities" class="section level3">
 <h3>Per-region quantities</h3>
@@ -1909,6 +2019,26 @@ empty region.</caption>
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">046</td>
+<td align="left">core</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">1.160</td>
+<td align="right">12416</td>
+<td align="right">5505</td>
+<td align="right">0.443</td>
+</tr>
+<tr class="even">
+<td align="left">046</td>
+<td align="left">margin</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">4.613</td>
+<td align="right">36255</td>
+<td align="right">14795</td>
+<td align="right">0.408</td>
+</tr>
+<tr class="odd">
 <td align="left">052</td>
 <td align="left">core</td>
 <td align="left">sf:um2px(/0.325)</td>
@@ -1927,6 +2057,26 @@ empty region.</caption>
 <td align="right">35005</td>
 <td align="right">22275</td>
 <td align="right">0.636</td>
+</tr>
+<tr class="odd">
+<td align="left">24086</td>
+<td align="left">core</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">3.638</td>
+<td align="right">40796</td>
+<td align="right">9610</td>
+<td align="right">0.236</td>
+</tr>
+<tr class="even">
+<td align="left">24086</td>
+<td align="left">margin</td>
+<td align="left">sf:um2px(/0.325)</td>
+<td align="right">0.325</td>
+<td align="right">6.332</td>
+<td align="right">57046</td>
+<td align="right">13944</td>
+<td align="right">0.244</td>
 </tr>
 <tr class="odd">
 <td align="left">5456</td>
@@ -1963,7 +2113,7 @@ density  = dens_cd45_per_mm2  = n_cd45_inside / area_mm2</code></pre>
 
 cat(&quot;patients with margin metrics + clinical immune phenotype:&quot;,
     dplyr::n_distinct(margin_union$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>patients with margin metrics + clinical immune phenotype: 2 </code></pre>
+<pre><code>patients with margin metrics + clinical immune phenotype: 4 </code></pre>
 <pre class="r"><code>df &lt;- margin_union |&gt;
   filter(is.finite(cd45_over_inside), is.finite(hot_score))
 if (nrow(df) &gt; 2) {
@@ -1989,6 +2139,43 @@ if (nrow(df) &gt; 2) {
          y = &quot;Clinical HOT score (unitless)&quot;)
 }</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/margin-hot-score-fraction-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-hot-score-fraction-1">
+Past versions of margin-hot-score-fraction-1.png
+</button>
+</p>
+<div id="fig-margin-hot-score-fraction-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/margin-hot-score-fraction-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>df &lt;- margin_union |&gt;
   filter(is.finite(dens_cd45_per_mm2), is.finite(hot_score))
 if (nrow(df) &gt; 2) {
@@ -2014,6 +2201,43 @@ if (nrow(df) &gt; 2) {
          y = &quot;Clinical HOT score (unitless)&quot;)
 }</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/margin-hot-score-density-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-hot-score-density-1">
+Past versions of margin-hot-score-density-1.png
+</button>
+</p>
+<div id="fig-margin-hot-score-density-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/margin-hot-score-density-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-immunity-by-clinical-immuno-phenotype"
 class="section level3">
@@ -2035,6 +2259,7 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) &gt; 1 &amp;&amp; nrow(df) &gt; 3)
          x = NULL, y = &quot;CD45+ fraction in margin band&quot;) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-phenotype-boxplot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
 <div id="margin-vs-core-exclusion-score" class="section level3">
 <h3>Margin-vs-core exclusion score</h3>
@@ -2094,6 +2319,22 @@ exclusion_frac ⇒ border-concentrated immunity.</caption>
 <td align="right">0.736</td>
 </tr>
 <tr class="even">
+<td align="left">24086</td>
+<td align="left">COLD</td>
+<td align="right">0.244</td>
+<td align="right">0.236</td>
+<td align="right">0.009</td>
+<td align="right">-0.734</td>
+</tr>
+<tr class="odd">
+<td align="left">046</td>
+<td align="left">HOT</td>
+<td align="right">0.408</td>
+<td align="right">0.443</td>
+<td align="right">-0.035</td>
+<td align="right">0.725</td>
+</tr>
+<tr class="even">
 <td align="left">5456</td>
 <td align="left">HOT</td>
 <td align="right">0.567</td>
@@ -2121,6 +2362,43 @@ if (nrow(sc) &gt; 1) {
   print(p)
 }</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/margin-core-scatter-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-core-scatter-1">
+Past versions of margin-core-scatter-1.png
+</button>
+</p>
+<div id="fig-margin-core-scatter-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/margin-core-scatter-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>df &lt;- mc |&gt;
   filter(!is.na(immuno_phe), is.finite(exclusion_frac)) |&gt;
   mutate(immuno_phe = hotcold_order(immuno_phe))
@@ -2134,6 +2412,7 @@ if (dplyr::n_distinct(na.omit(df$immuno_phe)) &gt; 1 &amp;&amp; nrow(df) &gt; 3)
          x = NULL, y = &quot;Exclusion score: margin − core CD45+ fraction (unitless)&quot;) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-exclusion-by-phenotype-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
 <div id="single-annotations-vs-union" class="section level3">
 <h3>Single annotations vs union</h3>
@@ -2160,6 +2439,43 @@ if (nrow(cmp) &gt; 1) {
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/margin-per-ann-vs-union-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-per-ann-vs-union-1">
+Past versions of margin-per-ann-vs-union-1.png
+</button>
+</p>
+<div id="fig-margin-per-ann-vs-union-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/margin-per-ann-vs-union-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-composition-three-denominators" class="section level3">
 <h3>Margin composition (three denominators)</h3>
@@ -2183,7 +2499,10 @@ if (nrow(comp) &gt; 0) {
   ggplot(comp, aes(lineage, frac, fill = lineage)) +
     geom_boxplot(outlier.shape = NA, colour = &quot;grey30&quot;) +
     geom_jitter(width = .15, alpha = .5, size = 1) +
-    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    # One shared y across the three denominators: all three are fractions on 0..1
+    # and only the denominator changes, so the size of the gap between them is the
+    # finding. A free y per panel drew all three at the same apparent height.
+    facet_wrap(~ normalization) +
     # Named lineage palette, not positional `oi` — see the note on the same plot
     # in clinical_flowpath.Rmd. These are the same populations as that figure and
     # must therefore be the same colours.
@@ -2194,6 +2513,43 @@ if (nrow(comp) &gt; 0) {
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
 <p><img src="figure/molecular_massimo1_inverted.Rmd/margin-composition-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-margin-composition-1">
+Past versions of margin-composition-1.png
+</button>
+</p>
+<div id="fig-margin-composition-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/molecular_massimo1_inverted.Rmd/margin-composition-1.png" target="_blank">f1342a0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-27
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="margin-cell-type-fractions-hot-vs-cold" class="section level3">
 <h3>Margin cell-type fractions: hot vs cold</h3>
@@ -2222,7 +2578,10 @@ if (nrow(comp_hc) &gt; 0 &amp;&amp; dplyr::n_distinct(na.omit(comp_hc$immuno_phe
     geom_boxplot(outlier.shape = NA, position = position_dodge(width = .75)) +
     geom_point(position = position_jitterdodge(jitter.width = .12, dodge.width = .75),
                alpha = .6, size = 1) +
-    facet_wrap(~ normalization, scales = &quot;free_y&quot;) +
+    # One shared y across the three denominators: all three are fractions on 0..1
+    # and only the denominator changes, so the size of the gap between them is the
+    # finding. A free y per panel drew all three at the same apparent height.
+    facet_wrap(~ normalization) +
     scale_colour_manual(values = hotcold_cols(levels(comp_hc$immuno_phe)),
                         name = &quot;Immuno-phenotype&quot;) +   # hot = red, cold = light blue
     labs(title = paste0(&quot;Invasive-margin cell-type fractions: hot vs cold (d = &quot;, D_MAIN, &quot; µm)&quot;),
@@ -2231,6 +2590,7 @@ if (nrow(comp_hc) &gt; 0 &amp;&amp; dplyr::n_distinct(na.omit(comp_hc$immuno_phe
          x = NULL, y = &quot;Cell fraction in margin band (unitless, 0-1)&quot;) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
 }</code></pre>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/margin-composition-hotcold-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
 <div id="notes-2" class="section level3">
 <h3>Notes</h3>
