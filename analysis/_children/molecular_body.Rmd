@@ -31,7 +31,7 @@ the tumour is immunologically hot or cold?**
 
 | part | bulk readout | compared against | grain |
 |---|---|---|---|
-| 1 | per-gene DESeq2-normalised expression | IHC marker-positive cell fraction | marker |
+| 1 | per-gene DESeq2-normalised expression | IHC marker-positive cell fraction, over four nested denominators | marker |
 | 2 | immunedeconv cell-type scores | IHC lineage fraction | lineage |
 | 3 | — (spatial, not bulk) | clinical `HOT score` / immuno-phenotype | invasive margin |
 
@@ -93,6 +93,11 @@ cat("clinical rows:", nrow(clin),
 Marker by marker, across patients: does a marker's gene expression in bulk RNA track
 the fraction of cells the IHC gate calls positive for it? Points are coloured by the
 clinical immuno-phenotype so a marker that only agrees in hot tumours is visible.
+
+The comparison is drawn first over the **whole slide**, and then re-cut over three
+narrower denominators — inside the annotation, tumour cells only, and both at once —
+because the bulk RNA was extracted from tumour material and the whole-slide fraction
+is not the matching quantity. See *The denominator* below.
 
 
 ### Starting data and notation
@@ -337,6 +342,206 @@ if (nrow(paired_z) > 0) {
 }
 ```
 
+### The denominator: which cells the IHC fraction is taken over
+
+Everything above compares bulk RNA against a **whole-slide** positive fraction — every
+cell in the arm's export, no polygon consulted. But **the bulk RNA was extracted from
+tumour material**, so that comparison puts a tumour-restricted expression value against
+an IHC fraction diluted by whatever else is on the slide. Two independent restrictions
+close that gap, and they cross:
+
+|  | every cell | tumour-lineage cells only |
+|---|---|---|
+| **whole slide** | `all_wholeslide` (the comparison above) | `tumor_wholeslide` |
+| **inside annotation** | `all_annotation` | `tumor_annotation` |
+
+- **Spatially** — keep only cells inside the pathologist's boundary, which is the
+  tissue the RNA block was cut from.
+- **By cell identity** — keep only cells the phenotyper called tumour, which is the
+  material the RNA is nominally *of*.
+
+`tumor_annotation` does both and is the closest available match to what was
+sequenced. The four are **nested** (`tumor_annotation` ⊆ both of its parents ⊆
+`all_wholeslide`), so the difference between them is not noise: it is exactly the
+effect of each restriction, which is the point of drawing them together rather than
+replacing the original panel.
+
+**Read the immune markers with care here.** Restricting to tumour-lineage cells makes
+`CD8_posfrac` the fraction of *tumour* cells the CD8 gate calls positive, which is
+near zero by construction and is a statement about gate bleed-through, not about
+infiltration. The tumour-restricted columns are informative for the structural and
+tumour-intrinsic markers (`PANCK`, `VIMENTIN`, `PDL1`, `SMA`); the annotation
+restriction alone is the one to read for the immune markers, since it keeps the
+infiltrate.
+
+#### Starting data and notation
+
+One new input beyond those named above:
+
+- `arm_cells_in_annotation(spec, ihc_data)` (`code/arm_cells.R`) — the arm's cohort
+  cells with a per-cell `in_annotation` logical and an `.in_annotation_source`
+  recording which rule decided it. It scores each cell against the **same union
+  polygon** `arm_metrics(scope = "union")` uses — `annotation_all/` for `massimo1`
+  and `massimo1_inverted`, the dissolved region polygons for `massimo2` — so an
+  in-annotation fraction here and a union metrics row on the clinical page agree by
+  construction. Where no polygon can be read it falls back to the export's own
+  `Out_of_annotation` flag (`"flag"`), and where the arm's spec states that an
+  unannotated patient is annotated whole it counts every cell (`"whole_slide"`,
+  `massimo2` only). With neither, `in_annotation` is `NA` and that patient leaves the
+  restricted readouts rather than being silently counted whole.
+
+```
+tumour cell = cell_lineage(phenotype_clean) == "Tumor"
+              (PANCK+Tumor / VIM+Tumor under either tool's spelling; NEVER a string
+               match on the label — the two phenotypers spell the taxonomy
+               differently. cell_tables.R)
+
+all_wholeslide(p)   = all cells of p
+all_annotation(p)   = cells of p with in_annotation TRUE
+tumor_wholeslide(p) = tumour cells of p
+tumor_annotation(p) = tumour cells of p with in_annotation TRUE
+```
+
+Each of the four cell sets is then put through the **same** `ihc_marker_fraction()`
+used above, so only the denominator changes:
+
+```
+<marker>_posfrac(p, D) = (cells of D(p) positive for <marker>) / (all cells of D(p))
+```
+
+```{r rna-denominator-cells, eval = have_arm}
+# Per-cell membership, computed ONCE and re-cut four ways. Recomputing it per
+# denominator would run point-in-polygon four times over the same cells and, worse,
+# would let the four denominators drift apart if one call ever picked a different
+# polygon tier.
+ihc_scoped <- arm_cells_in_annotation(arm_spec(ARM), ihc_data)
+
+# The tumour flag goes through cell_lineage(), never a string test on the label:
+# FlowPath writes "PANCK+Tumor" and mirage "PANCK_Tumor" for the same population,
+# and a grepl("Tumor") would also sweep in anything a future panel names that way.
+ihc_scoped <- ihc_scoped |>
+  mutate(.is_tumor = cell_lineage(cell_phenotype(ihc_scoped)) %in% "Tumor")
+
+# The four cell sets, as a named list so the loop below cannot fall out of step with
+# the palette: the names ARE the DENOM_COLS levels (plot_theme.R).
+denom_sets <- list(
+  all_wholeslide   = ihc_scoped,
+  all_annotation   = filter(ihc_scoped, in_annotation %in% TRUE),
+  tumor_wholeslide = filter(ihc_scoped, .is_tumor),
+  tumor_annotation = filter(ihc_scoped, .is_tumor, in_annotation %in% TRUE))
+
+knitr::kable(arm_in_annotation_inventory(ihc_scoped),
+             caption = paste0("Cells behind each denominator, per patient (arm `",
+                              ARM, "`). `membership` names the rule that decided ",
+                              "in_annotation: sf = the union polygon, flag = the ",
+                              "export's Out_of_annotation column, whole_slide = the ",
+                              "arm's stated convention for an unannotated patient."))
+```
+
+#### Marker-by-marker concordance under each denominator
+
+The same statistic as above — Spearman correlation across patients between
+`ihc_posfrac` and `rna_expr`, via `paired_spearman` — computed once per (marker,
+denominator). `rho` is reported per denominator with the shared pair count `n`;
+`n` can differ between denominators because a patient with no tumour cells at all
+drops out of the tumour-restricted columns.
+
+```{r rna-denominator-paired, eval = have_arm}
+rna_paired_denom <- purrr::imap_dfr(denom_sets, function(cells_d, denom) {
+  if (nrow(cells_d) == 0) return(tibble::tibble())
+  ihc_marker_fraction(cells_d) |>
+    select(patient_id, ends_with("_posfrac")) |>
+    pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_posfrac") |>
+    mutate(marker = sub("_posfrac$", "", marker), denominator = denom)
+}) |>
+  inner_join(marker_expr, by = c("marker", "patient_id")) |>
+  filter(is.finite(rna_expr), is.finite(ihc_posfrac)) |>
+  mutate(denominator = denom_factor(denominator))
+
+denom_summary <- rna_paired_denom |>
+  group_by(marker, denominator) |>
+  group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |>
+  ungroup()
+
+# ONE marker ordering, best whole-slide correlation first, shared by the table and
+# the figure below. Sorting the WIDE table on a `rho_all_wholeslide` column instead
+# would tie both to a column pivot_wider only creates when that level is observed —
+# and the sort silently decides what a reader compares against.  `union` appends any
+# marker with no whole-slide row rather than dropping it.
+marker_order <- denom_summary |>
+  filter(denominator == "all_wholeslide", is.finite(rho)) |>
+  arrange(desc(rho)) |>
+  pull(marker) |>
+  as.character() |>
+  union(sort(unique(as.character(denom_summary$marker))))
+
+denom_summary |>
+  select(marker, denominator, rho, n) |>
+  mutate(marker = factor(marker, levels = marker_order)) |>
+  arrange(marker) |>
+  pivot_wider(names_from = denominator, values_from = c(rho, n)) |>
+  knitr::kable(digits = 3,
+               caption = paste0("Spearman: IHC positive-cell fraction vs bulk-RNA ",
+                                "expression, under each denominator. Sorted by the ",
+                                "whole-slide value, so a marker the restrictions ",
+                                "move is read across its row."))
+```
+
+Each marker as one row, its four correlations as four points. A marker whose points
+sit apart is one the denominator decides; a marker whose four points stack is one
+where the restriction changes nothing, which is itself the result. The dashed line
+is `rho = 0`.
+
+```{r rna-denominator-ladder, eval = have_arm, fig.height=7}
+if (nrow(denom_summary) > 0) {
+  # `marker_order` (previous chunk) is best-first; a discrete y axis draws its first
+  # level at the BOTTOM, so it is reversed here to put the best marker at the top.
+  # The table and this figure therefore rank markers identically.
+  df <- denom_summary |>
+    filter(is.finite(rho)) |>
+    mutate(marker = factor(marker, levels = rev(marker_order)))
+  # The tie-line is a RANGE, not a geom_line: every point in a marker's group shares
+  # its y, so a line would connect them in whatever order the rows happen to sit in
+  # and could double back on itself. min..max is the only thing the row means.
+  spans <- df |> group_by(marker) |> summarise(lo = min(rho), hi = max(rho), .groups = "drop")
+
+  ggplot(df, aes(rho, marker, colour = denominator)) +
+    geom_vline(xintercept = 0, linetype = "dashed", colour = "grey60") +
+    # Under the points: it ties one marker's four values together so the eye reads
+    # the row as one marker rather than four scattered dots.
+    geom_linerange(data = spans, aes(xmin = lo, xmax = hi, y = marker),
+                   inherit.aes = FALSE, colour = "grey80") +
+    geom_point(size = 2, alpha = 0.9) +
+    scale_colour_denominator(name = "IHC denominator") +
+    # NAMED palette, not scale_colour_manual(oi): a marker missing one denominator
+    # would otherwise shift the remaining three onto each other's colours.
+    labs(title = "Does restricting the IHC denominator improve RNA concordance?",
+         subtitle = with_n(paste0("arm `", ARM,
+                                  "`; bulk RNA is extracted from tumour material, so the ",
+                                  "restricted denominators are the closer comparison"),
+                           rna_paired_denom$patient_id, "patients"),
+         x = "Spearman rho (IHC positive fraction vs bulk-RNA expression)",
+         y = NULL)
+}
+```
+
+The scatter for `tumor_annotation` — the denominator that matches the sequenced
+material most closely — drawn exactly as the whole-slide figures above, so the two
+are read side by side:
+
+```{r rna-denominator-scatter, eval = have_arm, fig.height=7}
+tumor_ann_paired <- filter(rna_paired_denom, denominator == "tumor_annotation")
+if (nrow(tumor_ann_paired) > 0)
+  plot_rna_concordance(tumor_ann_paired, clin, rna_primary_markers,
+                       "Tumour cells inside the annotation: marker+ fraction vs bulk-RNA expression")
+```
+
+```{r rna-denominator-scatter-rest, eval = have_arm, fig.height=7}
+if (nrow(tumor_ann_paired) > 0)
+  plot_rna_concordance(tumor_ann_paired, clin, setdiff(ihc_markers, rna_primary_markers),
+                       "Tumour cells inside the annotation: remaining markers")
+```
+
 ### Notes
 
 - Both IHC reductions use `na.rm = TRUE`: `<marker>_posfrac` and `<marker>_z`
@@ -352,6 +557,15 @@ if (nrow(paired_z) > 0) {
   `PDL1` -> `CD274`, `PD1` -> `PDCD1`, `FSP1` -> `S100A4`. `wrongL1CAM` is
   excluded by construction (not in `marker_gene_map`).
 - Correlations are cross-patient and small-n; every row carries its `n`.
+- The **z-score sensitivity above is whole-slide only**, deliberately: it is a check
+  on the hard threshold, and re-cutting the denominator at the same time would
+  confound the two changes. The denominator ladder holds the threshold fixed and
+  moves only the cell set.
+- The denominator ladder is **not** repeated in Part 2. A lineage fraction over
+  tumour-lineage cells only is 100% tumour by construction, so restricting the
+  deconvolution comparison that way answers nothing; the annotation restriction alone
+  would apply there, and the clinical page already reports the scope comparison for
+  the lineage fractions.
 
 
 ## Part 2 — Deconvolution scores vs IHC lineage fractions

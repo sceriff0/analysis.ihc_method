@@ -445,6 +445,68 @@ scale_fill_scope <- function(..., drop = TRUE, name = NULL, labels = .scope_labe
                     labels = labels, na.value = "grey85", ...)
 scale_color_scope <- scale_colour_scope
 
+# --- Bulk-RNA DENOMINATORS ---------------------------------------------------
+# The bulk-RNA comparison asks "does a marker's expression track the fraction of
+# cells the gate calls positive", and `fraction of WHICH cells` has four answers
+# because two independent restrictions cross:
+#
+#                      every cell        tumour-lineage cells only
+#   whole slide        all_wholeslide    tumor_wholeslide
+#   inside annotation  all_annotation    tumor_annotation
+#
+# The bulk RNA was extracted from TUMOUR material, so `all_wholeslide` — the
+# comparison this page has always drawn — puts a whole-slide IHC fraction against
+# an expression value from a tumour-restricted sample. The other three close that
+# gap from the two directions available: spatially (restrict to the pathologist's
+# polygon) and by cell identity (restrict to cells phenotyped Tumor). The bottom-
+# right cell does both and is the closest match to what was sequenced.
+#
+# NAMED, not positional, for the usual reason: not every panel carries all four
+# levels — a marker with no tumour-cell positives drops one — and an unnamed scale
+# would then recolour the remaining three by position.
+#
+# HUE ENCODES THE CELL SET, LIGHTNESS THE SCOPE. Cool = every cell, warm = tumour
+# cells; the lighter member of each pair is the whole slide and the darker is the
+# annotation-restricted one, so the two restrictions read as two separate visual
+# axes rather than four unrelated categories. All four are Okabe-Ito, so the warm/
+# cool split survives the common colour-vision deficiencies where the light/dark
+# ladder within each pair carries the scope on its own. Worst pair is the within-
+# pair one, all_wholeslide vs all_annotation, at dE 26.4 in CIE Lab — just over the
+# ~25 a small mark needs. Re-check with convertColor(..., "Lab") before changing
+# either blue.
+DENOM_COLS <- c(
+  all_wholeslide   = "#56B4E9",   # sky blue    — every cell, no polygon (the reference)
+  all_annotation   = "#0072B2",   # blue        — every cell inside the union polygon
+  tumor_wholeslide = "#E69F00",   # orange      — tumour cells, whole slide
+  tumor_annotation = "#D55E00"    # vermillion  — tumour cells inside the union polygon
+)
+
+# Spelled for a reader, not for the column. "Tumour" with the British u to match
+# LINEAGE_LABELS, and the scope named by what it restricts to rather than by the
+# directory it came from — `annotation_all` is a path, "inside annotation" is a fact.
+DENOM_LABELS <- c(
+  all_wholeslide   = "all cells, whole slide",
+  all_annotation   = "all cells, inside annotation",
+  tumor_wholeslide = "tumour cells, whole slide",
+  tumor_annotation = "tumour cells, inside annotation"
+)
+
+# Order widest -> narrowest, which is also nesting order (tumour ∩ annotation is a
+# subset of both of its parents), so a legend reads as a progressive restriction.
+denom_factor <- function(x) factor(as.character(x), levels = names(DENOM_COLS))
+
+.denom_labels <- function(breaks) {
+  b <- as.character(breaks)
+  ifelse(b %in% names(DENOM_LABELS), DENOM_LABELS[b], b)
+}
+scale_colour_denominator <- function(..., drop = TRUE, name = NULL, labels = .denom_labels)
+  scale_colour_manual(values = DENOM_COLS, drop = drop, name = name,
+                      labels = labels, na.value = "grey85", ...)
+scale_fill_denominator <- function(..., drop = TRUE, name = NULL, labels = .denom_labels)
+  scale_fill_manual(values = DENOM_COLS, drop = drop, name = name,
+                    labels = labels, na.value = "grey85", ...)
+scale_color_denominator <- scale_colour_denominator
+
 scale_colour_arm <- function(..., drop = TRUE, name = NULL)
   scale_colour_manual(values = ARM_KIND_COLS, drop = drop, name = name, ...)
 scale_fill_arm <- function(..., drop = TRUE, name = NULL)

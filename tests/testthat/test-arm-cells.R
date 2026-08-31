@@ -356,3 +356,108 @@ test_that("the overlap report says whether region files repeat cells", {
   expect_match(attr(rep, "verdict"), "repeat cells")
   expect_equal(dplyr::filter(rep, patient_id == "046")$rows_per_cell, 2)
 })
+
+# =============================================================================
+# Per-cell membership — the flag a re-cut denominator needs
+# =============================================================================
+# arm_metrics() asks the polygon which cells are inside and then aggregates the
+# answer away. The bulk-RNA comparison re-cuts the denominator (tumour cells inside
+# the annotation), which no aggregate can supply after the fact, so the per-cell
+# verdict is exposed. These tests pin WHICH polygon it scores against and what it
+# does when there is none, because both silently change every restricted fraction.
+
+test_that("in-annotation membership scores against the arm's UNION polygon", {
+  skip_if_not_installed("sf")
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1:2), n = 200, n_all = 300)
+  spec <- .spec1(d)
+  sc   <- arm_cells_in_annotation(spec, arm_cohort_cells(spec))
+  # annotation_all covers the whole cell extent, so every whole-slide cell is inside —
+  # and it must be the UNION polygon that says so, not the two `_selected` boxes,
+  # which between them cover only part of the slide.
+  expect_equal(nrow(sc), 300)
+  expect_true(all(sc$in_annotation))
+  expect_equal(unique(sc$.in_annotation_source), "sf")
+})
+
+test_that("a smaller union polygon keeps only the cells inside it", {
+  skip_if_not_installed("sf")
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 300)
+  # Shrink annotation_all to the lower-left quarter of the cell extent. The cells run
+  # along the box diagonal, so a quarter-box keeps roughly a quarter of them — the
+  # point is that the count is strictly between 0 and all, i.e. geometry ran.
+  .poly_geojson(file.path(d, "massimo1", "annotation_all", "046", "046.geojson"),
+                -1, -1, 1000, 750)
+  spec <- .spec1(d)
+  sc   <- arm_cells_in_annotation(spec, arm_cohort_cells(spec))
+  expect_equal(unique(sc$.in_annotation_source), "sf")
+  expect_gt(sum(sc$in_annotation), 0)
+  expect_lt(sum(sc$in_annotation), nrow(sc))
+})
+
+test_that("massimo2 dissolves its region polygons, having no union tier", {
+  skip_if_not_installed("sf")
+  d <- .tmp_data()
+  # 046 gets regions A and B, whose boxes are the lower-left and upper-right
+  # quarters — so the DISSOLVED pair keeps more cells than either alone and still
+  # fewer than the whole slide.
+  .massimo2_tree(d, regions = list(`046` = c("A", "B")), annotate = "046", n = 200)
+  spec <- .spec2(d)
+  sc   <- arm_cells_in_annotation(spec, arm_cohort_cells(spec))
+  expect_equal(unique(sc$.in_annotation_source), "sf")
+  expect_gt(sum(sc$in_annotation), 0)
+  expect_lt(sum(sc$in_annotation), nrow(sc))
+})
+
+test_that("a massimo2 patient with no annotation directory is entirely in-annotation", {
+  # The arm's OWN stated convention (`bare_region_is = "whole_slide"`), reached only
+  # because 24086 has no polygon AND its export carries no usable flag path here.
+  # The source column has to say `whole_slide`, not `sf`: a 100%-inside patient under
+  # a convention and one under a polygon look identical in the fraction.
+  d <- .tmp_data(); .massimo2_tree(d, regions = list(`24086` = NULL), annotate = character(0))
+  spec <- .spec2(d)
+  sc   <- suppressWarnings(arm_cells_in_annotation(spec, arm_cohort_cells(spec)))
+  expect_true(all(sc$in_annotation %in% TRUE))
+  expect_equal(unique(sc$.in_annotation_source), "whole_slide")
+  # THE REGRESSION. The synthetic export also carries Out_of_annotation, which flags
+  # one cell in four as outside — so an implementation that reached for the flag
+  # first would keep 75% of this patient's cells while arm_metrics(), which never
+  # consults the flag for an unannotated patient, keeps 100%. Two numbers for one
+  # patient on one page, both plausible.
+  expect_equal(sum(sc$in_annotation), nrow(sc))
+  expect_lt(sum(!cell_outside(sc)), nrow(sc))
+})
+
+test_that("with no polygon the export's own flag decides, and says so", {
+  # A massimo1 patient whose annotation_all geojson is unreadable. The arm has no
+  # "count it whole" convention, so the only remaining source is the flag.
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200)
+  writeLines("not json", file.path(d, "massimo1", "annotation_all", "046", "046.geojson"))
+  writeLines("not json", file.path(d, "massimo1", "annotation_selected", "046", "046_a1.geojson"))
+  spec <- .spec1(d)
+  sc   <- suppressWarnings(arm_cells_in_annotation(spec, arm_cohort_cells(spec)))
+  expect_equal(unique(sc$.in_annotation_source), "flag")
+  # .cells_csv flags one cell in every four as outside.
+  expect_equal(sum(sc$in_annotation), sum(!cell_outside(sc)))
+})
+
+test_that("the inventory separates the tumour subset from the annotation subset", {
+  skip_if_not_installed("sf")
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200)
+  spec <- .spec1(d)
+  inv  <- arm_in_annotation_inventory(arm_cells_in_annotation(spec, arm_cohort_cells(spec)))
+  expect_equal(inv$n_cells, 200)
+  expect_equal(inv$n_in_annotation, 200)          # annotation_all covers the extent
+  expect_equal(inv$n_tumor, 50)                   # one cell in four is PANCK+Tumor
+  expect_equal(inv$n_tumor_in_annotation, 50)
+  expect_equal(inv$pct_in_annotation, 100)
+})
+
+test_that("the tumour subset is taken from cell_lineage, not from the label text", {
+  # The two phenotypers spell the same population differently, so a grepl("Tumor")
+  # here would agree with cell_lineage() by accident on FlowPath and disagree the
+  # moment a panel renames anything. Pin the accessor.
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200)
+  spec  <- .spec1(d)
+  cells <- arm_cohort_cells(spec)
+  expect_equal(sum(cell_lineage(cell_phenotype(cells)) %in% "Tumor"), 50)
+})

@@ -15,6 +15,8 @@
 #   arm_metrics(...)             one metrics row per (patient, annotation), or per
 #                                patient for scope = "union"
 #   arm_cohort_cells(spec, ...)  one row per PHYSICAL cell per patient
+#   arm_cells_in_annotation(...)  the same, plus a PER-CELL `in_annotation` flag,
+#                                for a readout that re-cuts the denominator
 #
 # THE TWO TIERS ARE THE TWO SCOPES. An arm that ships an `_all` tier answers
 # `union` from it directly — a real whole-slide export and a real union polygon,
@@ -553,6 +555,134 @@ arm_cohort_cells <- function(spec, cells = NULL, union_cells = NULL) {
   if (nrow(union_cells) == 0) return(pooled)
   if (nrow(pooled) == 0) return(union_cells)
   dplyr::bind_rows(union_cells, pooled)
+}
+
+# --- Per-cell membership, where a metrics ROW is not enough -------------------
+# arm_metrics() already asks the polygon which cells are inside — and then throws
+# the per-cell verdict away, because a metrics row is an aggregate. A readout that
+# RE-CUTS the denominator cannot be built from that aggregate after the fact: the
+# bulk-RNA comparison needs a per-marker positive fraction over "tumour cells inside
+# the annotation", and no combination of tumor_over_inside and cd45_over_inside
+# yields it. So the verdict is exposed here rather than recomputed at the call site,
+# which is how validation_helpers.R ended up with a second copy of the parser.
+#
+# Returns `cells` with two added columns:
+#   in_annotation          logical, NA where no rule could decide
+#   .in_annotation_source  which rule did decide, one of:
+#     "sf"           point-in-polygon against the arm's UNION polygon — massimo1's
+#                    `annotation_all`, massimo2's dissolved region polygons. The
+#                    SAME polygon arm_metrics(scope = "union") scores against, so a
+#                    fraction computed here and a union metrics row agree by
+#                    construction rather than by coincidence.
+#     "flag"         the export's own Out_of_annotation column, for a patient with
+#                    cells but no readable polygon.
+#     "whole_slide"  every cell counts — ONLY for an arm whose `bare_region_is`
+#                    states that an unannotated patient is annotated whole
+#                    (massimo2's 24086). No other arm may take this branch, and it
+#                    OUTRANKS the flag, because arm_metrics() never consults the flag
+#                    for such a patient either.
+#     NA             no polygon, no flag, no convention. in_annotation is NA and the
+#                    patient DROPS OUT of the restricted readout, rather than being
+#                    counted whole under a rule nobody wrote down — a silently
+#                    whole-counted patient is indistinguishable from a correct one.
+#
+# THE UNION POLYGON IS PREFERRED OVER THE DISSOLVED REGIONS, and for massimo1 that
+# matters: annotation_all is a boundary the pathologist actually drew, while
+# dissolving the three `_selected` regions produces a shape nobody drew. The regions
+# nest inside the union (annotation_k ⊆ annotation_all), so preferring the union is
+# the WIDER and less presumptuous of the two. An arm with no `_all` tier has only the
+# dissolved regions and uses them.
+#
+# sf is a LAZY dependency here as everywhere: a machine without it falls through to
+# the flag rather than failing to load the page.
+arm_cells_in_annotation <- function(spec, cells, um_per_px = 0.325) {
+  if (is.null(cells) || nrow(cells) == 0) return(cells)
+  pids <- unique(cells$patient_id)
+
+  polys <- NULL
+  if (requireNamespace("sf", quietly = TRUE)) {
+    polys <- arm_annotations(spec, "union", patient_ids = pids)
+    if (is.null(polys) || nrow(polys) == 0)
+      polys <- arm_annotations(spec, "region", patient_ids = pids)
+  } else {
+    warning("arm_cells_in_annotation(): sf is not installed, so no polygon can be ",
+            "read — falling back to the export's Out_of_annotation flag")
+  }
+  poly_ids <- if (!is.null(polys) && nrow(polys)) unique(polys$patient_id) else character(0)
+
+  purrr::map_dfr(pids, function(pid) {
+    cp <- dplyr::filter(cells, patient_id == pid)
+
+    if (pid %in% poly_ids) {
+      pp     <- polys[polys$patient_id == pid, , drop = FALSE]
+      poly_u <- sf::st_union(sf::st_geometry(pp))
+      xy     <- cell_centroids_px(cp, um_per_px)
+      ok     <- is.finite(xy$x) & is.finite(xy$y)
+      # A cell with no usable centroid cannot be placed, so it is NA rather than
+      # outside: "outside" is a geometric claim and there is no geometry to make it.
+      if (any(ok)) {
+        inside     <- rep(NA, nrow(cp))
+        pts        <- sf::st_as_sf(xy[ok, , drop = FALSE], coords = c("x", "y"),
+                                   crs = sf::st_crs(pp))
+        inside[ok] <- lengths(sf::st_within(pts, poly_u)) > 0
+        return(dplyr::mutate(cp, in_annotation = inside, .in_annotation_source = "sf"))
+      }
+    }
+
+    # THE CONVENTION IS CHECKED BEFORE THE FLAG, and the order matters.
+    #
+    # arm_metrics() tests `!any(cp$has_annotation)` FIRST and returns every cell for
+    # such a patient, never consulting the flag. So a patient with no annotation
+    # directory at all in an arm whose spec allows it (massimo2's 24086) must be
+    # counted whole here too — taking its flag instead would keep ~a quarter fewer
+    # cells than its own union metrics row, and the two numbers would disagree on
+    # the same page with nothing to say which was which.
+    #
+    # `has_annotation` comes off the LISTING of the polygon tier, not off a
+    # successful parse, so a patient whose geojson exists but is unreadable is still
+    # "annotated" and correctly falls through to the flag below — which is again what
+    # arm_metrics() does.
+    unannotated <- !("has_annotation" %in% names(cp)) || !any(cp$has_annotation %in% TRUE)
+    if (unannotated && identical(spec$bare_region_is, "whole_slide"))
+      return(dplyr::mutate(cp, in_annotation = TRUE,
+                           .in_annotation_source = "whole_slide"))
+
+    if (has_outside_flag(cp))
+      return(dplyr::mutate(cp, in_annotation = !cell_outside(cp),
+                           .in_annotation_source = "flag"))
+
+    warning("arm ", spec$arm, ": ", pid, " has no readable union polygon and no ",
+            "Out_of_annotation flag — its in-annotation membership is NA and it is ",
+            "excluded from annotation-restricted readouts")
+    dplyr::mutate(cp, in_annotation = NA, .in_annotation_source = NA_character_)
+  })
+}
+
+# Provenance for the above, one row per patient: how many cells the arm holds, how
+# many of them the annotation keeps, and which rule decided. Printed beside every
+# annotation-restricted figure, because a restriction that quietly kept 100% (a
+# `whole_slide` row) and one that kept 40% (an `sf` row) produce the same-looking
+# panel and mean entirely different things.
+arm_in_annotation_inventory <- function(cells) {
+  if (is.null(cells) || nrow(cells) == 0 || !"in_annotation" %in% names(cells))
+    return(tibble::tibble())
+  # Settled BEFORE the mutate, as everywhere in this file: an expression inside
+  # mutate() that names the frame it is building is a trap waiting for the day a
+  # column called `phenotype_clean` is added upstream.
+  is_tumor <- cell_lineage(cell_phenotype(cells)) %in% "Tumor"
+  cells |>
+    dplyr::mutate(.tumor = is_tumor) |>
+    dplyr::group_by(patient_id) |>
+    dplyr::summarise(
+      membership       = paste(sort(unique(stats::na.omit(.in_annotation_source))),
+                               collapse = "/"),
+      n_cells          = dplyr::n(),
+      n_in_annotation  = sum(in_annotation %in% TRUE),
+      n_tumor          = sum(.tumor),
+      n_tumor_in_annotation = sum(.tumor & in_annotation %in% TRUE),
+      pct_in_annotation = round(100 * sum(in_annotation %in% TRUE) / dplyr::n(), 1),
+      .groups = "drop") |>
+    dplyr::arrange(patient_id)
 }
 
 # CHECK THE PROCEDURE AGAINST THE GROUND TRUTH, where an arm supplies both.
