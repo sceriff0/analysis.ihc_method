@@ -9,7 +9,7 @@ source(here::here("code", "registration_arms.R"))
 # depth 2, exactly as the pipeline does — that asymmetry is the point of the fixture.
 arms_tree <- function(modes = c("high", "low"), depths = 0:2,
                       patients = c("046", "052"), manifest = FALSE,
-                      tiled = FALSE) {
+                      tiled = FALSE, valis = TRUE) {
   root <- file.path(tempdir(), paste0("arms-", as.integer(Sys.time()), "-", sample(1e6, 1)))
   if (tiled) {
     # The tiled backend's OWN stage vocabulary: native -> rigid -> refined. Writing
@@ -76,6 +76,24 @@ arms_tree <- function(modes = c("high", "low"), depths = 0:2,
                           pair_fraction = if (mode == "high") 0.9 else 0.62),
           stages = st, delta_vs_anchor = dv),
           file.path(d, paste0(p, "_cycle2_seg_qc.json")), auto_unbox = TRUE)
+        if (valis) {
+          # VALIS's own error, where a real run publishes it (two levels below
+          # registered/summary/, see test-run-qc.R). `original` is the no-registration
+          # number and `rigid` the rigid-only one; a pre-micro sibling exists only at
+          # depth 2, exactly as bin/register.py writes it.
+          sdir <- file.path(root, arm, p, "registered", "summary", "preprocessed", "data")
+          dir.create(sdir, recursive = TRUE, showWarnings = FALSE)
+          suffixes <- c("_summary.csv", if (dp == 2) "_summary_premicro.csv")
+          for (suffix in suffixes)
+            readr::write_csv(tibble::tibble(
+              img_name = paste0(p, "_cycle2"),
+              original_rTRE  = base * 0.05,
+              rigid_rTRE     = rigid / 100,
+              non_rigid_rTRE = if (suffix == "_summary.csv") vals[[if (dp == 2) "micro" else "non_rigid"]] / 100
+                               else vals[["non_rigid"]] / 100,
+              n_matches = 120L),
+              file.path(sdir, paste0(p, suffix)))
+        }
       }
     }
   }
@@ -272,4 +290,79 @@ test_that("a VALIS-only sweep produces no STARE figures", {
   expect_equal(nrow(read_arms_stare_tre(man)), 0)
   figs <- build_arm_figs(read_arms_seg_qc(man), tibble::tibble(), man)
   expect_false(any(grepl("stare", names(figs))))
+})
+
+
+# --- The manuscript panels: Fig 4(b)/(c) and Additional file 2 ----------------
+test_that("the paper TRE panel ranks VALIS arms at their final stage and adds both baselines", {
+  man  <- arm_manifest(arms_tree(tiled = TRUE))
+  seg  <- read_arms_seg_qc(man)
+  val  <- read_arms_valis(man)
+  figs <- build_arm_paper_figs(seg, val, man)
+  expect_setequal(names(figs), c("tre_by_arm", "dice_by_arm"))
+
+  d <- figs$tre_by_arm$data
+  expect_true(all(c(BASELINE_NONE, BASELINE_RIGID) %in% levels(d$arm)))
+  # The baselines are the FIRST levels so coord_flip() puts them at the bottom.
+  expect_equal(levels(d$arm)[1:2], c(BASELINE_NONE, BASELINE_RIGID))
+  # Six VALIS arms + two baselines; the tiled arm has no VALIS error and is absent.
+  expect_equal(nlevels(d$arm), 8)
+  expect_false(any(grepl("tiled", levels(d$arm))))
+  # "rigid only" is honest only where rigid means affine alone: depth 0.
+  expect_setequal(unique(d$micro_reg[d$arm == BASELINE_RIGID]), 0L)
+  expect_setequal(unique(d$micro_reg[d$arm == BASELINE_NONE]),  0L)
+  # Depth-2 arms are ranked on the post-micro number, not the pre-micro one.
+  d2 <- d[d$micro_reg == 2 & !d$arm %in% c(BASELINE_NONE, BASELINE_RIGID), ]
+  expect_equal(unique(as.character(d2$final_stage)), "micro")
+  # No fit line and no coefficient — the legend's claim, enforced on the object.
+  expect_false(any(vapply(figs$tre_by_arm$layers,
+                          function(l) inherits(l$stat, "StatSmooth"), logical(1))))
+})
+
+test_that("the paper Dice panel holds the same arms as the TRE panel, and the tiled comparator only on request", {
+  man  <- arm_manifest(arms_tree(tiled = TRUE))
+  seg  <- read_arms_seg_qc(man)
+  figs <- build_arm_paper_figs(seg, read_arms_valis(man), man)
+  # The legend: "plotted for the same arms as (b)". (b) cannot hold the tiled arm,
+  # so by default (c) does not either — the two row sets are identical.
+  expect_equal(levels(figs$dice_by_arm$data$arm), levels(figs$tre_by_arm$data$arm))
+  expect_false(any(grepl("tiled", levels(figs$dice_by_arm$data$arm))))
+
+  figs <- build_arm_paper_figs(seg, read_arms_valis(man), man,
+                               backends = c("valis", "tiled"))
+  d <- figs$dice_by_arm$data
+  expect_equal(levels(d$arm)[1:2], c(BASELINE_NONE, BASELINE_RIGID))
+  expect_equal(nlevels(d$arm), 9)                       # 6 VALIS + tiled + 2 baselines
+  expect_true(any(grepl("tiled", levels(d$arm))))
+  expect_setequal(unique(d$micro_reg[d$arm == BASELINE_RIGID]), 0L)
+  # Baselines come from the native / rigid STAGES of the depth-0 runs.
+  expect_equal(unique(as.character(d$final_stage[d$arm == BASELINE_NONE])),  "native")
+  expect_equal(unique(as.character(d$final_stage[d$arm == BASELINE_RIGID])), "rigid")
+  # The fixture makes native the worst overlap, so the baseline must sit below every arm.
+  med <- tapply(d$dice_matched, as.character(d$arm), stats::median)
+  expect_true(med[[BASELINE_NONE]] < min(med[names(med) != BASELINE_NONE]))
+})
+
+test_that("the paper panels build without VALIS summaries, dropping only the TRE panel", {
+  man  <- arm_manifest(arms_tree(valis = FALSE))
+  figs <- build_arm_paper_figs(read_arms_seg_qc(man), read_arms_valis(man), man)
+  expect_null(figs$tre_by_arm)
+  expect_s3_class(figs$dice_by_arm, "ggplot")
+})
+
+test_that("Additional file 2 is one row per arm plus the two baselines, with both metrics", {
+  man <- arm_manifest(arms_tree(tiled = TRUE))
+  seg <- read_arms_seg_qc(man); val <- read_arms_valis(man)
+  tab <- arm_paper_table(seg, val, man)
+  expect_true(all(c("arm", "backend", "memory_mode", "micro_reg", "n_slides", "stage",
+                    "valis_tre", "disp_um_p50", "dice_matched", "pair_fraction")
+                  %in% names(tab)))
+  expect_equal(nrow(tab), 9)                            # 6 + tiled + 2 baselines
+  expect_true(all(c(BASELINE_NONE, BASELINE_RIGID) %in% tab$arm))
+  expect_true(is.na(tab$valis_tre[grepl("tiled", tab$arm)]))
+  expect_equal(tab$stage[tab$arm == BASELINE_NONE],  "native")
+  expect_equal(tab$stage[tab$arm == BASELINE_RIGID], "rigid")
+  # n counts SLIDES, which for the baselines is slides x depth-0 presets.
+  expect_equal(tab$n_slides[tab$arm == BASELINE_NONE], 4L)
+  expect_equal(tab$n_slides[tab$arm == "high / micro 2"], 2L)
 })

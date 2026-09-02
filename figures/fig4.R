@@ -6,12 +6,15 @@
 #   (a) Two-colour DAPI overlay, before vs after registration  [author-supplied]
 #   (b) VALIS-internal target registration error, by arm       [computed]
 #   (c) DAPI-overlap Dice, by arm                              [computed]
+#       both with the no-registration and rigid-only baselines
 #
 # WHAT THIS SCRIPT DOES NOT DO. It does not compute anything. (b) and (c) come out
-# of build_arm_figs() / build_reg_figs(), the SAME builders analysis/paper_figures.Rmd
-# calls, so the panel in the manuscript and the panel on the website are one object
-# with one owner (CLAUDE.md: "one figure, one owner"). This script only strips the
-# web titles, resizes the ink for print, lays the three panels out and exports.
+# of build_arm_paper_figs() / build_reg_figs(), the SAME builders
+# analysis/paper_figures.Rmd calls, so the panel in the manuscript and the panel on
+# the website are one object with one owner (CLAUDE.md: "one figure, one owner").
+# This script only strips the web titles, resizes the ink for print, lays the three
+# panels out and exports. Additional file 2 (the same numbers as a table) is written
+# to output/ on the way past.
 #
 # THE TWO SOURCES ARE NOT INTERCHANGEABLE, and the script says which it used:
 #   data/registration_arms/  the study slides registered once per configuration.
@@ -59,10 +62,23 @@ if (dir.exists(file.path(root, "data", "registration_arms"))) {
   suppressMessages(source(file.path(root, "code", "registration_arms.R")))
   man <- arm_manifest()
   seg <- if (nrow(man)) read_arms_seg_qc(man) else tibble::tibble()
+  val <- if (nrow(man)) read_arms_valis(man)  else tibble::tibble()
   if (nrow(seg)) {
-    arm_figs   <- build_arm_figs(seg, tibble::tibble(), man)[
-      c("01_final_residual_um_by_arm", "02_final_dice_by_arm")]
+    # (b) VALIS's own reported error, (c) the independent nucleus overlap — each at
+    # the arm's final transform, each with the no-registration and rigid-only
+    # baselines read from the depth-0 runs. build_arm_paper_figs() documents why
+    # the baselines come from those runs only.
+    arm_figs   <- build_arm_paper_figs(seg, val, man)[c("tre_by_arm", "dice_by_arm")]
     arm_source <- "real"
+    if (is.null(arm_figs$tre_by_arm))
+      warning("fig4: no VALIS summaries under data/registration_arms/<arm>/<patient>/",
+              "registered/summary/ — panel (b) cannot be built from this sweep.",
+              call. = FALSE)
+    # Additional file 2 is the same numbers as a table; written beside the figure so
+    # the legend's per-arm values are read from one place.
+    at <- arm_paper_table(seg, val, man)
+    dir.create(file.path(root, "output"), showWarnings = FALSE, recursive = TRUE)
+    readr::write_csv(at, file.path(root, "output", "additional_file_2_registration_arms.csv"))
   }
 }
 if (!length(arm_figs) &&

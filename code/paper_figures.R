@@ -155,7 +155,8 @@ paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
 paper_immune_fraction_hotcold <- function(metrics, groups,
                                           value_col = "cd45_over_inside",
                                           group_col = "group",
-                                          y_lab = "mIF CD45+ / all cells (unitless, 0-1)") {
+                                          y_lab = "mIF CD45+ / all cells (unitless, 0-1)",
+                                          summary = c("box", "median")) {
   stopifnot(value_col %in% names(metrics))
   df <- metrics |>
     dplyr::mutate(.pid = slide_key(patient_id)) |>
@@ -169,22 +170,16 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
     return(NULL)
   }
 
-  # A BOX OR A MEDIAN BAR, DECIDED BY n. This panel is the proof-of-concept with
-  # three cases a side, and a boxplot over three points draws quartiles computed
-  # from two intervals — it renders a distribution shape the data cannot support,
-  # and a reviewer reads the hinges as if they meant something. Below 10 per group
-  # the summary collapses to a plain median crossbar, which claims only what it can
-  # (a central value) and leaves the points as the evidence, exactly as the figure
-  # legend says. The box comes back on its own if the cohort ever reaches 10 a side.
-  min_n   <- min(table(df$group)[table(df$group) > 0])
-  summary_layer <- if (min_n >= 10) {
+  # A BOXPLOT, AS THE LEGEND SAYS, WITH EVERY POINT OVER IT. Three cases a side is
+  # too few for the hinges to mean much — they are computed from two intervals — so
+  # the box is scaffolding for the eye and the points are the evidence. Outliers are
+  # not drawn as a separate glyph: every case is already a point, and a second mark
+  # for the same case would read as a seventh observation. `summary = "median"` gives
+  # the earlier single-rule form if a caller wants it.
+  summary_layer <- if (match.arg(summary) == "box") {
     geom_boxplot(outlier.shape = NA, width = .45, colour = "grey35",
-                 linewidth = pt_line(0.6))
+                 fill = NA, linewidth = pt_line(0.6))
   } else {
-    # errorbar with min == max == median draws exactly one horizontal rule and no
-    # whiskers. geom_crossbar(fatten = 0) is the obvious spelling but `fatten` is
-    # deprecated in ggplot2 4.0 and prints a warning into every knit of this page;
-    # this form is silent on both sides of that version boundary.
     stat_summary(fun = median, fun.min = median, fun.max = median,
                  geom = "errorbar", width = .38, colour = "grey35",
                  linewidth = pt_line(0.6))
@@ -198,8 +193,7 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
     # n rides on the tick labels rather than a subtitle: the groups are unbalanced
     # by design and the reader needs the count attached to the group it describes.
     scale_x_discrete(labels = label_n(df$group)) +
-    labs(x = NULL, y = y_lab,
-         subtitle = if (min_n >= 10) NULL else "bar = median; every case shown")
+    labs(x = NULL, y = y_lab, subtitle = "every case shown")
 }
 
 # --- Imaging vs deconvolution (Fig 5c) ---------------------------------------
@@ -210,9 +204,16 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
 # estimates a mixture fraction), so a regression line would invite exactly the
 # absolute-agreement reading the legend explicitly disclaims. Ranking is the claim;
 # `free` scales per facet are what let ranking be read.
-paper_deconv_scatter <- function(paired, method = "quantiseq",
+#
+# COLOUR IS 5(b)'s AXIS. Pass the `groups` that panel (b) was built on and the
+# points take the same hot / cold call, so a case that is hot in (b) is hot in
+# (c). Without `groups`, the clinical `Immuno-phenotype` the cache carries is used
+# and labelled as such — a DIFFERENT variable from the hotscore rank, which is why
+# it is the fallback and not the default.
+paper_deconv_scatter <- function(paired, method = "quantiseq", groups = NULL,
                                  x_lab = "Imaging fraction of all cells (unitless, 0-1)",
-                                 y_lab = NULL, label_cases = FALSE) {
+                                 y_lab = NULL, label_cases = FALSE,
+                                 lineages = comparable_lineages) {
   stopifnot(all(c("method", "lineage", "ihc_frac", "score") %in% names(paired)))
   df <- dplyr::filter(paired, tolower(.data$method) == tolower(!!method))
   if (nrow(df) == 0) {
@@ -220,27 +221,48 @@ paper_deconv_scatter <- function(paired, method = "quantiseq",
             paste(sort(unique(paired$method)), collapse = ", "))
     return(NULL)
   }
-  # Colour by the clinical immuno-phenotype when the cached frame carries it, so this
-  # panel uses the same red-hot / blue-cold reading as 5(b) and the two can be looked
-  # at together. molecular_hot_cold.Rmd joins `clin` before caching; an older cache
-  # without the column still plots, in one neutral colour, rather than erroring.
-  has_hc <- "immuno_phe" %in% names(df) && any(!is.na(df$immuno_phe))
-  if (has_hc) df$immuno_phe <- hotcold_order(df$immuno_phe)
+  # A fixed facet order — the population list the legend prints — rather than
+  # alphabetical, so the panel reads T cells first and the same way every time.
+  df <- dplyr::mutate(df, lineage = factor(lineage, levels = union(lineages, unique(lineage))))
+
+  colour_var <- NULL; colour_name <- NULL
+  if (!is.null(groups) && nrow(groups) && "patient_id" %in% names(df)) {
+    df <- df |>
+      dplyr::mutate(.pid = slide_key(patient_id)) |>
+      dplyr::left_join(dplyr::transmute(groups, .pid = slide_key(patient_id), group),
+                       by = ".pid") |>
+      dplyr::select(-.pid)
+    if (any(!is.na(df$group))) {
+      df$group    <- hotcold_order(df$group)
+      colour_var  <- "group"
+      colour_name <- "Hotscore group"
+    }
+  }
+  if (is.null(colour_var) && "immuno_phe" %in% names(df) && any(!is.na(df$immuno_phe))) {
+    df$immuno_phe <- hotcold_order(df$immuno_phe)
+    colour_var    <- "immuno_phe"
+    colour_name   <- "Immuno-phenotype (clinical)"
+  }
 
   p <- ggplot(df, aes(ihc_frac, score)) +
-    (if (has_hc) geom_point(aes(colour = immuno_phe), size = 2.4, alpha = .85)
-     else        geom_point(size = 2.4, alpha = .85, colour = oi[1])) +
-    facet_wrap(~ lineage, scales = "free") +
+    (if (!is.null(colour_var))
+       geom_point(aes(colour = .data[[colour_var]]), size = 2.4, alpha = .85)
+     else geom_point(size = 2.4, alpha = .85, colour = oi[1])) +
+    facet_wrap(~ lineage, scales = "free", labeller = as_labeller(.lineage_labels)) +
     # Every panel has its own x and y range, because imaging counts cells while
     # deconvolution estimates a mixture fraction. theme_paper_panels() gives the
     # border and the wider gutter that say the axes are not shared — without them
     # four free-scaled panels sit edge to edge and invite a cross-panel comparison
     # this figure cannot support.
     theme_paper_panels() +
+    # Four breaks, not ggplot's default five-to-seven: each facet has its own range,
+    # and at print size the default overprints the x tick labels.
+    scale_x_continuous(breaks = scales::breaks_extended(n = 4)) +
+    scale_y_continuous(breaks = scales::breaks_extended(n = 4)) +
     labs(x = x_lab, y = y_lab %||% paste(method, "fraction"))
-  if (has_hc)
-    p <- p + scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
-                                 na.value = "grey70", name = "Immuno-phenotype")
+  if (!is.null(colour_var))
+    p <- p + scale_colour_manual(values = hotcold_cols(levels(df[[colour_var]])),
+                                 na.value = "grey70", name = colour_name)
   if (isTRUE(label_cases) && "patient_id" %in% names(df))
     p <- p + geom_text(aes(label = patient_id), size = pt_text(6),
                        vjust = -0.9, colour = "grey35")
@@ -256,11 +278,97 @@ paper_lineage_table <- function() {
   pheno <- phenotype_lineage_labels |>
     dplyr::transmute(side = "imaging (phenotype call)",
                      label = phenotype_clean, lineage)
-  known <- c("T cell regulatory (Tregs)", "T cell CD8+", "T cell CD4+",
+  # immunedeconv's harmonised spellings, as quanTIseq / EPIC emit them. The CD4
+  # helper label carries "(non-regulatory)" — see deconv_to_lineage() for why that
+  # word order once cost the CD4T facet.
+  known <- c("T cell regulatory (Tregs)", "T cell CD8+", "T cell CD4+ (non-regulatory)",
              "NK cell", "Macrophage M1", "Macrophage M2", "B cell",
-             "Monocyte", "Neutrophil", "Dendritic cell")
+             "Monocyte", "Neutrophil", "Myeloid dendritic cell", "uncharacterized cell")
   deconv <- tibble::tibble(side = "deconvolution (cell type)", label = known,
                            lineage = deconv_to_lineage(known)) |>
     dplyr::mutate(lineage = tidyr::replace_na(lineage, "(unmapped)"))
   dplyr::bind_rows(pheno, deconv) |> dplyr::arrange(side, lineage, label)
+}
+
+# --- The hot/cold axis (Fig 5a, 5b, 5c) --------------------------------------
+# ONE derivation, shared by the website page and figures/fig5.R, because the
+# legend's claim is that (a), (b) and (c) are the SAME six cases on the SAME axis.
+# Two copies of this ranking — one per caller — is how (b) grouped by hotscore
+# while (c) coloured by the clinical category, two different variables inside one
+# figure.
+#
+# `clin` is the clinical CRF, either as the raw sheet (`ID PATIENT`, `HOT score`,
+# `Immuno-phenotype`) or already normalised (`patient_id`, `hot_score`,
+# `immuno_phe`), or a path to the xlsx. `source = "hot_score"` ranks the
+# continuous Foy hotscore and takes the top / bottom k as hot / cold — the
+# legend's selection axis. That IS a threshold, on rank rather than on value: the
+# legend may say "no threshold on the score" but cannot say "no grouping".
+# `source = "immuno_phe"` uses the clinical category instead; it is a different
+# variable and a figure built on it must say so.
+paper_hotcold_groups <- function(clin, patient_ids = NULL,
+                                 source = c("hot_score", "immuno_phe"), k = 3) {
+  source <- match.arg(source)
+  if (is.character(clin) && length(clin) == 1) {
+    if (!file.exists(clin)) return(NULL)
+    clin <- readxl::read_excel(clin)
+  }
+  if (!"patient_id" %in% names(clin)) {
+    if (!"ID PATIENT" %in% names(clin))
+      stop("paper_hotcold_groups(): need `ID PATIENT` or `patient_id`")
+    clin <- clin |>
+      dplyr::filter(!is.na(.data[["ID PATIENT"]])) |>
+      dplyr::mutate(patient_id = slide_key(.data[["ID PATIENT"]]))
+  } else {
+    clin <- dplyr::mutate(clin, patient_id = slide_key(patient_id))
+  }
+  # select(any_of()) so a sheet missing either column loses the column, not the chunk.
+  clin <- clin |>
+    dplyr::select(patient_id,
+                  hot_score  = dplyr::any_of(c("hot_score", "HOT score")),
+                  immuno_phe = dplyr::any_of(c("immuno_phe", "Immuno-phenotype"))) |>
+    dplyr::distinct(patient_id, .keep_all = TRUE)
+  if (!is.null(patient_ids))
+    clin <- dplyr::filter(clin, patient_id %in% slide_key(patient_ids))
+  if ("hot_score" %in% names(clin))
+    clin$hot_score <- suppressWarnings(as.numeric(clin$hot_score))
+
+  if (source == "hot_score") {
+    if (!"hot_score" %in% names(clin)) return(NULL)
+    sc <- dplyr::filter(clin, is.finite(hot_score))
+    n  <- nrow(sc)
+    if (n < 2) return(NULL)
+    # k never exceeds half the cohort, so hot and cold cannot share a case.
+    k <- min(k, floor(n / 2))
+    r <- rank(-sc$hot_score, ties.method = "first")
+    sc |>
+      dplyr::mutate(group = dplyr::case_when(r <= k     ~ "hot",
+                                             r > n - k  ~ "cold",
+                                             TRUE       ~ NA_character_)) |>
+      dplyr::filter(!is.na(group)) |>
+      dplyr::select(patient_id, group, hot_score)
+  } else {
+    if (!"immuno_phe" %in% names(clin)) return(NULL)
+    clin |>
+      dplyr::filter(!is.na(immuno_phe)) |>
+      dplyr::transmute(patient_id, group = as.character(immuno_phe),
+                       hot_score = if ("hot_score" %in% names(clin)) hot_score else NA_real_)
+  }
+}
+
+# One representative case per group for Fig 5(a): the most extreme hotscore in
+# each group among the cases that actually have imaging. Derived, not pasted, so
+# (a) cannot show a case (b) did not group. Returns c(hot = id, cold = id), with a
+# missing group absent rather than NA.
+paper_representative_cases <- function(groups, available) {
+  if (is.null(groups) || nrow(groups) == 0) return(character(0))
+  g <- dplyr::filter(groups, slide_key(patient_id) %in% slide_key(available))
+  pick <- function(grp, decreasing) {
+    x <- dplyr::filter(g, group == grp)
+    if (nrow(x) == 0) return(NULL)
+    if ("hot_score" %in% names(x) && any(is.finite(x$hot_score)))
+      x <- x[order(x$hot_score, decreasing = decreasing), ]
+    x$patient_id[1]
+  }
+  out <- c(hot = pick("hot", TRUE), cold = pick("cold", FALSE))
+  out[!is.na(out)]
 }

@@ -114,7 +114,10 @@ for_panel <- function(p, point_size = 0.8, line_pt = 0.3, text_pt = BASE_PT) {
     is_tx  <- any(c("GeomText", "GeomLabel") %in% cls)
     is_ln  <- any(LINE_GEOMS %in% cls)
 
-    if (is_pt && !"size" %in% mapped)      ly$aes_params$size      <- point_size
+    # point_size = NULL keeps the builder's own size: paper_phenotype_map() sizes
+    # its dots to the field, and 0.8 pt over 400k cells is one solid blob.
+    if (is_pt && !"size" %in% mapped && !is.null(point_size))
+                                           ly$aes_params$size      <- point_size
     if (is_tx && !"size" %in% mapped)      ly$aes_params$size      <- pt_text(text_pt)
     # Unconditionally, not "only if already set": a boxplot the builder never gave a
     # linewidth to keeps ggplot's 0.5 default, which at 8pt base draws a box heavier
