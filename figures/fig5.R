@@ -166,7 +166,14 @@ p5c <- for_panel(paper_deconv_scatter(readRDS(paired_path), method = "quantiseq"
                                       groups = groups), point_size = 1.3)
 if (is.null(p5c)) stop("fig5: no quantiseq rows in ", paired_path)
 
-save_panel(p5a, "p5a"); save_panel(p5b, "p5b"); save_panel(p5c, "p5c")
+# Placed sizes for the per-panel PDFs: 190 x 190 mm split 1 : 0.95 between the
+# rows, bottom row split 1 : 2. (a)'s maps are also on disk as PNGs at the same
+# placed size (figures/panels/p5a_map_<case>.png), for placing the image directly.
+FIG5_W <- MM[["two_col"]]; FIG5_H <- 190
+ROW_A  <- FIG5_H / 1.95; ROW_BC <- FIG5_H - ROW_A
+save_panel(p5a, "p5a", FIG5_W, ROW_A)
+save_panel(p5b, "p5b", FIG5_W / 3, ROW_BC)
+save_panel(p5c, "p5c", FIG5_W * 2 / 3, ROW_BC)
 
 # --- Assemble ----------------------------------------------------------------
 # (b) is one axis with six points and (c) is four free-scaled facets, so the bottom
@@ -178,7 +185,7 @@ fig5 <- p5a / (p5b | p5c) +
                   tag_prefix = TAG$tag_prefix, tag_suffix = TAG$tag_suffix) &
   theme(plot.tag = element_text(face = "bold"), legend.position = "bottom")
 
-export_figure(fig5, "Fig5", width_mm = MM[["two_col"]], height_mm = 190)
+export_figure(fig5, "Fig5", width_mm = FIG5_W, height_mm = FIG5_H)
 
 message("fig5: arm = ", ARM, " | panel (a) cases = ", paste(cases, collapse = ", "),
         " | groups = ", nrow(groups), " (", HOTCOLD_SOURCE, ")")

@@ -52,17 +52,39 @@ here_root <- tryCatch(here::here(), error = function(e) normalizePath("."))
 source(file.path(here_root, "code", "plot_theme.R"))
 
 # --- The journal -------------------------------------------------------------
-# Medical Image Analysis. Widths are the three column measures; the figure picks
-# one and NEVER a number in between, because a 165mm figure is scaled to 190 or 140
-# by the typesetter and the type size stops being what this file says it is.
+# Medical Image Analysis (Elsevier). The numbers below are Elsevier's artwork
+# instructions as read on 2026-09-03 (elsevier.com/.../artwork-and-media-
+# instructions/artwork-sizing and /artwork-faq; the MIA guide for authors defers
+# to them):
+#   widths     single 90 mm (1063 px @300 / 1772 @500 dpi), 1.5 col 140 mm,
+#              double 190 mm (2244 px @300 / 3740 @500 dpi); minimum 30 mm
+#   resolution 300 dpi halftone, 500 dpi combination line+halftone, 1000 dpi
+#              pure line art
+#   vector     EPS or PDF "embedding the font or saving the text as graphics"
+#   type       "7 pt for normal text and no smaller than 6 pt for sub/superscript"
+#   lines      "recommended line width of 0.25 pt (absolute minimum 0.1 pt)",
+#              prominent lines ~1 pt
+#   colour     RGB (converted to CMYK for print by the publisher)
+#   size       "not larger than 10 MB", and "not more than 7 MB each" when several
+#   captions   a brief title (not on the figure) plus a description
+# Widths are the three column measures; the figure picks one and NEVER a number
+# in between, because a 165mm figure is scaled to 190 or 140 by the typesetter
+# and the type size stops being what this file says it is.
 JOURNAL <- "Medical Image Analysis"
 MM      <- c(one_col = 90, one_half = 140, two_col = 190)
 MAX_H   <- 230          # printed ceiling, matches plot_theme.R's FIG_MAX_H_MM
 # 500, not 300: Fig 4(a) and Fig 5(a) put a microscopy image next to vector line
 # art, and 300dpi visibly steps the diagonal edges of the line art when the raster
-# half forces the whole page to be rasterised at the image's resolution.
+# half forces the whole page to be rasterised at the image's resolution. 500 is
+# also Elsevier's figure for combination art.
 DPI     <- 500
 BASE_PT <- 8
+# Elsevier's floor. theme_paper() sets tick, strip and legend text at rel(0.85),
+# which at an 8 pt base is 6.8 pt — under the floor by a hair a reviewer will not
+# notice and a production checker will. Those elements are pinned to MIN_PT below.
+MIN_PT  <- 7
+# Per-figure cap when several figures are submitted ("not more than 7 MB each").
+MAX_MB  <- 7
 
 # Tag style. MIA parenthesises; Genome Medicine would be bare bold lowercase.
 TAG <- list(tag_levels = "a", tag_prefix = "(", tag_suffix = ")")
@@ -72,9 +94,14 @@ TAG <- list(tag_levels = "a", tag_prefix = "(", tag_suffix = ")")
 # is a bare theme() layered ON TOP, which is additive — the house theme survives.
 theme_set(
   theme_paper(base_size = BASE_PT) +
-    theme(axis.line  = element_line(linewidth = 0.3, colour = "black",
-                                    lineend = "square"),
-          axis.ticks = element_line(linewidth = 0.3, colour = "black"))
+    theme(axis.line    = element_line(linewidth = 0.3, colour = "black",
+                                      lineend = "square"),
+          axis.ticks   = element_line(linewidth = 0.3, colour = "black"),
+          # Absolute, not rel(): the smallest text on the page must be MIN_PT.
+          axis.text    = element_text(size = MIN_PT),
+          strip.text   = element_text(size = MIN_PT),
+          legend.text  = element_text(size = MIN_PT),
+          legend.title = element_text(size = MIN_PT))
 )
 
 # --- Panel -> assembly-ready -------------------------------------------------
@@ -130,12 +157,24 @@ for_panel <- function(p, point_size = 0.8, line_pt = 0.3, text_pt = BASE_PT) {
 }
 
 # Every panel object is cached, so a co-author can rebuild one panel of a figure
-# without re-running the pipeline that produced its data.
-save_panel <- function(p, id) {
+# without re-running the pipeline that produced its data — and, given its PLACED
+# size, written as its own vector PDF for hand assembly in Affinity. The PDF is
+# drawn at exactly the mm the panel occupies in the assembled figure, so placing it
+# at 100% in Affinity reproduces the type size this file promises; scaling it
+# there would not. Same device and font handling as export_figure().
+save_panel <- function(p, id, width_mm = NULL, height_mm = NULL) {
   if (is.null(p)) return(invisible(NULL))
-  dir.create(file.path(here_root, "figures", "panels"), recursive = TRUE,
-             showWarnings = FALSE)
-  saveRDS(p, file.path(here_root, "figures", "panels", paste0(id, ".rds")))
+  dir <- file.path(here_root, "figures", "panels")
+  dir.create(dir, recursive = TRUE, showWarnings = FALSE)
+  saveRDS(p, file.path(dir, paste0(id, ".rds")))
+  if (!is.null(width_mm) && !is.null(height_mm)) {
+    stopifnot(height_mm <= MAX_H)
+    pdf_p <- file.path(dir, paste0(id, ".pdf"))
+    ggsave(pdf_p, p, width = width_mm, height = height_mm, units = "mm",
+           device = grDevices::cairo_pdf)
+    message(sprintf("  %-8s %3.0f x %3.0f mm -> %s", id, width_mm, height_mm,
+                    file.path("figures", "panels", basename(pdf_p))))
+  }
   invisible(p)
 }
 
@@ -179,10 +218,13 @@ export_figure <- function(fig, name, width_mm, height_mm, dpi = DPI) {
 
   sz <- function(f) round(file.info(f)$size / 1024^2, 2)
   # Reported, not silently accepted: over the cap the figure has to be re-exported
-  # at a lower dpi and the author needs to know before submission, not after.
-  if (sz(tiff_p) > 10)
-    warning(name, ".tiff is ", sz(tiff_p), " MB — over the 10 MB cap. ",
-            "Re-export with dpi = 300.", call. = FALSE)
+  # smaller and the author needs to know before submission, not after. Both files
+  # are checked — a vector PDF of 800k points blows the cap as surely as a TIFF.
+  for (f in c(pdf_p, tiff_p))
+    if (sz(f) > MAX_MB)
+      warning(basename(f), " is ", sz(f), " MB — over Elsevier's ", MAX_MB,
+              " MB per-figure cap. Rasterise the dense panel or lower dpi.",
+              call. = FALSE)
 
   message(sprintf("%-6s %3.0f x %3.0f mm | PDF %5.2f MB | TIFF %5.2f MB @ %d dpi",
                   name, width_mm, height_mm, sz(pdf_p), sz(tiff_p), dpi))
