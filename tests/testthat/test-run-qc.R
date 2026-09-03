@@ -133,11 +133,11 @@ test_that("a lone summary is not called post-micro, and yields no micro stage", 
   expect_equal(long$error[long$stage == "non_rigid"], 3)
 })
 
-test_that("the stage figure is a boxplot carrying printed medians", {
+test_that("the stage figure is a bare boxplot on a log axis", {
   figs <- build_run_qc_figs(qc_fixture())
   p <- figs[["01_valis_error_by_stage"]]
-  expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomBoxplot"), logical(1))))
-  expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomText"), logical(1))))
+  geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_equal(unname(geoms), "GeomBoxplot")   # no points, no printed medians
   # No facet: the pre/post split was the thing that made two near-identical panels.
   expect_s3_class(p$facet, "FacetNull")
   # Log y: on a linear axis the registered stages sat on zero under one bad slide.

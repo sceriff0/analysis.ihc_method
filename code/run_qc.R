@@ -419,36 +419,28 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
   # -- §1 VALIS intrinsic error, per slide across stages -----------------------
   vl <- valis_error_long(tables$valis)
   if (nrow(vl)) {
-    # Boxplot per stage with the median PRINTED. Boxes only: the per-slide points and
-    # their patient legend were dropped because they were what the figure was read
-    # for, and the box already summarises them — and reading a value off a log axis
-    # is guesswork, so the number is written on the box. Outliers stay drawn, since
-    # without the overlay they would otherwise vanish from the figure entirely.
-    med <- vl |>
-      dplyr::group_by(stage) |>
-      dplyr::summarise(error = stats::median(error, na.rm = TRUE),
-                       n = dplyr::n(), .groups = "drop")
+    # Boxes only. The per-slide points, their patient legend and the printed medians
+    # were all dropped: the box summarises the slides, and the table above the figure
+    # carries the numbers. Outliers stay drawn, since without the overlay they would
+    # otherwise vanish from the figure entirely.
     micro_ran <- "micro" %in% as.character(vl$stage)
     # Log y axis. The error falls by an order of magnitude or more from `original`
     # to `non_rigid`, and a slide or two register badly enough to set a linear range
     # for every stage — on a linear axis the registered boxes sat on zero and the
     # figure used to clip its top to stay readable. A log axis shows every stage
     # and every slide at once, so nothing is cropped and the caption has nothing
-    # to declare. The medians were computed above, over every slide, BEFORE the
-    # positivity filter below; that filter exists only because log10(0) is not a
-    # coordinate, and an error of exactly 0 does not occur in practice.
+    # to declare. The positivity filter exists only because log10(0) is not a
+    # coordinate; an error of exactly 0 does not occur in practice.
     vl <- dplyr::filter(vl, error > 0)
     figs[["01_valis_error_by_stage"]] <-
       ggplot(vl, aes(stage, error)) +
       geom_boxplot(width = .5, colour = "grey35", outlier.size = 1.2) +
       scale_x_discrete(labels = label_n(vl$stage)) +
-      geom_text(data = med, aes(label = signif(error, 3)),
-                vjust = -1.1, size = pt_text(7), colour = "grey15") +
       scale_y_log10() +
       lab(title = "VALIS registration error by stage",
            subtitle = paste0(
              "VALIS grading itself from its own feature matches; lower = better. ",
-             "Label = median. VALIS has no micro column — micro-registration updates the ",
+             "VALIS has no micro column — micro-registration updates the ",
              "non-rigid field, so the stage axis comes from which FILE a value is in. ",
              if (micro_ran)
                paste("`non_rigid` is the pre-micro summary; `micro` is the same",
