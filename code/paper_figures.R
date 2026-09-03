@@ -203,15 +203,25 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
 }
 
 # --- Imaging vs deconvolution (Fig 5c) ---------------------------------------
-# One method, faceted by population, raw paired points only.
+# One method, one panel: the imaging fraction on x, the method's estimate on y, a
+# point per (patient, population), coloured by population. Only the populations BOTH
+# sides resolve are drawn — `paired` is already the inner join on (patient, lineage),
+# and the filter below re-asserts that on the frame it is handed, so a stale cache
+# with an unmapped row cannot put an unlabelled population on the panel.
 #
-# NO FIT LINE AND NO COEFFICIENT, for the same reason as above and one more: the
-# two axes use different denominators (imaging counts cells, deconvolution
-# estimates a mixture fraction), so a regression line would invite exactly the
-# absolute-agreement reading the legend explicitly disclaims. Ranking is the claim;
-# `free` scales per facet are what let ranking be read.
+# NO FIT LINE AND NO COEFFICIENT, for the reason 5(b) gives and one more: the two
+# axes use different denominators (imaging counts cells, deconvolution estimates a
+# mixture fraction), so a regression line would invite exactly the absolute-agreement
+# reading the legend explicitly disclaims. Ranking is the claim.
+#
+# ONE PANEL, NOT FOUR FACETS. The facetted form put every population on its own free
+# axis pair, which made ranking readable within a population but hid that the
+# populations live at very different abundances. Sharing the axes shows the four as
+# one cloud and lets the reader see, e.g., that CD8 T sits above Treg on both sides.
+# Colour comes from scale_colour_lineage(), the named palette every other lineage
+# panel uses, so CD8 T is the same vermillion here as in 5(a).
 paper_deconv_scatter <- function(paired, method = "quantiseq",
-                                 x_lab = "Imaging fraction of all cells (unitless, 0-1)",
+                                 x_lab = "Imaging fraction of all cells (mIF, 0-1)",
                                  y_lab = NULL, label_cases = FALSE) {
   stopifnot(all(c("method", "lineage", "ihc_frac", "score") %in% names(paired)))
   df <- dplyr::filter(paired, tolower(.data$method) == tolower(!!method))
@@ -220,31 +230,52 @@ paper_deconv_scatter <- function(paired, method = "quantiseq",
             paste(sort(unique(paired$method)), collapse = ", "))
     return(NULL)
   }
-  # Colour by the clinical immuno-phenotype when the cached frame carries it, so this
-  # panel uses the same red-hot / blue-cold reading as 5(b) and the two can be looked
-  # at together. molecular_hot_cold.Rmd joins `clin` before caching; an older cache
-  # without the column still plots, in one neutral colour, rather than erroring.
+  df <- df |>
+    dplyr::filter(is.finite(.data$ihc_frac), is.finite(.data$score),
+                  .data$lineage %in% LEGIBLE_LINEAGES) |>
+    dplyr::mutate(lineage = lineage_legible(.data$lineage))
+  if (nrow(df) == 0) {
+    warning("paper_deconv_scatter(): no finite pairs on a shared population for '",
+            method, "'")
+    return(NULL)
+  }
+
+  # The clinical hot/cold call rides on SHAPE when the cached frame carries it, so
+  # this panel can still be read against 5(b) without stealing colour from the
+  # populations. An older cache without the column plots one shape.
   has_hc <- "immuno_phe" %in% names(df) && any(!is.na(df$immuno_phe))
   if (has_hc) df$immuno_phe <- hotcold_order(df$immuno_phe)
 
-  p <- ggplot(df, aes(ihc_frac, score)) +
-    (if (has_hc) geom_point(aes(colour = immuno_phe), size = 2.4, alpha = .85)
-     else        geom_point(size = 2.4, alpha = .85, colour = oi[1])) +
-    facet_wrap(~ lineage, scales = "free") +
-    # Every panel has its own x and y range, because imaging counts cells while
-    # deconvolution estimates a mixture fraction. theme_paper_panels() gives the
-    # border and the wider gutter that say the axes are not shared — without them
-    # four free-scaled panels sit edge to edge and invite a cross-panel comparison
-    # this figure cannot support.
-    theme_paper_panels() +
-    labs(x = x_lab, y = y_lab %||% paste(method, "fraction"))
-  if (has_hc)
-    p <- p + scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
-                                 na.value = "grey70", name = "Immuno-phenotype")
+  n_pat <- if ("patient_id" %in% names(df)) df$patient_id else NULL
+  p <- ggplot(df, aes(.data$ihc_frac, .data$score, colour = .data$lineage)) +
+    (if (has_hc) geom_point(aes(shape = .data$immuno_phe), size = 2.4, alpha = .85)
+     else        geom_point(size = 2.4, alpha = .85)) +
+    scale_colour_lineage(name = "Population",
+                         guide = guide_legend(override.aes = list(size = 2.5))) +
+    labs(x = x_lab, y = y_lab %||% paste(method_label(method), "fraction (0-1)"),
+         subtitle = if (!is.null(n_pat)) with_n(NULL, n_pat, "patients") else NULL)
+  if (has_hc) {
+    # hotcold_order() keeps the clinical spelling of the levels (HOT / Hot / hot),
+    # so shapes are keyed by the levels it returns, in its cold -> hot order.
+    lv <- levels(df$immuno_phe)
+    p <- p + scale_shape_manual(values = stats::setNames(c(16, 17, 15, 18)[seq_along(lv)], lv),
+                                na.value = 1, name = "Immuno-phenotype")
+  }
   if (isTRUE(label_cases) && "patient_id" %in% names(df))
-    p <- p + geom_text(aes(label = patient_id), size = pt_text(6),
-                       vjust = -0.9, colour = "grey35")
+    p <- p + geom_text(aes(label = .data$patient_id), size = pt_text(6),
+                       vjust = -0.9, colour = "grey35", show.legend = FALSE)
   p
+}
+
+# The method name as a reader meets it. immunedeconv keys are lower-case slugs; the
+# tools have house capitalisation that a legend should respect.
+method_label <- function(method) {
+  known <- c(quantiseq = "quanTIseq", epic = "EPIC", mcp_counter = "MCP-counter",
+             xcell = "xCell", abis = "ABIS", timer = "TIMER",
+             consensus_tme = "ConsensusTME", cibersort = "CIBERSORT",
+             cibersort_abs = "CIBERSORT (abs.)")
+  m <- tolower(method)
+  ifelse(m %in% names(known), known[m], method)
 }
 
 # --- Additional file 4: the mapping, as data ---------------------------------

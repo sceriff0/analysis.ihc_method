@@ -94,6 +94,23 @@ test_that("the deconvolution panel keeps one method and draws no fit line", {
   p <- paper_deconv_scatter(paired, "quantiseq")
   expect_equal(unique(p$data$method), "quantiseq")
   expect_false(any(vapply(p$layers, function(l) inherits(l$stat, "StatSmooth"), logical(1))))
+  # One panel, populations distinguished by colour from the named lineage palette,
+  # never by facet — the four share axes so their abundances can be compared.
+  expect_s3_class(p$facet, "FacetNull")
+  built <- ggplot2::ggplot_build(p)
+  cols  <- unique(built$data[[1]]$colour)
+  expect_true(all(cols %in% unname(LINEAGE_COLS[c("CD8T", "CD4T", "Treg", "NK")])))
+  expect_match(p$labels$y, "quanTIseq")
+})
+
+test_that("the deconvolution panel keeps only populations both sides resolve", {
+  paired <- tibble::tibble(method = "quantiseq",
+                           lineage = c("CD8T", "CD8T", "B cell", NA, "NK"),
+                           patient_id = c("1", "2", "1", "2", "1"),
+                           ihc_frac = c(.1, .2, .3, .4, NA), score = c(.1, .2, .3, .4, .5))
+  p <- paper_deconv_scatter(paired, "quantiseq")
+  expect_equal(nrow(p$data), 2L)
+  expect_equal(as.character(unique(p$data$lineage)), "CD8T")
 })
 
 test_that("asking for a method that was not run warns and names what is available", {
