@@ -419,9 +419,11 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
   # -- §1 VALIS intrinsic error, per slide across stages -----------------------
   vl <- valis_error_long(tables$valis)
   if (nrow(vl)) {
-    # Boxplot per stage, every slide overlaid, and the median PRINTED. With a handful
-    # of slides the box is scaffolding for the eye and the points are the data — but a
-    # reader still wants the number, and reading it off a log axis is guesswork.
+    # Boxplot per stage with the median PRINTED. Boxes only: the per-slide points and
+    # their patient legend were dropped because they were what the figure was read
+    # for, and the box already summarises them — and reading a value off a log axis
+    # is guesswork, so the number is written on the box. Outliers stay drawn, since
+    # without the overlay they would otherwise vanish from the figure entirely.
     med <- vl |>
       dplyr::group_by(stage) |>
       dplyr::summarise(error = stats::median(error, na.rm = TRUE),
@@ -438,13 +440,10 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
     vl <- dplyr::filter(vl, error > 0)
     figs[["01_valis_error_by_stage"]] <-
       ggplot(vl, aes(stage, error)) +
-      geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      geom_boxplot(width = .5, colour = "grey35", outlier.size = 1.2) +
       scale_x_discrete(labels = label_n(vl$stage)) +
-      geom_jitter(aes(colour = patient_id), width = .12, height = 0,
-                  size = 1.9, alpha = .85) +
       geom_text(data = med, aes(label = signif(error, 3)),
                 vjust = -1.1, size = pt_text(7), colour = "grey15") +
-      scale_colour_oi(name = "patient") +
       scale_y_log10() +
       lab(title = "VALIS registration error by stage",
            subtitle = paste0(

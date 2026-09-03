@@ -185,7 +185,7 @@ if (nrow(qc_tables$seg_qc)) {
 fig_notes <- c(
   "01_valis_error_by_stage" = paste(
     "VALIS's own error across `original` → `rigid` → `non_rigid` → `micro`, one box per",
-    "stage with every slide overlaid and the **median printed**. rTRE is relative to the",
+    "stage over every moving slide with the **median printed**. rTRE is relative to the",
     "image diagonal (unitless, comparable across slide sizes); some builds emit raw",
     "`*_D` distances instead. **Intrinsic** — VALIS scoring its own feature matches.",
     "The four stages come from three columns across two files: `non_rigid` from the",
