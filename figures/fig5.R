@@ -4,7 +4,8 @@
 #                    imaging immune quantification with two orthogonal
 #                    transcriptomic proxies, six head-and-neck cases.
 #
-#   (a) Registered, phenotyped cases, cells coloured by population   [computed]
+#   (a) Registered, phenotyped cases: whole slide, tumour vs rest, beside
+#       the tumour-richest region coloured by compartment              [computed]
 #   (b) mIF CD45+/all-cells, three hot vs three cold                 [computed]
 #   (c) quanTIseq deconvolution vs imaging fraction, by population   [computed]
 #
@@ -40,7 +41,7 @@ suppressPackageStartupMessages({
 root <- here_root
 source(file.path(root, "code", "validation_helpers.R"))
 source(file.path(root, "code", "paper_figures.R"))
-source(file.path(root, "code", "all_slide.R"))
+source(file.path(root, "code", "arm_cells.R"))
 
 # Set to a character vector of patient ids to pin panel (a); NULL derives them.
 FIG5A_CASES    <- NULL
@@ -49,20 +50,32 @@ FIG5A_CASES    <- NULL
 HOTCOLD_SOURCE <- "hot_score"
 
 # --- Load --------------------------------------------------------------------
-as_cells <- all_slide_cells(ALL_SLIDE_DIR)
-if (!nrow(as_cells))
-  stop("fig5: no cells under ", ALL_SLIDE_DIR, ". Expected\n",
-       "  data/all_slide/csv/<patient>/<patient>_<A|B|C>.csv\n",
-       "  data/all_slide/annotation/<patient>/<patient>_<A|B|C>.geojson")
+# ONE arm, the same one analysis/paper_figures.Rmd draws from. Regions are arm-local
+# (see CLAUDE.md), so this cannot pool arms.
+ARM     <- "massimo2"
+as_spec <- arm_spec(ARM)
+if (!dir.exists(as_spec$region_csv$path))
+  stop("fig5: no cells under ", as_spec$region_csv$path, ". Expected\n",
+       "  data/", ARM, "/csv/<patient>/<patient>_<A|B|C>.csv\n",
+       "  data/", ARM, "/annotation/<patient>/<patient>_<A|B|C>.geojson")
+as_cells  <- arm_cells(as_spec)
+as_ucells <- arm_union_tier_cells(as_spec)
+if (!nrow(as_cells)) stop("fig5: arm_cells() read nothing for ", ARM)
 
-# all_slide_annotations() errors without sf on purpose — a caller that asked for an
+# arm_annotations() errors without sf on purpose — a caller that asked for an
 # outline should hear that it cannot be drawn. The map is still correct without one,
 # so this degrades to NULL rather than aborting the figure.
-as_polys <- tryCatch(
-  all_slide_annotations(ALL_SLIDE_DIR, patient_ids = unique(as_cells$patient_id)),
+pids     <- unique(c(as_cells$patient_id, as_ucells$patient_id))
+as_polys <- tryCatch(arm_annotations(as_spec, "region", patient_ids = pids),
   error = function(e) { warning("fig5: no annotation outlines (", conditionMessage(e),
                                 ")", call. = FALSE); NULL })
-as_union <- all_slide_metrics(as_cells, as_polys, "union")
+as_upoly <- tryCatch(arm_annotations(as_spec, "union", patient_ids = pids),
+                     error = function(e) NULL)
+.prom    <- arm_promote_unregioned(as_spec, as_cells, as_polys, as_ucells, as_upoly)
+as_cells <- .prom$cells; as_polys <- .prom$polys
+as_per   <- arm_metrics(as_spec, as_cells, as_polys, "per_annotation")
+as_union <- arm_metrics(as_spec, as_cells, as_polys, "union",
+                        union_cells = as_ucells, union_polys = as_upoly)
 
 # --- The hot/cold axis, shared by (a) and (b) --------------------------------
 groups    <- NULL
@@ -108,23 +121,29 @@ cases <- FIG5A_CASES %||% {
 cases <- cases[!is.na(cases)]
 if (!length(cases)) stop("fig5: no case is both grouped and present in the imaging.")
 
-maps <- lapply(cases, function(pid) {
-  p <- paper_phenotype_map(as_cells, patient_id = pid, annots = as_polys, title = NULL)
-  if (is.null(p)) return(NULL)
-  for_panel(p)
+# One ROW per case: the whole slide (tumour vs everything else, every annotation
+# outlined) beside the tumour-richest annotation cut to its box and coloured by
+# compartment. paper_phenotype_map_pair() returns the two panels; the layout is here.
+rows <- lapply(cases, function(pid) {
+  pr <- paper_phenotype_map_pair(as_cells, pid, annots = as_polys, per = as_per)
+  if (is.null(pr$overview)) return(NULL)
+  ov <- for_panel(pr$overview)
+  if (is.null(pr$inset)) return(wrap_elements(full = ov))
+  ov | for_panel(pr$inset)
 })
-maps <- maps[!vapply(maps, is.null, logical(1))]
-if (!length(maps)) stop("fig5: paper_phenotype_map() returned nothing for ", 
+rows <- rows[!vapply(rows, is.null, logical(1))]
+if (!length(rows)) stop("fig5: paper_phenotype_map_pair() returned nothing for ",
                         paste(cases, collapse = ", "))
 
-# wrap_elements() so the two maps read as ONE tagged panel. Without it, tag_levels
+# wrap_elements() so the case rows read as ONE tagged panel. Without it, tag_levels
 # tags each map separately and the real (b) becomes (c).
-# The lineage key is pinned UNDER the two maps rather than left to default. The
-# default put it top-left, where it collided with the "(a)" tag — and it belongs to
-# panel (a) alone in any case: (b) and (c) do not use lineage colours, so hoisting it
-# into the figure-wide strip would file a seven-population key under a figure two
-# thirds of which never refers to it.
-p5a <- wrap_elements(full = Reduce(`|`, maps) +
+# The two colour keys (tumour / non-tumour on the left, the four compartments on the
+# right) are pinned UNDER the maps rather than left to default. The default put
+# them top-left, where they collided with the "(a)" tag — and they belong to panel
+# (a) alone in any case: (b) and (c) do not use these colours, so hoisting them into
+# the figure-wide strip would file a key under a figure two thirds of which never
+# refers to it.
+p5a <- wrap_elements(full = Reduce(`/`, rows) +
                        plot_layout(guides = "collect") &
                        theme(legend.position = "bottom"))
 
@@ -143,16 +162,17 @@ if (is.null(p5c)) stop("fig5: no quantiseq rows in ", paired_path)
 save_panel(p5a, "p5a"); save_panel(p5b, "p5b"); save_panel(p5c, "p5c")
 
 # --- Assemble ----------------------------------------------------------------
-# (b) is one axis with six points and (c) is four free-scaled facets, so the bottom
-# row is split 1:2 rather than evenly — an equal split gives (b) whitespace it does
-# not use and squeezes (c)'s facets below the width where the ranking is readable.
+# (a) is one row per case, two maps wide, so it takes the larger share of the
+# height. (b) is one axis with six points and (c) one shared-axis cloud, so the
+# bottom row is split 1:2 rather than evenly — an equal split gives (b) whitespace
+# it does not use and squeezes (c) below the width where the ranking is readable.
 fig5 <- p5a / (p5b | p5c) +
-  plot_layout(heights = c(1, 0.95), widths = c(1, 2), guides = "collect") +
+  plot_layout(heights = c(1.6, 1), widths = c(1, 2), guides = "collect") +
   plot_annotation(tag_levels = TAG$tag_levels,
                   tag_prefix = TAG$tag_prefix, tag_suffix = TAG$tag_suffix) &
   theme(plot.tag = element_text(face = "bold"), legend.position = "bottom")
 
-export_figure(fig5, "Fig5", width_mm = MM[["two_col"]], height_mm = 190)
+export_figure(fig5, "Fig5", width_mm = MM[["two_col"]], height_mm = 225)
 
 message("fig5: panel (a) cases = ", paste(cases, collapse = ", "),
         " | groups = ", nrow(groups))

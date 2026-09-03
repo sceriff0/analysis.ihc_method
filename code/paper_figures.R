@@ -23,7 +23,8 @@
 #
 # WHY THESE FUNCTIONS AND NOT OTHERS. The legends ask for four things no analysis
 # page currently draws:
-#   paper_phenotype_map()          Fig 5(a) — cells coloured by call
+#   paper_phenotype_map()          Fig 3(d), Fig 5(a) — cells coloured by call
+#   paper_phenotype_map_pair()     Fig 5(a) — a case as overview + region inset
 #   paper_immune_fraction_hotcold() Fig 5(b) — CD45+/all cells, hot vs cold
 #   paper_deconv_scatter()          Fig 5(c) — one method, no fit, no coefficient
 #   paper_lineage_table()           Additional file 4 — the mapping, as data
@@ -58,10 +59,29 @@ suppressPackageStartupMessages({
 
 # Cells coloured by phenotype call, in the geojson PIXEL frame.
 #
+# `colour_by` picks the reading: "lineage" is the seven-population map (Fig 3d),
+# "tumour" is tumour against everything else — the whole-slide overview of Fig
+# 5(a) — and "compartment" is tumour / immune / stroma / other, the reading its
+# region inset uses. All three come from the same cell_lineage() call collapsed
+# by plot_theme.R (lineage_legible(), lineage_compartment()), so a cell that is
+# tumour in one view cannot be anything else in another. Colours are the NAMED
+# palettes behind scale_colour_lineage() / scale_colour_compartment().
+#
 # `zoom = c(xmin, xmax, ymin, ymax)` in pixels cuts the inset — the SAME function
-# call, so the inset cannot drift from the map it is an inset of. Point size is
-# left free by default and scaled to the field, because the size that reads as
-# "one cell" on a whole slide is a smear at inset zoom.
+# call, so the inset cannot drift from the map it is an inset of. The window is
+# applied as coordinate limits, not only as a cell filter, so an annotation outline
+# that continues past the edge is clipped rather than stretching the panel. Point
+# size is left free by default and scaled to the field, because the size that reads
+# as "one cell" on a whole slide is a smear at inset zoom.
+#
+# `highlight` names one annotation (its `annotation` value in `annots`) to draw
+# with a heavier outline: the overview's locator for the region its inset shows.
+# `legend_title` names the colour key — needed when two maps with different keys
+# share a legend strip, where two untitled keys both starting "Tumour" read as one.
+#
+# A region-tier cell table lists a cell once per region file it appears in, so the
+# cells are de-duplicated on cell_key_cols() first — otherwise a three-region slide
+# draws every cell three times and reports three times its n.
 #
 # Y IS REVERSED. Image coordinates put the origin top-left and y increasing
 # downward; a plot drawn with ggplot's default y-up is the slide upside down,
@@ -70,9 +90,16 @@ suppressPackageStartupMessages({
 paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
                                 zoom = NULL, um_per_px = 0.325,
                                 point_size = NULL, scale_bar = TRUE,
-                                title = NULL) {
+                                title = NULL,
+                                colour_by = c("lineage", "tumour", "compartment"),
+                                highlight = NULL, subtitle = NULL,
+                                legend_title = NULL) {
+  colour_by <- match.arg(colour_by)
   if (!is.null(patient_id))
     cells <- dplyr::filter(cells, slide_key(.data$patient_id) == slide_key(!!patient_id))
+  keys <- intersect(cell_key_cols(cells), names(cells))
+  if (length(keys))
+    cells <- dplyr::distinct(cells, dplyr::across(dplyr::all_of(keys)), .keep_all = TRUE)
   if (nrow(cells) == 0) {
     warning("paper_phenotype_map(): no cells for ", patient_id %||% "the given set")
     return(NULL)
@@ -85,8 +112,13 @@ paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
     # An unmapped label is a vocabulary gap, not a cell type; it must not get a hue
     # and be read as a population. lineage_legible() joins it to "other" with
     # everything else off-subset, keeping the full level set so drop = FALSE holds
-    # the colours steady across a map and its inset.
-    dplyr::mutate(lineage = lineage_legible(lineage))
+    # the colours steady across a map and its inset. `call` is what the points are
+    # coloured by; `lineage` stays so a caller can always recover the finer label.
+    dplyr::mutate(lineage = lineage_legible(lineage),
+                  call = switch(colour_by,
+                                lineage     = lineage,
+                                tumour      = lineage_compartment(lineage, binary = TRUE),
+                                compartment = lineage_compartment(lineage)))
   if (!is.null(zoom)) {
     stopifnot(length(zoom) == 4)
     df <- dplyr::filter(df, x >= zoom[1], x <= zoom[2], y >= zoom[3], y <= zoom[4])
@@ -96,51 +128,140 @@ paper_phenotype_map <- function(cells, patient_id = NULL, annots = NULL,
     }
   }
 
-  span_px <- max(diff(range(df$x)), diff(range(df$y)))
+  # The field is the zoom window when there is one, else the extent of the cells:
+  # point size and the scale bar are sized to what is drawn, not to the slide.
+  field   <- zoom %||% c(range(df$x), range(df$y))
+  span_px <- max(field[2] - field[1], field[4] - field[3])
   if (is.null(point_size))
     point_size <- max(0.05, min(1.6, 900 / max(span_px, 1)))
 
-  p <- ggplot(df, aes(x, y, colour = lineage)) +
+  scale_fn <- switch(colour_by,
+                     lineage = scale_colour_lineage,
+                     scale_colour_compartment)
+  p <- ggplot(df, aes(x, y, colour = call)) +
     geom_point(size = point_size, shape = 16, alpha = .85) +
     # Unused levels are dropped. It is tempting to keep them so a map and its inset
     # carry identical legends, but the named palette ALREADY guarantees a population
     # is the same colour in both, and a kept-but-empty level draws a labelled key
     # with no swatch beside it — on a manuscript panel that reads as a broken figure.
     # A legend listing only the populations actually present is the accurate one.
-    scale_colour_lineage(guide = guide_legend(override.aes = list(size = 2.5))) +
+    scale_fn(name = legend_title,
+             guide = guide_legend(override.aes = list(size = 2.5))) +
     scale_y_reverse() +
-    coord_fixed() +
     labs(title = title %||% (if (!is.null(patient_id)) paste("Patient", patient_id) else NULL),
-         x = NULL, y = NULL) +
+         subtitle = subtitle, x = NULL, y = NULL) +
     theme(axis.text = element_blank(), axis.ticks = element_blank(),
           panel.grid = element_blank())
+  # coord_fixed() alone for the whole slide; with a zoom the window becomes the
+  # panel, edge to edge, so a highlighted outline running past it is cut, not drawn.
+  p <- p + (if (is.null(zoom)) coord_fixed()
+            else coord_fixed(xlim = zoom[1:2], ylim = zoom[3:4], expand = FALSE))
 
   # The pathologist's line, drawn as an outline only — filled, it would hide the
   # cells the panel exists to show.
   if (!is.null(annots) && requireNamespace("sf", quietly = TRUE)) {
     ap <- annots[slide_key(annots$patient_id) == slide_key(patient_id %||% ""), , drop = FALSE]
     if (nrow(ap) > 0) {
+      ann_names <- if ("annotation" %in% names(ap)) as.character(ap$annotation)
+                   else as.character(seq_len(nrow(ap)))
       coords <- do.call(rbind, lapply(seq_len(nrow(ap)), function(i) {
         m <- sf::st_coordinates(sf::st_geometry(ap)[i])
-        data.frame(x = m[, "X"], y = m[, "Y"], grp = paste(i, m[, "L2"] %||% 1))
+        data.frame(x = m[, "X"], y = m[, "Y"], grp = paste(i, m[, "L2"] %||% 1),
+                   hi = !is.null(highlight) && ann_names[i] %in% highlight)
       }))
-      p <- p + geom_path(data = coords, aes(x, y, group = grp),
-                         inherit.aes = FALSE, colour = "grey20",
-                         linewidth = pt_line(0.6))
+      p <- p +
+        geom_path(data = coords[!coords$hi, , drop = FALSE], aes(x, y, group = grp),
+                  inherit.aes = FALSE, colour = "grey20", linewidth = pt_line(0.6))
+      if (any(coords$hi))
+        p <- p +
+          geom_path(data = coords[coords$hi, , drop = FALSE], aes(x, y, group = grp),
+                    inherit.aes = FALSE, colour = "grey10", linewidth = pt_line(1.4))
     }
   }
 
   if (isTRUE(scale_bar)) {
     bar_um <- .nice_bar_um(span_px * um_per_px)
     bar_px <- bar_um / um_per_px
-    x1 <- max(df$x) - bar_px; x0 <- max(df$x); y0 <- max(df$y) + span_px * 0.04
+    if (is.null(zoom)) {
+      # Below the tissue, where nothing is drawn.
+      x0 <- field[2]; x1 <- x0 - bar_px; y0 <- field[4] + span_px * 0.04
+      y_lab <- y0 + span_px * 0.035
+    } else {
+      # Inside the window, bottom-right: outside it would be clipped away.
+      pad <- span_px * 0.04
+      x0 <- field[2] - pad; x1 <- x0 - bar_px; y0 <- field[4] - pad - span_px * 0.05
+      y_lab <- y0 + span_px * 0.035
+    }
     p <- p +
       annotate("segment", x = x1, xend = x0, y = y0, yend = y0,
                linewidth = pt_line(2), colour = "grey10", lineend = "butt") +
-      annotate("text", x = (x0 + x1) / 2, y = y0 + span_px * 0.035,
+      annotate("text", x = (x0 + x1) / 2, y = y_lab,
                label = paste0(bar_um, " µm"), size = pt_text(7), colour = "grey10")
   }
   p
+}
+
+# Which region the inset shows: the patient's annotated polygon holding the most
+# tumour cells, read off the per-annotation metrics table (`n_tumor_inside`, the
+# sf point-in-polygon count arm_metrics() already made) rather than recounted here,
+# so the inset and the density tables agree on what "most tumour" means. Returns
+# the annotation name and its bounding box in geojson pixels, padded by `pad` of
+# the box on every side, as the `zoom` paper_phenotype_map() takes; NULL when the
+# patient has no polygon with a count (a csv-flag fallback row has no geometry).
+tumour_richest_region <- function(per, polys, patient_id, pad = 0.03) {
+  stopifnot(all(c("patient_id", "annotation", "n_tumor_inside") %in% names(per)))
+  if (is.null(polys) || !requireNamespace("sf", quietly = TRUE)) return(NULL)
+  pid  <- slide_key(patient_id)
+  pp   <- polys[slide_key(polys$patient_id) == pid, , drop = FALSE]
+  cand <- per[slide_key(per$patient_id) == pid &
+              per$annotation %in% as.character(pp$annotation) &
+              is.finite(per$n_tumor_inside), , drop = FALSE]
+  if (nrow(pp) == 0 || nrow(cand) == 0) return(NULL)
+  ann  <- as.character(cand$annotation[which.max(cand$n_tumor_inside)])
+  bb   <- sf::st_bbox(sf::st_geometry(pp[as.character(pp$annotation) == ann, , drop = FALSE]))
+  w <- unname(bb["xmax"] - bb["xmin"]); h <- unname(bb["ymax"] - bb["ymin"])
+  list(annotation = ann,
+       n_tumor    = max(cand$n_tumor_inside),
+       zoom       = unname(c(bb["xmin"] - pad * w, bb["xmax"] + pad * w,
+                             bb["ymin"] - pad * h, bb["ymax"] + pad * h)))
+}
+
+# The two panels of one Fig 5(a) case, as a LIST — not a composite (see the header).
+# `overview` is the whole slide with every annotation outlined, tumour in red and
+# everything else grey, the inset's region drawn heavier; `inset` is that region,
+# the one with the most tumour cells (tumour_richest_region()), coloured by
+# compartment. The callers — analysis/paper_figures.Rmd and figures/fig5.R — put
+# them side by side. When no region can be chosen (no polygons, no sf) the inset
+# is NULL and the overview stands alone, so the page still knits.
+paper_phenotype_map_pair <- function(cells, patient_id, annots = NULL, per = NULL,
+                                     um_per_px = 0.325, title = NULL) {
+  region <- if (!is.null(per)) tumour_richest_region(per, annots, patient_id) else NULL
+  overview <- paper_phenotype_map(cells, patient_id, annots = annots,
+                                  um_per_px = um_per_px, colour_by = "tumour",
+                                  highlight = region$annotation,
+                                  title = title %||% paste("Patient", patient_id),
+                                  legend_title = "Whole slide")
+  if (!is.null(overview))
+    overview <- overview + labs(subtitle = with_n(NULL, nrow(overview$data), "cells"))
+  inset <- NULL
+  if (!is.null(region)) {
+    inset <- paper_phenotype_map(cells, patient_id, annots = annots, zoom = region$zoom,
+                                 um_per_px = um_per_px, colour_by = "compartment",
+                                 highlight = region$annotation,
+                                 title = region_label(region$annotation),
+                                 legend_title = "Region")
+    if (!is.null(inset))
+      inset <- inset + labs(subtitle = with_n(NULL, nrow(inset$data), "cells"))
+  }
+  list(overview = overview, inset = inset, region = region)
+}
+
+# "ANNOTATION_2" is a filename token, not a panel title.
+region_label <- function(annotation) {
+  a <- as.character(annotation)
+  k <- sub("^ANNOTATION_?", "", a, ignore.case = TRUE)
+  ifelse(grepl("^ANNOTATION", a, ignore.case = TRUE), paste("Region", k),
+         ifelse(tolower(a) == "whole_slide", "Whole slide", a))
 }
 
 # --- Immune fraction, hot vs cold (Fig 5b) -----------------------------------

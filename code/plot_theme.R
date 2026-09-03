@@ -407,6 +407,46 @@ scale_fill_lineage <- function(..., drop = TRUE, name = NULL, labels = .lineage_
                     labels = labels, na.value = "grey85", ...)
 scale_color_lineage <- scale_colour_lineage
 
+# Cell COMPARTMENTS: the coarsest reading of a phenotype map, for the paired
+# whole-slide / region views of Fig 5(a). On a whole slide the eye can hold one
+# distinction — tumour against everything else — and on a region inset three:
+# tumour, immune (the five immune lineages pooled) and stroma (the SMA+ call). One
+# named palette serves both, so the overview and its inset agree on every hue and
+# the grey that means "not tumour" on the slide is the grey that means "other" in
+# the region. Red and green are the pair the manuscript asked for; they sit at
+# L* 40 and 57, so the lightness ladder still separates them where hue collapses.
+COMPARTMENTS <- c("Tumour", "Immune", "Stroma", "Other")
+
+COMPARTMENT_COLS <- c(
+  Tumour       = "#B2182B",   # red: PAL_DIV's high end, already the house red
+  Immune       = "#009E73",   # Okabe-Ito bluish green
+  Stroma       = "#B66DFF",   # violet, from the barrier-free extension in oi_ext
+  Other        = "grey78",
+  `Non-tumour` = "grey78"     # the overview's one non-tumour class, same grey
+)
+
+# Collapse a lineage vector (cell_lineage() output) to compartments. `binary = TRUE`
+# is the overview's reading: Tumour against Non-tumour. Anything cell_lineage() did
+# not resolve lands in Other / Non-tumour, never in a coloured class.
+lineage_compartment <- function(x, binary = FALSE) {
+  x <- as.character(x)
+  comp <- ifelse(x %in% "Tumor", "Tumour",
+          ifelse(x %in% c("CD8T", "CD4T", "Treg", "NK", "Immune_other"), "Immune",
+          ifelse(x %in% "Stroma", "Stroma", "Other")))
+  if (isTRUE(binary))
+    return(factor(ifelse(comp == "Tumour", "Tumour", "Non-tumour"),
+                  levels = c("Tumour", "Non-tumour")))
+  factor(comp, levels = COMPARTMENTS)
+}
+
+scale_colour_compartment <- function(..., drop = TRUE, name = NULL)
+  scale_colour_manual(values = COMPARTMENT_COLS, drop = drop, name = name,
+                      na.value = "grey85", ...)
+scale_fill_compartment <- function(..., drop = TRUE, name = NULL)
+  scale_fill_manual(values = COMPARTMENT_COLS, drop = drop, name = name,
+                    na.value = "grey85", ...)
+scale_color_compartment <- scale_colour_compartment
+
 # --- Measurement SCOPE -------------------------------------------------------
 # The three nested answers to "which cells count?", which appear together on every
 # arm's scope-comparison figure and separately elsewhere. A NAMED palette because

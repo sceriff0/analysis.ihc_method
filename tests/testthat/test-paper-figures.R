@@ -56,6 +56,93 @@ test_that("an empty zoom window warns and returns NULL rather than an empty pane
   expect_null(p)
 })
 
+test_that("the tumour and compartment readings colour from the named compartment palette", {
+  ov <- paper_phenotype_map(.cells(), patient_id = "046", colour_by = "tumour")
+  expect_equal(levels(ov$data$call), c("Tumour", "Non-tumour"))
+  # the finer lineage stays on the frame, so a caller can always recover it
+  expect_true(all(levels(ov$data$lineage) %in% c(LEGIBLE_LINEAGES, "other")))
+  cols <- unique(ggplot2::ggplot_build(ov)$data[[1]]$colour)
+  expect_setequal(cols, unname(COMPARTMENT_COLS[c("Tumour", "Non-tumour")]))
+
+  ins <- paper_phenotype_map(.cells(), patient_id = "046", colour_by = "compartment")
+  expect_equal(levels(ins$data$call), COMPARTMENTS)
+  cols <- unique(ggplot2::ggplot_build(ins)$data[[1]]$colour)
+  expect_true(all(cols %in% unname(COMPARTMENT_COLS)))
+})
+
+test_that("lineage_compartment() pools the immune lineages and never colours an unmapped call", {
+  x <- c("Tumor", "CD8T", "CD4T", "Treg", "NK", "Immune_other", "Stroma", "other", NA)
+  expect_equal(as.character(lineage_compartment(x)),
+               c("Tumour", "Immune", "Immune", "Immune", "Immune", "Immune",
+                 "Stroma", "Other", "Other"))
+  expect_equal(as.character(lineage_compartment(x, binary = TRUE)),
+               c("Tumour", rep("Non-tumour", 8)))
+  # the overview's grey and the inset's grey are the SAME grey
+  expect_equal(unname(COMPARTMENT_COLS["Non-tumour"]), unname(COMPARTMENT_COLS["Other"]))
+})
+
+test_that("a region-tier table that lists a cell per region file draws each cell once", {
+  one   <- .cells()
+  three <- dplyr::bind_rows(one, one, one)
+  expect_equal(nrow(paper_phenotype_map(three, patient_id = "046")$data),
+               nrow(paper_phenotype_map(one,   patient_id = "046")$data))
+})
+
+test_that("a zoom becomes the coordinate window, so outlines past it are clipped", {
+  p <- paper_phenotype_map(.cells(), patient_id = "046", zoom = c(0, 800, 0, 600))
+  expect_equal(p$coordinates$limits$x, c(0, 800))
+  expect_equal(p$coordinates$limits$y, c(0, 600))
+  expect_null(paper_phenotype_map(.cells(), patient_id = "046")$coordinates$limits$x)
+})
+
+# The fixture cells sit on the diagonal of a 4000 x 3000 field, so ANNOTATION_2 is
+# placed where that diagonal crosses it — an inset window must hold some cells.
+.polys <- function() {
+  sq <- function(x0, y0, w) sf::st_polygon(list(rbind(c(x0, y0), c(x0 + w, y0),
+                                                       c(x0 + w, y0 + w), c(x0, y0 + w),
+                                                       c(x0, y0))))
+  sf::st_sf(patient_id = c("046", "046", "052"),
+            annotation = c("ANNOTATION_1", "ANNOTATION_2", "ANNOTATION_1"),
+            geometry = sf::st_sfc(sq(0, 0, 1000), sq(2000, 1500, 500), sq(0, 0, 100)))
+}
+
+test_that("the inset region is the polygon with the most tumour cells, boxed and padded", {
+  skip_if_not_installed("sf")
+  per <- tibble::tibble(patient_id = c("046", "046", "052"),
+                        annotation = c("ANNOTATION_1", "ANNOTATION_2", "ANNOTATION_1"),
+                        n_tumor_inside = c(10L, 500L, 3L))
+  r <- tumour_richest_region(per, .polys(), "046", pad = 0)
+  expect_equal(r$annotation, "ANNOTATION_2")
+  expect_equal(r$n_tumor, 500L)
+  expect_equal(r$zoom, c(2000, 2500, 1500, 2000))
+  # padding widens the box on every side by the given fraction of it
+  expect_equal(tumour_richest_region(per, .polys(), "046", pad = 0.1)$zoom,
+               c(1950, 2550, 1450, 2050))
+  # a per row with no polygon behind it (csv fallback) cannot be chosen
+  per2 <- tibble::tibble(patient_id = "046", annotation = "csv", n_tumor_inside = 9L)
+  expect_null(tumour_richest_region(per2, .polys(), "046"))
+  expect_null(tumour_richest_region(per, .polys(), "99999"))
+})
+
+test_that("the pair is two panels, the overview tumour-only and the inset by compartment", {
+  skip_if_not_installed("sf")
+  per <- tibble::tibble(patient_id = c("046", "046"),
+                        annotation = c("ANNOTATION_1", "ANNOTATION_2"),
+                        n_tumor_inside = c(10L, 500L))
+  pr <- paper_phenotype_map_pair(.cells(), "046", annots = .polys(), per = per)
+  expect_s3_class(pr$overview, "ggplot")
+  expect_s3_class(pr$inset, "ggplot")
+  expect_equal(pr$region$annotation, "ANNOTATION_2")
+  expect_equal(levels(pr$overview$data$call), c("Tumour", "Non-tumour"))
+  expect_equal(levels(pr$inset$data$call), COMPARTMENTS)
+  expect_equal(pr$inset$labels$title, "Region 2")
+  expect_match(pr$overview$labels$subtitle, "cells$")
+  # without a per table there is no inset, and the overview still comes back
+  alone <- paper_phenotype_map_pair(.cells(), "046", annots = .polys())
+  expect_s3_class(alone$overview, "ggplot")
+  expect_null(alone$inset)
+})
+
 test_that("the scale bar picks a round length that fits the field", {
   expect_equal(.nice_bar_um(6000), 1000)   # 6000/6 = 1000 exactly
   expect_equal(.nice_bar_um(1300), 100)    # target ~217 -> largest nice <= it

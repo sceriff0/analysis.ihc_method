@@ -45,6 +45,11 @@ suppressWarnings(suppressMessages({
   if (have_helpers) source(here("code", "paper_figures.R"))
   if (have_helpers) source(here("code", "arm_cells.R"))
 }))
+# patchwork is only needed to put the two 5(a) panels side by side; without it the
+# page prints them one after the other rather than failing to knit. It is ATTACHED,
+# not just loaded: its `|` and `&` methods on a ggplot dispatch only once attached.
+have_patchwork <- requireNamespace("patchwork", quietly = TRUE)
+if (have_patchwork) library(patchwork)
 
 # Where a hand-made panel (screenshot, exported schematic) is dropped in.
 MANUAL_DIR <- here("output", "figures", "manual")
@@ -374,14 +379,31 @@ if (identical(arm_source, "real")) {
 
 ## 5(a) Registered, phenotyped cases — **computed**
 
-`paper_phenotype_map()`, one panel per case. Exported one PDF per case.
+Two panels per case, side by side, from `paper_phenotype_map_pair()`. Each point is
+one segmented cell from the arm's region csvs (`data/massimo2/csv/<patient>/`),
+placed at its centroid in the geojson pixel frame (0.325 µm/px) and drawn once
+even where several region files list it; its lineage is `cell_lineage()`'s reading
+of the phenotype call. **Left**, the whole slide with every pathologist annotation
+(`data/massimo2/annotation/<patient>/`) outlined, cells coloured tumour (red)
+against everything else (grey). **Right**, the annotation holding the most tumour
+cells — the largest `n_tumor_inside` in the per-annotation table above, drawn with
+the heavier outline on the left — cut to its bounding box and coloured by
+compartment: tumour (red), immune (the five immune lineages pooled, green), stroma
+(the SMA+ call, violet), other (grey). Each panel states its cell count. Exported
+one PDF per case.
 
-```{r fig5a, fig.width=panel_width(108), fig.height=panel_height(92)}
+```{r fig5a, fig.width=fig_width("double"), fig.height=panel_height(100)}
 if (have_cells) {
   for (pid in sort(unique(as_cells$patient_id))) {
-    p <- paper_phenotype_map(as_cells, patient_id = pid, annots = as_polys,
-                             title = paste("Patient", pid))
-    if (!is.null(p)) print(p)
+    pr <- paper_phenotype_map_pair(as_cells, pid, annots = as_polys, per = as_per)
+    if (is.null(pr$overview)) next
+    if (is.null(pr$inset) || !have_patchwork) {
+      print(pr$overview)
+      if (!is.null(pr$inset)) print(pr$inset)
+    } else {
+      print((pr$overview | pr$inset) + plot_layout(guides = "collect") &
+              theme(legend.position = "bottom"))
+    }
   }
 }
 ```
