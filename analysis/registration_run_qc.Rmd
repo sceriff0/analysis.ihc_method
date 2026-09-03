@@ -191,9 +191,10 @@ fig_notes <- c(
     "The four stages come from three columns across two files: `non_rigid` from the",
     "pre-micro summary, `micro` from the final one (same column, micro composed in).",
     "A missing `micro` box means `reg_micro_reg < 2` and micro-registration never ran.",
-    "The y axis is **clipped** at the per-stage Tukey fence: the boxes, the printed",
-    "medians and the per-stage n are still computed over every slide, and the caption",
-    "says how many slides fall above the view."),
+    "**Log y axis**: the error drops by an order of magnitude or more across the",
+    "stages, and one badly registered slide sets a linear range for all of them, so",
+    "a linear axis stacked the registered stages on zero. Nothing is clipped; every",
+    "slide is in view. Read the stage-to-stage gain as a ratio, not a difference."),
   "01b_valis_n_matches" = paste(
     "`n_matches`: how many correspondences each rTRE above is based on. A slide with",
     "few matches has a low-confidence estimate no matter how good the number looks."),

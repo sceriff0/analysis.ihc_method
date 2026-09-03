@@ -427,12 +427,15 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
       dplyr::summarise(error = stats::median(error, na.rm = TRUE),
                        n = dplyr::n(), .groups = "drop")
     micro_ran <- "micro" %in% as.character(vl$stage)
-    # A slide or two register badly enough to set the y range for every stage,
-    # squashing the boxes onto the axis. coord_cartesian CROPS rather than filters:
-    # the boxes, the medians printed on them and the per-stage n are all still
-    # computed over every slide, and the caption says how many sit above the view.
-    # (Dropping the rows instead would silently move the medians this figure prints.)
-    ylim <- clip_upper_ylim(vl$error, by = vl$stage)
+    # Log y axis. The error falls by an order of magnitude or more from `original`
+    # to `non_rigid`, and a slide or two register badly enough to set a linear range
+    # for every stage — on a linear axis the registered boxes sat on zero and the
+    # figure used to clip its top to stay readable. A log axis shows every stage
+    # and every slide at once, so nothing is cropped and the caption has nothing
+    # to declare. The medians were computed above, over every slide, BEFORE the
+    # positivity filter below; that filter exists only because log10(0) is not a
+    # coordinate, and an error of exactly 0 does not occur in practice.
+    vl <- dplyr::filter(vl, error > 0)
     figs[["01_valis_error_by_stage"]] <-
       ggplot(vl, aes(stage, error)) +
       geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
@@ -442,13 +445,8 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
       geom_text(data = med, aes(label = signif(error, 3)),
                 vjust = -1.1, size = pt_text(7), colour = "grey15") +
       scale_colour_oi(name = "patient") +
-      coord_cartesian(ylim = ylim) +
-      # labs(), not the lab() shorthand: this is the one figure whose caption is not
-      # just RUN_QC_CAPTION, because a clipped axis has to declare itself.
-      labs(caption = caption_with(RUN_QC_CAPTION,
-                                  clip_upper_note(vl$error, ylim, "slides",
-                                                  id = paste(vl$patient_id, vl$slide))),
-           title = "VALIS registration error by stage",
+      scale_y_log10() +
+      lab(title = "VALIS registration error by stage",
            subtitle = paste0(
              "VALIS grading itself from its own feature matches; lower = better. ",
              "Label = median. VALIS has no micro column — micro-registration updates the ",
@@ -460,7 +458,7 @@ build_run_qc_figs <- function(root = RUN_QC_ROOT, tables = run_qc_tables(root)) 
                paste("No `micro` box: this run wrote no pre-micro summary, so",
                      "reg_micro_reg < 2 and micro-registration never ran. A blank stage",
                      "means it did not run, not that it bought nothing.")),
-           x = NULL, y = vl$metric[1])
+           x = NULL, y = paste(vl$metric[1], "(log10)"))
     if ("n_matches" %in% names(tables$valis)) {
       # Label each bar with the slide VALIS named, falling back to the summary file
       # plus a row index when the build wrote no name column.

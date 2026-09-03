@@ -140,6 +140,12 @@ test_that("the stage figure is a boxplot carrying printed medians", {
   expect_true(any(vapply(p$layers, function(l) inherits(l$geom, "GeomText"), logical(1))))
   # No facet: the pre/post split was the thing that made two near-identical panels.
   expect_s3_class(p$facet, "FacetNull")
+  # Log y: on a linear axis the registered stages sat on zero under one bad slide.
+  # ggplot2 < 3.5 keeps the transform in $trans and $transform is a method; 3.5+
+  # renamed the field to $transform. Read whichever one is the object.
+  y  <- p$scales$get_scales("y")
+  tr <- if (is.function(y$transform)) y$trans else y$transform
+  expect_equal(tr$name, "log-10")
 })
 
 test_that("valis_error_long carries a caller's extra grouping columns through", {
