@@ -357,6 +357,12 @@ region_ratios <- function(cells) {
   # GZMB+ NK = cytotoxic/activated NK (lineage NK AND granzyme-B positive).
   is_cd3   <- if (n_inside) marker_pos(cells, "CD3")  else logical(0)
   is_gzmb  <- if (n_inside) marker_pos(cells, "GZMB") else logical(0)
+  # PD-L1 is a checkpoint readout, not a lineage: it fires on tumour cells AND on
+  # immune cells, so it is counted three ways — every PD-L1+ cell, and the PD-L1+
+  # cells of each compartment (the numerators of a tumour-proportion-score-style and
+  # an immune-cell-style positivity). Same all-FALSE degradation as the others when
+  # the export never gated PDL1 (marker_sign_col() is NA).
+  is_pdl1  <- if (n_inside) marker_pos(cells, "PDL1") else logical(0)
   lin      <- if (n_inside) cell_lineage(cells$phenotype_clean) else character(0)
   is_nk    <- if (n_inside) lin %in% "NK" else logical(0)
   # "Clean" cell set = cells inside the region the exporter did NOT flag as an
@@ -377,6 +383,9 @@ region_ratios <- function(cells) {
   n_nk     <- sum(is_nk,    na.rm = TRUE)
   n_cd3cd45 <- sum(is_cd45 & is_cd3, na.rm = TRUE)   # CD45+ AND CD3+ (marker T cells)
   n_gzmb_nk <- sum(is_nk  & is_gzmb, na.rm = TRUE)   # NK lineage AND GZMB+
+  n_pdl1       <- sum(is_pdl1,            na.rm = TRUE)   # every PD-L1+ cell
+  n_pdl1_tumor <- sum(is_pdl1 & is_tumor, na.rm = TRUE)   # PD-L1+ tumour cells
+  n_pdl1_cd45  <- sum(is_pdl1 & is_cd45,  na.rm = TRUE)   # PD-L1+ CD45+ cells
   n_inside_clean <- sum(keep_clean, na.rm = TRUE)              # cells minus outliers/Unknown
   n_tumor_clean  <- sum(is_tumor & keep_clean, na.rm = TRUE)   # tumour cells in that clean set
   ncount   <- function(l) sum(lin == l, na.rm = TRUE)
@@ -390,6 +399,9 @@ region_ratios <- function(cells) {
     n_cd45_inside     = n_cd45,
     n_cd3cd45_inside  = n_cd3cd45,
     n_gzmb_nk_inside  = n_gzmb_nk,
+    n_pdl1_inside       = n_pdl1,
+    n_pdl1_tumor_inside = n_pdl1_tumor,
+    n_pdl1_cd45_inside  = n_pdl1_cd45,
     tumor_over_inside = safe(n_tumor, n_inside),
     # Same tumour fraction, but over the "clean" denominator (Outlier-flagged and
     # Unknown-phenotype cells removed from both numerator and denominator), so it
@@ -403,7 +415,15 @@ region_ratios <- function(cells) {
     # GZMB+ NK: as a share of all cells, and the GZMB+ fraction WITHIN NK cells
     # (an NK-activation readout).
     gzmb_nk_over_inside = safe(n_gzmb_nk, n_inside),
-    gzmb_nk_over_nk     = safe(n_gzmb_nk, n_nk)
+    gzmb_nk_over_nk     = safe(n_gzmb_nk, n_nk),
+    # PD-L1 positivity WITHIN each compartment: the numerator is restricted to the
+    # denominator's cells, so each is a true 0..1 proportion (the TPS / IC reading a
+    # pathologist expects). The panel-convention ratios (all PD-L1+ cells over the
+    # tumour or CD45+ count, which can exceed 1) are not stored; region_composition()
+    # derives them from n_pdl1_inside when the composition figure asks for them.
+    pdl1_over_inside = safe(n_pdl1,       n_inside),
+    pdl1_over_tumor  = safe(n_pdl1_tumor, n_tumor),
+    pdl1_over_cd45   = safe(n_pdl1_cd45,  n_cd45)
   )
   for (l in region_lineages) out[[paste0("n_", l)]]    <- ncount(l)
   for (l in region_lineages) out[[paste0("frac_", l)]] <- safe(ncount(l), n_inside)

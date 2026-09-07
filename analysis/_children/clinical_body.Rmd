@@ -206,6 +206,9 @@ n_tumor_clean     = tumour cells in the set that survive the same clean filter
 n_cd45_inside     = CD45+ cells in the set
 n_cd3cd45_inside  = CD45+ AND CD3+ cells (marker-gated T cells)
 n_gzmb_nk_inside  = NK-lineage cells that are GZMB+ (cytotoxic/activated NK)
+n_pdl1_inside       = PD-L1+ cells in the set (tumour AND immune)
+n_pdl1_tumor_inside = PD-L1+ cells that are tumour cells
+n_pdl1_cd45_inside  = PD-L1+ cells that are CD45+
 n_<lineage>       = cells in the set with that lineage
                     (lineage in: CD8T, CD4T, Treg, NK, Immune_other, Stroma)
 
@@ -216,6 +219,9 @@ cd3cd45_over_inside = n_cd3cd45_inside / n_inside
 cd3cd45_over_cd45   = n_cd3cd45_inside / n_cd45_inside   (T cells among immune)
 gzmb_nk_over_inside = n_gzmb_nk_inside / n_inside
 gzmb_nk_over_nk     = n_gzmb_nk_inside / n_NK            (GZMB+ fraction of NK)
+pdl1_over_inside    = n_pdl1_inside       / n_inside       (PD-L1+ of all cells)
+pdl1_over_tumor     = n_pdl1_tumor_inside / n_tumor_inside (PD-L1+ of tumour cells)
+pdl1_over_cd45      = n_pdl1_cd45_inside  / n_cd45_inside  (PD-L1+ of CD45+ cells)
 frac_<lineage>      = n_<lineage>      / n_inside
 ```
 
@@ -789,8 +795,9 @@ comp_markers <- c("CD45+"      = "n_cd45_inside",
 
 # One composition figure (population x denominator); `transform` applied to the
 # fraction so the same code draws the raw and the arcsin-sqrt panels.
-plot_composition <- function(region_metrics, ylab, caption, transform = identity) {
-  comp <- region_composition(region_metrics, markers = comp_markers) |>
+plot_composition <- function(region_metrics, ylab, caption, transform = identity,
+                             markers = comp_markers) {
+  comp <- region_composition(region_metrics, markers = markers) |>
     pivot_longer(c(frac_inside, frac_tumor, frac_cd45),
                  names_to = "normalization", values_to = "frac") |>
     mutate(normalization = factor(
@@ -835,6 +842,102 @@ of each fraction.
 plot_composition(ihc_tumor_union, "arcsin \u221afraction (radians)",
                  "arcsin-sqrt of: all cells / tumour cells / CD45+ cells inside",
                  transform = asin_sqrt)
+```
+
+### PD-L1 positivity under the three denominators
+
+PD-L1 is a checkpoint readout, not an immune subset: it fires on tumour cells and
+on immune cells alike. So "PD-L1+ of tumour cells" has two honest readings, and the
+two figures below use one each. **This standalone figure restricts the numerator to
+the denominator's own cells**, which is the reading a pathologist scores (a
+tumour-proportion-score-style value for the tumour compartment, an immune-cell-style
+value for the CD45+ one), and every value is a true 0..1 proportion:
+
+```
+PD-L1+ of all cells    = pdl1_over_inside = n_pdl1_inside       / n_inside
+PD-L1+ of tumour cells = pdl1_over_tumor  = n_pdl1_tumor_inside / n_tumor_inside
+PD-L1+ of CD45+ cells  = pdl1_over_cd45   = n_pdl1_cd45_inside  / n_cd45_inside
+```
+
+One point per patient, from the union of that patient's annotation polygons (the
+same `ihc_tumor_union` frame as the composition figure); PD-L1 positivity is the
+export's PDL1 sign column read through `marker_pos()`, and a denominator of zero
+gives `NA`. An arm whose export never gated PDL1 draws an empty figure here rather
+than a figure of zeros.
+
+```{r infiltrate-pdl1, eval = have_arm, fig.width = fig_width("single"), fig.height = fig_height("single")}
+# The three PD-L1 positivities are already columns of the metrics frame (from
+# region_ratios), so this is a pivot, not a recount. `transform` is the same
+# identity / asin_sqrt switch the composition figure uses.
+pdl1_denominators <- c(pdl1_over_inside = "of all cells",
+                       pdl1_over_tumor  = "of tumour cells",
+                       pdl1_over_cd45   = "of CD45+ cells")
+
+plot_pdl1_positivity <- function(region_metrics, ylab, caption, transform = identity) {
+  d <- region_metrics |>
+    select(patient_id, all_of(names(pdl1_denominators))) |>
+    pivot_longer(-patient_id, names_to = "denominator", values_to = "frac") |>
+    mutate(denominator = factor(pdl1_denominators[denominator],
+                                levels = unname(pdl1_denominators)),
+           value = transform(frac)) |>
+    filter(is.finite(value))
+  # A marker the export never gated is all-FALSE in marker_pos(), so every count is
+  # 0 and every proportion a finite 0 — is.finite() would keep them and draw a
+  # figure of zeros that reads as "no PD-L1". Gate on having seen a positive cell.
+  if (nrow(d) == 0 || !any(d$frac > 0)) {
+    message("no PD-L1+ cells in this arm's export — PD-L1 figure skipped")
+    return(invisible())
+  }
+  ggplot(d, aes(denominator, value)) +
+    geom_boxplot(outlier.shape = NA, colour = "grey30", fill = GATED_COLS[["PD-L1+"]]) +
+    geom_jitter(width = .15, alpha = .5, size = 1) +
+    # n per denominator on the tick, not in the subtitle: here the x axis IS the
+    # denominator, so each tick's count is exactly the patients that panel keeps.
+    scale_x_discrete(labels = label_n(d$denominator)) +
+    labs(title = "PD-L1+ cells inside the tumour region",
+         x = NULL, y = ylab, caption = caption)
+}
+
+plot_pdl1_positivity(ihc_tumor_union, "PD-L1+ proportion (unitless, 0-1)",
+                     "numerator restricted to each denominator's cells")
+```
+
+**Arcsin-transformed.** Same three proportions under the arcsine square-root
+transform.
+
+```{r infiltrate-pdl1-arcsin, eval = have_arm, fig.width = fig_width("single"), fig.height = fig_height("single")}
+plot_pdl1_positivity(ihc_tumor_union, "arcsin \u221aproportion (radians)",
+                     "arcsin-sqrt; numerator restricted to each denominator's cells",
+                     transform = asin_sqrt)
+```
+
+### Composition with PD-L1+ alongside the immune populations
+
+The composition figure above, redrawn with **PD-L1+** added as a fourth marker-gated
+population. This figure keeps the panel's convention — one count per population,
+divided by each denominator — so here "PD-L1+ of tumour cells" is
+`n_pdl1_inside / n_tumor_inside`, *every* PD-L1+ cell over the tumour count, exactly
+as "CD8T of tumour cells" is every CD8 T cell over the tumour count. Because PD-L1+
+cells are drawn from both compartments, that ratio and the CD45+ one can exceed 1,
+which is why the standalone figure above exists: read PD-L1 positivity *within* a
+compartment there, and PD-L1+ cells *relative to* the other populations here. The
+original figure without PD-L1+ is kept as is.
+
+```{r infiltrate-composition-pdl1, eval = have_arm, fig.height=5}
+comp_markers_pdl1 <- c(comp_markers, "PD-L1+" = "n_pdl1_inside")
+
+plot_composition(ihc_tumor_union, "cell fraction (unitless, 0-1)",
+                 "denominators: all cells / tumour cells / CD45+ cells inside; PD-L1+ = all PD-L1+ cells",
+                 markers = comp_markers_pdl1)
+```
+
+**Arcsin-transformed.** Same composition under the arcsine square-root transform;
+a PD-L1+ ratio above 1 has no arcsine and drops out of that panel.
+
+```{r infiltrate-composition-pdl1-arcsin, eval = have_arm, fig.height=5}
+plot_composition(ihc_tumor_union, "arcsin \u221afraction (radians)",
+                 "arcsin-sqrt of: all cells / tumour cells / CD45+ cells inside; PD-L1+ = all PD-L1+ cells",
+                 transform = asin_sqrt, markers = comp_markers_pdl1)
 ```
 
 ```{r immune-scope, echo=FALSE, results="asis"}

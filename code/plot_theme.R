@@ -364,11 +364,15 @@ LINEAGE_LABELS <- c(
   Immune_other = "Immune (other)", Stroma = "Stroma", other = "Other",
   Unknown = "Unknown", Unclassified = "Unclassified")
 
-# Marker-GATED populations (CD45+, CD3+ CD45+, GZMB+ NK) are not lineages — they
-# are thresholded readouts that overlap the lineages — so they must not borrow a
-# lineage hue and imply they are a disjoint population. They get achromatic greys
+# Marker-GATED populations (CD45+, CD3+ CD45+, GZMB+ NK, PD-L1+) are not lineages —
+# they are thresholded readouts that overlap the lineages — so they must not borrow
+# a lineage hue and imply they are a disjoint population. They get achromatic greys
 # on the same lightness ladder, which also groups them visually as "the gated set".
-GATED_COLS <- c("CD45+" = "grey25", "CD3+ CD45+" = "grey50", "GZMB+ NK" = "grey72")
+# PD-L1+ is the lightest rung: it is the one gated readout that is not an immune
+# subset at all (it fires on tumour cells too), so it sits at the far end of the
+# ladder from CD45+ rather than between the immune rungs.
+GATED_COLS <- c("CD45+" = "grey25", "CD3+ CD45+" = "grey50", "GZMB+ NK" = "grey72",
+                "PD-L1+" = "grey88")
 
 # Every category this project colours by lineage, in one lookup: the lineages,
 # their gated companions, and the display spellings the two upstream tools use.
@@ -570,6 +574,7 @@ FLOWPATH_PANEL_POPULATIONS <- c(
   cd45_over_inside    = "CD45+",
   cd3cd45_over_inside = "CD3+ CD45+",
   gzmb_nk_over_inside = "GZMB+ NK",
+  pdl1_over_inside    = "PD-L1+",
   frac_CD8T           = "CD8 T",
   frac_CD4T           = "CD4 T",
   frac_Treg           = "Treg",
