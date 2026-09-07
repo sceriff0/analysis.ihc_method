@@ -416,14 +416,18 @@ region_ratios <- function(cells) {
     # (an NK-activation readout).
     gzmb_nk_over_inside = safe(n_gzmb_nk, n_inside),
     gzmb_nk_over_nk     = safe(n_gzmb_nk, n_nk),
-    # PD-L1 positivity WITHIN each compartment: the numerator is restricted to the
-    # denominator's cells, so each is a true 0..1 proportion (the TPS / IC reading a
-    # pathologist expects). The panel-convention ratios (all PD-L1+ cells over the
-    # tumour or CD45+ count, which can exceed 1) are not stored; region_composition()
-    # derives them from n_pdl1_inside when the composition figure asks for them.
-    pdl1_over_inside = safe(n_pdl1,       n_inside),
-    pdl1_over_tumor  = safe(n_pdl1_tumor, n_tumor),
-    pdl1_over_cd45   = safe(n_pdl1_cd45,  n_cd45)
+    # Per tumour cell, the reading the clinical hot/cold figure uses: every CD45+
+    # (or PD-L1+) cell inside over the tumour cells inside. `x_over_y` is always
+    # n_x / n_y here, as with tumor_over_cd45, so both can exceed 1.
+    cd45_over_tumor  = safe(n_cd45, n_tumor),
+    pdl1_over_inside = safe(n_pdl1, n_inside),
+    pdl1_over_tumor  = safe(n_pdl1, n_tumor),
+    # PD-L1 positivity WITHIN a compartment: the numerator restricted to that
+    # compartment's cells, so each is a true 0..1 proportion (the tumour-proportion-
+    # score / immune-cell reading a pathologist scores). Kept as columns for that
+    # reading; no page draws them yet.
+    pdl1_pos_in_tumor = safe(n_pdl1_tumor, n_tumor),
+    pdl1_pos_in_cd45  = safe(n_pdl1_cd45,  n_cd45)
   )
   for (l in region_lineages) out[[paste0("n_", l)]]    <- ncount(l)
   for (l in region_lineages) out[[paste0("frac_", l)]] <- safe(ncount(l), n_inside)

@@ -575,6 +575,12 @@ FLOWPATH_PANEL_POPULATIONS <- c(
   cd3cd45_over_inside = "CD3+ CD45+",
   gzmb_nk_over_inside = "GZMB+ NK",
   pdl1_over_inside    = "PD-L1+",
+  # Ratios to a compartment rather than to all cells: the strip has to carry the
+  # denominator, or "FlowPath CD45+ cells" would read as the fraction of all cells
+  # that the panel two figures up already showed.
+  tumor_over_inside   = "tumour / all",
+  cd45_over_tumor     = "CD45+ / tumour",
+  pdl1_over_tumor     = "PD-L1+ / tumour",
   frac_CD8T           = "CD8 T",
   frac_CD4T           = "CD4 T",
   frac_Treg           = "Treg",
