@@ -476,7 +476,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-31
+<strong>Last updated:</strong> 2026-09-07
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +607,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree08a2b713eb545517f0ea934758445a100f4a3840targetblank08a2b71a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/08a2b713eb545517f0ea934758445a100f4a3840" target="_blank">08a2b71</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtreea444e83b9d32450c9daab860188e025091e840aftargetblanka444e83a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree08a2b713eb545517f0ea934758445a100f4a3840targetblank08a2b71a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +625,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/a444e83b9d32450c9daab860188e025091e840af" target="_blank">a444e83</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/08a2b713eb545517f0ea934758445a100f4a3840" target="_blank">08a2b71</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -695,10 +695,27 @@ Message
 <tbody>
 <tr>
 <td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/clinical_massimo2.html" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+<td>
+:wrench: rebuilt site
+</td>
+</tr>
+<tr>
+<td>
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/775b18a41fb4d480d3db2bb599175f89687e5b43/analysis/clinical_massimo2.Rmd" target="_blank">775b18a</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/775b18a41fb4d480d3db2bb599175f89687e5b43/analysis/clinical_massimo2.Rmd" target="_blank">775b18a</a>
 </td>
 <td>
 bolt3x
@@ -716,7 +733,7 @@ arm
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/clinical_massimo2.html" target="_blank">f1342a0</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/clinical_massimo2.html" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -733,7 +750,7 @@ sceriff0
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/6036fc018bebb9ef5facf898124e4db86be4bf52/analysis/clinical_massimo2.Rmd" target="_blank">6036fc0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/6036fc018bebb9ef5facf898124e4db86be4bf52/analysis/clinical_massimo2.Rmd" target="_blank">6036fc0</a>
 </td>
 <td>
 bolt3x
@@ -751,7 +768,7 @@ option
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/2089263b995bb84b3c65dc54b53406eb8e8ab139/analysis/clinical_massimo2.Rmd" target="_blank">2089263</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/2089263b995bb84b3c65dc54b53406eb8e8ab139/analysis/clinical_massimo2.Rmd" target="_blank">2089263</a>
 </td>
 <td>
 bolt3x
@@ -1141,6 +1158,9 @@ n_tumor_clean     = tumour cells in the set that survive the same clean filter
 n_cd45_inside     = CD45+ cells in the set
 n_cd3cd45_inside  = CD45+ AND CD3+ cells (marker-gated T cells)
 n_gzmb_nk_inside  = NK-lineage cells that are GZMB+ (cytotoxic/activated NK)
+n_pdl1_inside       = PD-L1+ cells in the set (tumour AND immune)
+n_pdl1_tumor_inside = PD-L1+ cells that are tumour cells
+n_pdl1_cd45_inside  = PD-L1+ cells that are CD45+
 n_&lt;lineage&gt;       = cells in the set with that lineage
                     (lineage in: CD8T, CD4T, Treg, NK, Immune_other, Stroma)
 
@@ -1151,6 +1171,11 @@ cd3cd45_over_inside = n_cd3cd45_inside / n_inside
 cd3cd45_over_cd45   = n_cd3cd45_inside / n_cd45_inside   (T cells among immune)
 gzmb_nk_over_inside = n_gzmb_nk_inside / n_inside
 gzmb_nk_over_nk     = n_gzmb_nk_inside / n_NK            (GZMB+ fraction of NK)
+cd45_over_tumor     = n_cd45_inside / n_tumor_inside     (CD45+ cells per tumour cell)
+pdl1_over_inside    = n_pdl1_inside / n_inside           (PD-L1+ of all cells)
+pdl1_over_tumor     = n_pdl1_inside / n_tumor_inside     (PD-L1+ cells per tumour cell)
+pdl1_pos_in_tumor   = n_pdl1_tumor_inside / n_tumor_inside (PD-L1+ fraction OF tumour cells)
+pdl1_pos_in_cd45    = n_pdl1_cd45_inside  / n_cd45_inside  (PD-L1+ fraction OF CD45+ cells)
 frac_&lt;lineage&gt;      = n_&lt;lineage&gt;      / n_inside</code></pre>
 <p>Any fraction with a zero denominator is <code>NA</code>. The
 marker-gated subsets read the marker sign columns via
@@ -1530,7 +1555,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1568,7 +1593,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-2.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-2.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1606,7 +1631,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-3.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-3.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1644,7 +1669,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-4.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-4.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1682,7 +1707,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-5.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-5.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1720,7 +1745,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-6.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-6.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1758,7 +1783,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-7.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-7.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -1796,7 +1821,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-8.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/tumor-content-plot-8.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -2450,7 +2475,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/aggregation-heatmap-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/aggregation-heatmap-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -2491,7 +2516,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/aggregation-scatter-raw-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/aggregation-scatter-raw-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -2532,7 +2557,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/aggregation-scatter-clean-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/aggregation-scatter-clean-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -2747,6 +2772,43 @@ a finding about the annotation, not an error.</caption>
 # vertical distance from it is the effect of restricting to the pathologist&#39;s line.
 print(plot_scope_scatter(one_many))</code></pre>
 <p><img src="figure/clinical_massimo2.Rmd/scope-scatter-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-scope-scatter-1">
+Past versions of scope-scatter-1.png
+</button>
+</p>
+<div id="fig-scope-scatter-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/scope-scatter-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Points <strong>above</strong> the dashed line are patients whose
 annotation is tumour-richer than the slide as a whole — the usual
 direction, since a pathologist draws around tumour. A point
@@ -2757,10 +2819,84 @@ region count.</p>
 # own regions cover? Patients ordered by whole-slide fraction.
 print(plot_scope_range(one_many, scope_tbl))</code></pre>
 <p><img src="figure/clinical_massimo2.Rmd/scope-range-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-scope-range-1">
+Past versions of scope-range-1.png
+</button>
+</p>
+<div id="fig-scope-range-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/scope-range-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code># Which way of collapsing the regions reproduces the unannotated number best?
 scope_pairs &lt;- scope_aggregator_pairs(scope_tbl, mem)
 print(plot_scope_aggregators(scope_pairs))</code></pre>
 <p><img src="figure/clinical_massimo2.Rmd/scope-aggregators-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-scope-aggregators-1">
+Past versions of scope-aggregators-1.png
+</button>
+</p>
+<div id="fig-scope-aggregators-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/scope-aggregators-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>scope_aggregator_stats(scope_pairs) |&gt;
   transmute(aggregator = ihc_lab, n,
             pearson = round(pearson, 2), spearman = round(spearman, 2),
@@ -2854,7 +2990,9 @@ sit alongside the phenotype lineages as extra readouts of overall immune
 
 infiltrate &lt;- ihc_tumor_union |&gt;
   select(patient_id, cd45_over_inside, frac_CD8T, frac_CD4T, frac_Treg, frac_NK,
-         cd3cd45_over_inside, gzmb_nk_over_inside) |&gt;
+         cd3cd45_over_inside, gzmb_nk_over_inside,
+         # the compartment readouts of the tumour / CD45+ / PD-L1+ figure below
+         tumor_over_inside, cd45_over_tumor, pdl1_over_tumor) |&gt;
   inner_join(clin, by = &quot;patient_id&quot;)
 
 cat(&quot;patients with IHC infiltrate + clinical immune phenotype:&quot;, nrow(infiltrate), &quot;\n&quot;)</code></pre>
@@ -2900,7 +3038,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-hotscore-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-hotscore-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3006,7 +3144,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-cd45-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-cd45-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3049,7 +3187,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-subsets-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-subsets-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-subsets-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3093,7 +3242,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-cd45-arcsin-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-cd45-arcsin-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3133,7 +3282,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-phenotype-subsets-arcsin-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3145,6 +3305,79 @@ sceriff0
 </tbody>
 </table>
 </div>
+</div>
+<div id="tumour-cd45-and-pd-l1-content-by-immuno-phenotype"
+class="section level3">
+<h3>Tumour, CD45+ and PD-L1+ content by immuno-phenotype</h3>
+<p>Three compartment readouts of the same union inside cells, each split
+by <code>Immuno-phenotype</code>. Tumour content is a fraction of
+<strong>all</strong> cells inside; the two marker-gated readouts are
+counted <strong>per tumour cell</strong> instead, so they read as immune
+(or checkpoint-positive) load relative to the tumour rather than
+relative to the whole cell population:</p>
+<pre><code>tumor_over_inside = n_tumor_inside / n_inside        (tumour cells / all cells inside)
+cd45_over_tumor   = n_cd45_inside  / n_tumor_inside  (CD45+ cells  / tumour cells inside)
+pdl1_over_tumor   = n_pdl1_inside  / n_tumor_inside  (PD-L1+ cells / tumour cells inside)</code></pre>
+<p>PD-L1 positivity is the export’s PDL1 sign column read through
+<code>marker_pos()</code>, and the PD-L1+ count is <em>every</em> PD-L1+
+cell — tumour and immune alike — so, like the CD45+ ratio, it can exceed
+1. A denominator of zero gives <code>NA</code>, and an arm whose export
+never gated PDL1 draws no PD-L1 panel rather than a panel of zeros.
+Because two of the three are unbounded ratios and the third a 0..1
+fraction, the panels keep their <strong>own y scales</strong> — read
+each against its own axis, not across the strip — and there is no arcsin
+twin (the transform is defined only for proportions).</p>
+<pre class="r"><code># The three compartment readouts, in the order the strip should read: the
+# denominator of the other two first.
+compartment_metrics &lt;- c(&quot;tumor_over_inside&quot;, &quot;cd45_over_tumor&quot;, &quot;pdl1_over_tumor&quot;)
+
+# Boxplot-by-immuno-phenotype over `metrics`, one panel per metric. Distinct from
+# plot_infiltrate_phenotype() in the one thing that matters: FREE y per panel,
+# because these are not fractions of a common denominator (see the note above).
+# A metric with no positive value anywhere (a marker the export never gated) is
+# dropped, so the figure never shows a flat line of zeros as a finding.
+plot_hotcold_compartments &lt;- function(infiltrate, metrics, ylab, title) {
+  if (!(&quot;immuno_phe&quot; %in% names(infiltrate)) ||
+      dplyr::n_distinct(na.omit(infiltrate$immuno_phe)) &lt;= 1) return(invisible())
+  metrics &lt;- intersect(metrics, names(infiltrate))
+  if (!length(metrics)) return(invisible())
+  df &lt;- infiltrate |&gt;
+    pivot_longer(all_of(metrics), names_to = &quot;ihc_metric&quot;, values_to = &quot;value&quot;) |&gt;
+    filter(!is.na(immuno_phe), is.finite(value)) |&gt;
+    group_by(ihc_metric) |&gt; filter(any(value &gt; 0)) |&gt; ungroup() |&gt;
+    mutate(immuno_phe = hotcold_order(immuno_phe),
+           ihc_metric = factor(ihc_metric, levels = metrics))
+  if (nrow(df) == 0) return(invisible())
+  p &lt;- ggplot(df, aes(immuno_phe, value, colour = immuno_phe)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(width = 0.2, alpha = 0.6) +
+    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)), guide = &quot;none&quot;) +
+    labs(x = NULL, y = ylab) +
+    theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  if (dplyr::n_distinct(df$ihc_metric) == 1) {
+    # One panel: the n goes on the ticks (no patient can be in one facet and not
+    # another), and the metric names the figure.
+    p + scale_x_discrete(labels = label_n(df$immuno_phe)) +
+      labs(title = title)
+  } else {
+    # Several panels drop different patients (a zero tumour count is NA in two of
+    # the three), so the n goes in the subtitle and names its unit.
+    p + facet_wrap(~ ihc_metric, scales = &quot;free_y&quot;, labeller = flowpath_labeller()) +
+      labs(title = title, subtitle = with_n(NULL, df$patient_id, &quot;patients&quot;))
+  }
+}
+
+plot_hotcold_compartments(infiltrate, compartment_metrics,
+                          &quot;cells inside tumour region (see strip for the ratio)&quot;,
+                          &quot;Tumour, CD45+ and PD-L1+ content by clinical immuno-phenotype&quot;)</code></pre>
+<p><img src="figure/clinical_massimo2.Rmd/infiltrate-phenotype-compartments-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>The PD-L1+ panel on its own, same quantity (PD-L1+ cells per tumour
+cell inside the union region) and same groups, with the per-group n on
+the ticks:</p>
+<pre class="r"><code>plot_hotcold_compartments(infiltrate, &quot;pdl1_over_tumor&quot;,
+                          &quot;PD-L1+ cells / tumour cells inside tumour region&quot;,
+                          &quot;PD-L1+ cells per tumour cell by clinical immuno-phenotype&quot;)</code></pre>
+<p><img src="figure/clinical_massimo2.Rmd/infiltrate-phenotype-pdl1-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 </div>
 <div id="composition-under-three-denominators" class="section level3">
 <h3>Composition under three denominators</h3>
@@ -3232,7 +3465,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-composition-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/infiltrate-composition-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-composition-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3275,7 +3519,18 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-composition-arcsin-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/figure/clinical_massimo2.Rmd/infiltrate-composition-arcsin-1.png" target="_blank">ef13bd0</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-08-31
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/infiltrate-composition-arcsin-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3387,7 +3642,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/blood-immunity-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/blood-immunity-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3445,7 +3700,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/response-1.png" target="_blank">f1342a0</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/figure/clinical_massimo2.Rmd/response-1.png" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -3522,6 +3777,10 @@ run_survival &lt;- function(cfg, label) {
 }
 
 invisible(purrr::iwalk(surv_cfg, ~ run_survival(.x, .y)))</code></pre>
+<pre><code>OS: Cox HR per unit IHC immune score = 0.41 (p = 0.92, n = 6)</code></pre>
+<p><img src="figure/clinical_massimo2.Rmd/survival-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<pre><code>PFS: Cox HR per unit IHC immune score = 0.31 (p = 0.879, n = 6)</code></pre>
+<p><img src="figure/clinical_massimo2.Rmd/survival-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="notes" class="section level2">
@@ -3587,32 +3846,33 @@ other attached packages:
 [23] dplyr_1.2.1                 workflowr_1.7.2            
 
 loaded via a namespace (and not attached):
- [1] tidyselect_1.2.1        farver_2.1.2            S7_0.2.2               
- [4] bitops_1.1-0            fastmap_1.2.0           RCurl_1.98-1.20        
- [7] promises_1.5.0          digest_0.6.39           lifecycle_1.0.5        
-[10] processx_3.9.0          magrittr_2.0.5          compiler_4.3.2         
-[13] rlang_1.2.0             sass_0.4.10             tools_4.3.2            
-[16] yaml_2.3.12             knitr_1.51              labeling_0.4.3         
-[19] S4Arrays_1.2.1          classInt_0.4-11         DelayedArray_0.28.0    
-[22] RColorBrewer_1.1-3      BiocParallel_1.36.0     abind_1.4-8            
-[25] KernSmooth_2.23-27      withr_3.0.3             grid_4.3.2             
-[28] git2r_0.33.0            e1071_1.7-17            scales_1.4.0           
-[31] cli_3.6.6               rmarkdown_2.31          crayon_1.5.3           
-[34] generics_0.1.4          otel_0.2.0              rstudioapi_0.15.0      
-[37] httr_1.4.7              tzdb_0.5.0              DBI_1.3.0              
-[40] cachem_1.1.0            proxy_0.4-29            zlibbioc_1.48.2        
-[43] parallel_4.3.2          cellranger_1.1.0        XVector_0.42.0         
-[46] vctrs_0.7.3             Matrix_1.6-5            jsonlite_2.0.0         
-[49] callr_3.7.6             hms_1.1.4               locfit_1.5-9.12        
-[52] jquerylib_0.1.4         units_1.0-1             glue_1.8.1             
-[55] codetools_0.2-20        ps_1.9.3                stringi_1.8.7          
-[58] gtable_0.3.6            later_1.4.8             pillar_1.11.1          
-[61] htmltools_0.5.9         GenomeInfoDbData_1.2.11 R6_2.6.1               
-[64] rprojroot_2.1.1         evaluate_1.0.5          lattice_0.23-1         
-[67] renv_1.2.3              httpuv_1.6.12           bslib_0.9.0            
-[70] class_7.3-24            Rcpp_1.1.1-1.1          SparseArray_1.2.4      
-[73] whisker_0.4.1           xfun_0.58               getPass_0.2-4          
-[76] pkgconfig_2.0.3        </code></pre>
+ [1] DBI_1.3.0               bitops_1.1-0            rlang_1.3.0            
+ [4] magrittr_2.0.5          git2r_0.33.0            otel_0.2.0             
+ [7] e1071_1.7-17            compiler_4.3.2          getPass_0.2-4          
+[10] mgcv_1.9-0              callr_3.7.6             vctrs_0.7.3            
+[13] pkgconfig_2.0.3         crayon_1.5.3            fastmap_1.2.0          
+[16] XVector_0.42.0          labeling_0.4.3          promises_1.5.0         
+[19] rmarkdown_2.31          tzdb_0.5.0              ps_1.9.3               
+[22] xfun_0.58               zlibbioc_1.48.2         cachem_1.1.0           
+[25] jsonlite_2.0.0          later_1.4.8             DelayedArray_0.28.0    
+[28] BiocParallel_1.36.0     parallel_4.3.2          R6_2.6.1               
+[31] bslib_0.9.0             stringi_1.8.9           RColorBrewer_1.1-3     
+[34] jquerylib_0.1.4         cellranger_1.1.0        Rcpp_1.1.2             
+[37] knitr_1.51              httpuv_1.6.12           Matrix_1.6-5           
+[40] splines_4.3.2           tidyselect_1.2.1        rstudioapi_0.15.0      
+[43] dichromat_2.0-0.1       abind_1.4-8             yaml_2.3.12            
+[46] codetools_0.2-20        processx_3.9.0          lattice_0.23-1         
+[49] withr_3.0.3             S7_0.2.2                evaluate_1.0.5         
+[52] survival_3.8-11         units_1.0-1             proxy_0.4-29           
+[55] pillar_1.11.1           whisker_0.4.1           KernSmooth_2.23-27     
+[58] renv_1.2.3              generics_0.1.4          rprojroot_2.1.1        
+[61] RCurl_1.98-1.20         hms_1.1.4               scales_1.4.0           
+[64] class_7.3-24            glue_1.8.1              tools_4.3.2            
+[67] locfit_1.5-9.12         grid_4.3.2              nlme_3.1-164           
+[70] GenomeInfoDbData_1.2.11 cli_3.6.6               S4Arrays_1.2.1         
+[73] gtable_0.3.6            sass_0.4.10             digest_0.6.39          
+[76] classInt_0.4-11         SparseArray_1.2.4       farver_2.1.2           
+[79] htmltools_0.5.9         lifecycle_1.0.5         httr_1.4.9             </code></pre>
 </div>
 </div>
 
