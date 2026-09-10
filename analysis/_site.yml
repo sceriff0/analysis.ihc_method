@@ -44,6 +44,8 @@ navbar:
       href: benchmark_registration.html
     - text: Pipeline benchmarks — resource, cost, segmentation
       href: benchmark_pipeline.html
+    - text: Run resources — what one run of the study samples cost
+      href: run_resources.html
   - text: Marker QC
     href: marker_qc.html
   right:
