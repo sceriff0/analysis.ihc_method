@@ -64,7 +64,7 @@ test_that("every analysis sources the house style, unconditionally", {
 test_that("the recurring palettes are named, not positional", {
   # A named palette maps level -> colour; an unnamed one maps POSITION -> colour and
   # silently recolours a population whenever the level set changes.
-  for (pal in list(LINEAGE_COLS, LINEAGE_PALETTE, ARM_KIND_COLS, GATED_COLS)) {
+  for (pal in list(LINEAGE_COLS, LINEAGE_PALETTE, ARM_KIND_COLS, GATED_COLS, ANHIR_METHOD_COLS)) {
     expect_false(is.null(names(pal)))
     expect_true(all(nzchar(names(pal))))
   }

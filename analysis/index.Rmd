@@ -29,7 +29,7 @@ navbar has one entry per part.
 | **1 · Clinical** | cells land in the right region, and FlowPath's phenotypes agree with the pathologist | `clinical_massimo1` / `_massimo2` / `_massimo1_inverted`, `clinical_membership_qc` |
 | **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_massimo1` / `_massimo2` / `_massimo1_inverted` |
 | **3 · Registration** | the study slides were registered well enough to analyse, under a configuration chosen on real tissue | `registration_run_qc`, `registration_arms` |
-| **4 · Benchmarks** | the pipeline's cost and accuracy scale as claimed, measured on synthetic images | `benchmark_registration`, `benchmark_pipeline` |
+| **4 · Benchmarks** | the pipeline's cost and accuracy scale as claimed, measured on synthetic images and on the public ANHIR landmarks | `benchmark_registration`, `benchmark_anhir`, `benchmark_pipeline` |
 
 The filename prefix is the part: anything `clinical_*` belongs to part 1,
 `registration_*` to part 3, `benchmark_*` to part 4. Two pages sit outside the
@@ -100,13 +100,19 @@ manuscript needs.
 
 ## Part 4 — Benchmarks
 
-Both read mirage's `benchmarks/` **sweep**, which runs on synthetic images with a
-known injected transform to measure cost and scaling. They say nothing about your
-samples — part 3 does that.
+The sweep pages read mirage's `benchmarks/` **sweep**, which runs on synthetic
+images with a known injected transform to measure cost and scaling; the ANHIR page
+reads the public challenge's real, landmarked tissue. None of them says anything
+about your samples — part 3 does that.
 
 - [Registration accuracy — synthetic sweep](benchmark_registration.html) — VALIS
   feature rTRE per stage, the segmentation-overlap cross-check, accuracy vs cost, and
   an agreement view of the two estimates.
+- [Registration accuracy — ANHIR challenge](benchmark_anhir.html) — both backends
+  and the challenge's bUnwarpJ baseline scored on ANHIR's pathologist-placed
+  landmarks: per-case median rTRE by method and by tissue, robustness, and the
+  mean-rank metric the challenge ranks on. Training cases only — the evaluation
+  split is scored server-side.
 - [Pipeline benchmarks TODO](benchmark_pipeline.html) — resource scaling, I/O volume,
   whole-pipeline cost and segmentation-method comparison.
 

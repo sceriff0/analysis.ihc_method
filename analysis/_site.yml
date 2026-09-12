@@ -42,6 +42,8 @@ navbar:
     menu:
     - text: Registration accuracy — synthetic sweep
       href: benchmark_registration.html
+    - text: Registration accuracy — ANHIR challenge
+      href: benchmark_anhir.html
     - text: Pipeline benchmarks — resource, cost, segmentation
       href: benchmark_pipeline.html
     - text: Run resources — what one run of the study samples cost
