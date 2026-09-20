@@ -1,0 +1,186 @@
+---
+title: "Registration accuracy — ANHIR challenge"
+author: "sceriff0"
+date: "2026-09-12"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(ggplot2)
+  library(here)
+})
+
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width(), and on a page whose data is
+# missing the plotting module is never sourced — which would silently leave the
+# empty-state plots on ggplot2's default grey theme.
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      # Figure size is NOT hand-picked: fig_width() pins the shrink factor
+                      # from rendered width to printed column, which is what keeps type
+                      # the same size on paper across every page. See plot_theme.R.
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG       <- "benchmark_anhir"
+anhir_dir  <- here("data", "benchmark")
+have_anhir <- file.exists(file.path(anhir_dir, "anhir_cases.csv"))
+```
+
+## Starting data and notation
+
+**ANHIR** (Automatic Non-rigid Histological Image Registration,
+[anhir.grand-challenge.org](https://anhir.grand-challenge.org/)) is the public
+benchmark for registering serially-sectioned, differently-stained histology
+images. It ships pairs of whole-slide images at several downsampled scales with
+pathologist-placed **landmarks**, so a method's error is measured against human
+correspondences rather than against its own features — the one thing neither the
+[synthetic sweep](benchmark_registration.html) nor the
+[run QC](registration_run_qc.html) can offer. Here mirage's two backends,
+**VALIS** and **STARE** (`tiled`), are scored on it beside the challenge's own
+**bUnwarpJ** baseline and the **initial** (unregistered) state.
+
+**Where the numbers come from.** mirage's `benchmarks/anhir/` harness registers
+every ANHIR pair with each method and scores the result; its
+`benchmarks/pull_to_ihc_method.sh` copies two tables into `data/benchmark/`:
+
+- **`anhir_cases.csv`** — one row per (case, method): the case's `tissue`,
+  `scale` and `status`, then `n_landmarks`, `rtre_median` / `rtre_mean` /
+  `rtre_max`, `tre_median_px`, `robustness`, `rank_median_rtre` and `time_min`.
+- **`anhir_aggregates.csv`** — one row per (method, subset), for the subsets
+  `all`, `training`, `evaluation`, `robust` (cases with robustness > 0.5) and one
+  `tissue:<name>` per tissue: the means and medians of the per-case metrics plus
+  `avg_rank_median_rtre`.
+
+**The metrics**, as the challenge defines them
+([Performance Metrics](https://anhir.grand-challenge.org/Performance_Metrics/)):
+
+- **TRE** — target registration error: for each landmark, the distance in pixels
+  between the warped source landmark and its target.
+- **rTRE** — *relative* TRE: TRE divided by the target image's diagonal. Unitless,
+  so it compares across image sizes and scales; a good non-rigid result sits
+  around 10^-3^, no registration around 10^-1^. Every figure below uses rTRE.
+- **Robustness** — the fraction of a case's landmarks whose rTRE *improved* over
+  the initial (unregistered) state. A case is "robust" above 0.5.
+- **Ranking** — the challenge's primary metric. On each case the methods are
+  ranked by their **median rTRE** (1 = best), and each method's rank is averaged
+  over cases; lower is better. `avg_rank_median_rtre` for `subset == "all"` is
+  that number.
+
+**Only training cases are scored here.** ANHIR releases target landmarks for the
+*training* split only; *evaluation* cases are scored server-side on
+grand-challenge.org from submitted warped landmarks. So in `anhir_cases.csv`
+evaluation rows carry `scored = FALSE` and NA metrics, every figure draws the
+training cases, and the `evaluation` aggregate row is empty until a submission
+is scored on the server.
+
+```{r build}
+anhir_figs <- list()
+anhir <- NULL
+if (have_anhir) {
+  source(here("code", "anhir_plots.R"))
+  anhir <- anhir_load(anhir_dir)
+  anhir_figs <- list(
+    "01_rtre_by_method" = plot_anhir_rtre_by_method(anhir$cases),
+    "02_rtre_by_tissue" = plot_anhir_rtre_by_tissue(anhir$cases),
+    "03_robustness"     = plot_anhir_robustness(anhir$cases),
+    "04_rank"           = plot_anhir_rank(anhir$aggregates))
+  cat(nrow(anhir$cases), "case rows (", sum(anhir$cases$scored %in% TRUE), "scored ) and",
+      nrow(anhir$aggregates), "aggregate rows loaded from", basename(anhir_dir), ".\n")
+} else {
+  cat("No ANHIR benchmark data found — the tables have not been pulled yet.",
+      "Run mirage's `benchmarks/pull_to_ihc_method.sh` to copy `anhir_cases.csv` and",
+      "`anhir_aggregates.csv` into `data/benchmark/`, then re-knit.")
+}
+```
+
+```{r fig-notes}
+fig_notes <- c(
+  "01_rtre_by_method" = paste(
+    "Per-case **median rTRE** by method (`anhir_cases.csv`, `rtre_median`, rows with",
+    "`scored = TRUE`), one point per case, one facet per `status`. rTRE is TRE over the",
+    "image diagonal, so it is unitless; lower = better. **Log y axis** — the unregistered",
+    "state is one to two orders of magnitude worse than any registered result, and on a",
+    "linear axis every method collapses onto zero."),
+  "02_rtre_by_tissue" = paste(
+    "The same `rtre_median`, summarised as the median over cases per (method, tissue).",
+    "Tissues are ordered hardest-first by their pooled median, so the profile reads as a",
+    "difficulty ladder and a method that only wins on easy tissue is visible. n per tissue",
+    "counts cases, not (case, method) rows."),
+  "03_robustness" = paste(
+    "`robustness` per method: the fraction of a case's landmarks whose rTRE improved over",
+    "no registration. `initial` is omitted because robustness is defined against it (its",
+    "own value is identically 0). Dashed line = the challenge's robust cut, 0.5, the same",
+    "threshold that defines the `robust` subset in `anhir_aggregates.csv`."),
+  "04_rank" = paste(
+    "The challenge's primary metric: `avg_rank_median_rtre` for `subset == \"all\"` in",
+    "`anhir_aggregates.csv` — each method's rank on per-case median rTRE, averaged over",
+    "the cases it was scored on. 1 = best; lower = better. n is the aggregate's `n_cases`.")
+)
+```
+
+## Figures
+
+Each figure is preceded by its derivation note. A figure whose input has no
+scored rows renders as an empty panel that says so.
+
+```{r figures, results="asis", fig.width=fig_width("double"), fig.height=5.5}
+if (length(anhir_figs)) {
+  for (nm in names(anhir_figs)) {
+    title <- gsub("_", " ", sub("^[0-9]+[a-z]?_", "", nm))
+    cat("\n\n### ", title, "\n\n", sep = "")
+    if (!is.na(fig_notes[nm])) cat(fig_notes[[nm]], "\n\n")
+    print(anhir_figs[[nm]])
+    cat("\n\n")
+  }
+}
+```
+
+## Summary table
+
+One row per (subset, method) from `anhir_aggregates.csv`, for the `all` and
+`training` subsets, methods in rank order. `mean_rank` is
+`avg_rank_median_rtre`; the rTRE columns are means and medians of the per-case
+values; `avg_time_min` is wall time per case where the harness recorded it.
+
+```{r summary-table, results="asis"}
+if (have_anhir) {
+  knitr::kable(anhir_summary_table(anhir$aggregates), digits = 4,
+               caption = "ANHIR aggregates by method (lower rank and rTRE = better; higher robustness = better).")
+}
+```
+
+## Notes
+
+- **Landmarks, not self-assessment.** The sweep page and the run-QC page score a
+  registration with the features the method itself matched (VALIS rTRE, STARE
+  tile error) or with an independent DAPI overlap; ANHIR scores it against
+  pathologist-placed correspondences, so it is the one benchmark here where the
+  error is external to every method.
+- **Training split only.** The evaluation split's landmarks are withheld by the
+  challenge; its rows are present in `anhir_cases.csv` so the case inventory is
+  complete, but unscored. A server-side score would arrive as a leaderboard
+  entry, not through this page.
+- **Rank is the headline, rTRE is the reason.** The challenge ranks on mean rank
+  of per-case median rTRE (§4); the distributions (§1–§2) and robustness (§3) say
+  *why* a method ranks where it does — a method can win the rank while losing a
+  tissue.
+- **This is not the study's tissue.** ANHIR's pairs are differently-stained
+  serial sections at reduced scale; the study's cyclic-IF rounds are the same
+  section re-imaged. For the registration accuracy of the run that produced
+  this study's cells, see [run QC](registration_run_qc.html) and
+  [registration arms](registration_arms.html).
+
+```{r export-pdfs, include=FALSE}
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
+```

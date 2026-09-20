@@ -9,7 +9,7 @@ source(here::here("code", "registration_arms.R"))
 # depth 2, exactly as the pipeline does — that asymmetry is the point of the fixture.
 arms_tree <- function(modes = c("high", "low"), depths = 0:2,
                       patients = c("046", "052"), manifest = FALSE,
-                      tiled = FALSE) {
+                      tiled = FALSE, movings = "cycle2", valis = FALSE) {
   root <- file.path(tempdir(), paste0("arms-", as.integer(Sys.time()), "-", sample(1e6, 1)))
   if (tiled) {
     # The tiled backend's OWN stage vocabulary: native -> rigid -> refined. Writing
@@ -50,7 +50,7 @@ arms_tree <- function(modes = c("high", "low"), depths = 0:2,
     for (dp in depths) {
       arm <- sprintf("valis_%s_micro%d", mode, dp)
       stages <- c("native", "rigid", "non_rigid", if (dp == 2) "micro")
-      for (p in patients) {
+      for (p in patients) for (mv in movings) {
         d <- file.path(root, arm, p, "qc", "registration")
         dir.create(d, recursive = TRUE, showWarnings = FALSE)
         # micro-rigid folds into `rigid`, so rigid is tighter at depth >= 1 — the
@@ -70,12 +70,21 @@ arms_tree <- function(modes = c("high", "low"), depths = 0:2,
           displacement_um_p50 = st[[s]]$displacement_um_p50 - st$rigid$displacement_um_p50))
         names(dv) <- setdiff(stages, "rigid")
         jsonlite::write_json(list(
-          patient_id = p, moving = paste0(p, "_cycle2"), reference = paste0(p, "_cycle1"),
+          patient_id = p, moving = paste0(p, "_", mv), reference = paste0(p, "_cycle1"),
           stages_separable = TRUE, stage_order = stages,
           matching = list(anchor_stage = "rigid", n_pairs = 1000,
                           pair_fraction = if (mode == "high") 0.9 else 0.62),
           stages = st, delta_vs_anchor = dv),
-          file.path(d, paste0(p, "_cycle2_seg_qc.json")), auto_unbox = TRUE)
+          file.path(d, paste0(p, "_", mv, "_seg_qc.json")), auto_unbox = TRUE)
+        # VALIS's own summary, in VALIS's own spelling: `from` / `to`, no `img_name`.
+        if (valis && mv == movings[1]) {
+          sdir <- file.path(root, arm, p, "registered", "summary")
+          dir.create(sdir, recursive = TRUE, showWarnings = FALSE)
+          readr::write_csv(tibble::tibble(
+            from = paste0(p, "_", movings), to = paste0(p, "_cycle1"),
+            original_rTRE = 50, rigid_rTRE = rigid, non_rigid_rTRE = rigid * .35),
+            file.path(sdir, paste0(p, "_summary.csv")))
+        }
       }
     }
   }
@@ -272,4 +281,82 @@ test_that("a VALIS-only sweep produces no STARE figures", {
   expect_equal(nrow(read_arms_stare_tre(man)), 0)
   figs <- build_arm_figs(read_arms_seg_qc(man), tibble::tibble(), man)
   expect_false(any(grepl("stare", names(figs))))
+})
+
+# --- the channel-pair unit: main panels pooled, supplementary panels split -----------
+
+test_that("a QC record's channel pair is patient-free, so it is shared across patients", {
+  seg <- read_arms_seg_qc(arm_manifest(arms_tree(movings = c("cycle2", "cycle3"))))
+  expect_setequal(unique(seg$pair), c("cycle1 vs cycle2", "cycle1 vs cycle3"))
+  # The same pair in both patients is ONE label; a patient prefix left in would make it two.
+  expect_equal(dplyr::n_distinct(seg$patient_id[seg$pair == "cycle1 vs cycle2"]), 2)
+})
+
+test_that("a record with no `reference` key still gets a pair label", {
+  seg <- read_arms_seg_qc(arm_manifest(arms_tree(modes = "high", depths = 2, tiled = TRUE)))
+  tl  <- dplyr::filter(seg, backend == "tiled")      # the tiled fixture writes no reference
+  expect_true(all(is.na(tl$reference)))
+  expect_true(all(tl$pair == "cycle2"))
+})
+
+test_that("the main panels hold one point per channel pair, pooled over patients", {
+  man  <- arm_manifest(arms_tree(movings = c("cycle2", "cycle3"), valis = TRUE))
+  figs <- build_arm_figs(read_arms_seg_qc(man), read_arms_valis(man), man)
+  for (nm in c("01_final_residual_um_by_arm", "02_final_dice_by_arm",
+               "02b_final_valis_error_by_arm")) {
+    d <- figs[[nm]]$data
+    expect_equal(nrow(d), 6 * 2 * 2, info = nm)      # arms x patients x pairs
+    expect_equal(as.character(rlang::quo_get_expr(figs[[nm]]$mapping$x)), "arm", info = nm)
+    expect_match(figs[[nm]]$labels$subtitle, "channel pair", info = nm)
+  }
+})
+
+test_that("VALIS's `from`/`to` spelling is read as a slide and a pair", {
+  man  <- arm_manifest(arms_tree(modes = "high", depths = 0, valis = TRUE,
+                                 movings = c("cycle2", "cycle3")))
+  long <- valis_error_long(read_arms_valis(man))
+  # Not the csv's file name: without `from` every slide of a patient shared one label.
+  expect_setequal(unique(long$slide_token), c("cycle2", "cycle3"))
+  expect_setequal(unique(long$pair), c("cycle1 vs cycle2", "cycle1 vs cycle3"))
+})
+
+test_that("each main panel has a by-patient and a by-channel-pair supplement", {
+  man  <- arm_manifest(arms_tree(movings = c("cycle2", "cycle3"), valis = TRUE))
+  figs <- build_arm_figs(read_arms_seg_qc(man), read_arms_valis(man), man)
+  supp <- grep("^S[0-9]+_", names(figs), value = TRUE)
+  expect_setequal(supp, c("S1_residual_um_by_patient", "S2_residual_um_by_channel_pair",
+                          "S3_dice_by_patient", "S4_dice_by_channel_pair",
+                          "S5_valis_error_by_patient", "S6_valis_error_by_channel_pair"))
+  for (nm in supp) {
+    # Per arm, never pooled across arms: the split is WITHIN a configuration.
+    expect_false(inherits(figs[[nm]]$facet, "FacetNull"), info = nm)
+    # The same points as the main panel, regrouped — nothing re-summarised.
+    main <- figs[[c(residual_um = "01_final_residual_um_by_arm", dice = "02_final_dice_by_arm",
+                    valis_error = "02b_final_valis_error_by_arm")[[
+                      sub("^S[0-9]+_(.*)_by_.*$", "\\1", nm)]]]]
+    expect_equal(nrow(figs[[nm]]$data), nrow(main$data), info = nm)
+    expect_match(figs[[nm]]$labels$subtitle, "n = 2 patients, n = 2 channel pairs", info = nm)
+  }
+})
+
+test_that("with no VALIS summary the VALIS panels are skipped, not drawn empty", {
+  man  <- arm_manifest(arms_tree())
+  figs <- build_arm_figs(read_arms_seg_qc(man), tibble::tibble(), man)
+  expect_false(any(grepl("valis_error", names(figs))))
+  expect_true(all(c("S1_residual_um_by_patient", "S4_dice_by_channel_pair") %in% names(figs)))
+})
+
+test_that("an ashlar arm is keyed as ashlar, not as plain valis", {
+  k <- .arm_kind(c("ashlar", "tiled", "valis", "valis"), c(NA, NA, NA, 2L))
+  expect_equal(as.character(k), c("ashlar", "tiled (STARE)", "valis", "valis \u00b7 micro 2"))
+  expect_false(anyNA(k))
+})
+
+test_that("pair labels that no two patients share are flagged, not drawn silently", {
+  man <- arm_manifest(arms_tree(modes = "high", depths = 0))
+  seg <- read_arms_seg_qc(man)
+  expect_no_warning(build_arm_figs(seg, tibble::tibble(), man))
+  # A stem that embeds the patient id mid-name survives .slide_token()'s prefix strip.
+  seg$pair <- paste0("scan_", seg$patient_id, "_cycle2")
+  expect_warning(build_arm_figs(seg, tibble::tibble(), man), "shared between patients")
 })

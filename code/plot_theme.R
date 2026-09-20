@@ -382,11 +382,11 @@ LINEAGE_PALETTE <- c(LINEAGE_COLS, GATED_COLS,
                      Unknown = "grey85", Unclassified = "grey85")
 
 # Registration arms. Ordered so the valis micro-registration ladder (0 -> 1 -> 2)
-# reads as a progression in the blue-green direction, with the two non-ladder arms
-# in contrasting grey and vermillion.
+# reads as a progression in the blue-green direction, with the non-ladder arms in
+# contrasting grey, vermillion (STARE) and reddish purple (ASHLAR).
 ARM_KIND_COLS <- c("valis · micro 0" = "#0072B2", "valis · micro 1" = "#56B4E9",
                    "valis · micro 2" = "#009E73", "valis"           = "#7F8C8D",
-                   "tiled (STARE)"   = "#D55E00")
+                   "tiled (STARE)"   = "#D55E00", "ashlar"          = "#CC79A7")
 
 # Collapse a raw lineage column to the legible subset, as an ORDERED factor with
 # the full level set present (drop = FALSE then keeps colours stable across
@@ -556,6 +556,32 @@ scale_colour_arm <- function(..., drop = TRUE, name = NULL)
 scale_fill_arm <- function(..., drop = TRUE, name = NULL)
   scale_fill_manual(values = ARM_KIND_COLS, drop = drop, name = name, ...)
 scale_color_arm <- scale_colour_arm
+
+# ANHIR challenge methods (anhir_plots.R). Keyed on what the hand-off CSV spells.
+# VALIS keeps oi's blue and STARE the vermillion ARM_KIND_COLS gives `tiled
+# (STARE)`, so the two benchmark pages agree on a backend's hue; the challenge
+# baseline takes the green; no-registration is the grey the arm palette uses
+# for its plain control.
+ANHIR_METHOD_COLS <- c(initial = "#7F8C8D", bunwarpj = "#009E73",
+                       valis = "#0072B2", tiled = "#D55E00")
+ANHIR_METHOD_LABELS <- c(initial  = "initial (no registration)",
+                         bunwarpj = "bUnwarpJ (challenge baseline)",
+                         valis    = "VALIS",
+                         tiled    = "STARE (tiled)")
+
+# Display name for a method key; an unlisted key is shown as itself.
+.anhir_method_labels <- function(breaks) {
+  lab <- ANHIR_METHOD_LABELS[as.character(breaks)]
+  # ifelse() keeps the names the lookup gave `is.na(lab)`; a named label column
+  # would carry them into a kable() and into every level compare.
+  unname(ifelse(is.na(lab), as.character(breaks), lab))
+}
+
+scale_colour_anhir_method <- function(..., drop = TRUE, name = NULL, labels = .anhir_method_labels)
+  scale_colour_manual(values = ANHIR_METHOD_COLS, drop = drop, name = name, labels = labels, ...)
+scale_fill_anhir_method <- function(..., drop = TRUE, name = NULL, labels = .anhir_method_labels)
+  scale_fill_manual(values = ANHIR_METHOD_COLS, drop = drop, name = name, labels = labels, ...)
+scale_color_anhir_method <- scale_colour_anhir_method
 
 # --- FlowPath panel titles ---------------------------------------------------
 # Facet strips used to print the COLUMN name, which is three different spellings

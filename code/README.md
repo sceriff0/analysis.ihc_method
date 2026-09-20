@@ -19,6 +19,7 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
 | `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
 | `registration_accuracy_plots.R` | the **sweep** registration-accuracy figures — the only place they are built |
+| `anhir_plots.R` | the **ANHIR challenge** figures — pure functions over the two tables mirage's `benchmarks/anhir/` hands off; `anhir_load()` is their only reader |
 | `registration_arms.R` | the **arm sweep** on the real slides — one run per configuration (both registration backends), ranked, with the cross-arm comparability guard |
 | `run_qc.R` | the **run's own** QC on the study samples: readers for mirage's per-patient QC artifacts, plus `build_run_qc_figs()` |
 | `paper_figures.R` | the **manuscript panels** — re-cuts of existing quantities in the shape each figure legend asks for |

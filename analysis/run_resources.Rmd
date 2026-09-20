@@ -1,0 +1,174 @@
+---
+title: "Run resources — what one run of the study samples cost"
+author: "sceriff0"
+date: "2026-09-10"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(ggplot2)
+  library(forcats)
+  library(here)
+})
+
+# House style first, unconditionally, before opts_chunk$set — see registration_run_qc.Rmd
+# for why (a page whose data is missing must still not fall back to ggplot2's grey theme).
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
+                      dev = c("png", "pdf"))
+
+# This page reads ONLY the resource tables mirage's benchmarks/pull_run_resources.sh
+# copies into data/run_resources/ — Nextflow's trace joined with the pipeline's own
+# input-size log. No counts, no clinical table, no cells.
+source(here("code", "run_resources.R"))       # readers + build_run_resources_figs()
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "run_resources"
+rr_root <- RUN_RESOURCES_ROOT
+```
+
+## Starting data and notation
+
+What did **one run of this cohort** cost — per process, in wall-time, CPU and memory —
+and how much of what was reserved was actually used? The [pipeline benchmark](benchmark_pipeline.html)
+answers how cost *scales*, on rescaled synthetic images with a known offset; the
+[registration arms](registration_arms.html) price the whole cohort once per configuration.
+This page is neither: it is **the run that produced the cells the other pages analyse**,
+measured by Nextflow while it ran.
+
+**Where the numbers come from.** Every mirage run with tracing on (the default) writes two
+files: Nextflow's `trace.txt` — one row per task with `realtime`, `%cpu`, `cpus`, the
+`memory` requested and the `peak_rss` observed — and mirage's own
+`size_logs/input_sizes.csv`, one row per task with the bytes it read. `benchmarks/analysis/run_resources.py`
+(mirage, `benchmarking` branch) joins them on `(process, tag)` and writes four tables,
+documented column by column in `data/run_resources/run_resources.dict.md`:
+
+| table | one row per | carries |
+|---|---|---|
+| `run_resources_tasks.csv` | Nextflow task | wall-time, CPU-hours used vs reserved, memory requested vs peak RSS, I/O volume, input GiB |
+| `run_resources_processes.csv` | process | the sums and maxima of the above, share of all task time, CPU efficiency |
+| `run_resources_fits.csv` | process × target | `peak_rss_gb ~ input_gb` and `realtime_s ~ input_gb` over the run's own tasks, with `fit_ok` |
+| `run_resources_summary.csv` | the run | wall-clock, totals, raw slide input |
+
+**Two things to read carefully.**
+
+- **Used against reserved is the operator's number.** `cpu_h_used` is `realtime × %cpu`; `cpu_h_reserved`
+  is `realtime × cpus`. The same for memory: `peak_rss` against `memory` requested. The gap is
+  allocation that sat idle — real cost on a shared cluster, invisible in a run that merely
+  finished.
+- **A fit inside one run is only as good as the run's spread of inputs.** A process that ran
+  once per slide over eight slides of different sizes has eight `(input, RSS)` points and a
+  slope worth reading; a process that ran once has a point. `fit_ok` is `FALSE` unless a process
+  has ≥ 3 tasks over ≥ 2 distinct input sizes, and the figure draws a line only then. The
+  cross-configuration scaling law belongs to the [synthetic sweep](benchmark_pipeline.html).
+
+```{r build}
+rr_tables <- run_resources_tables(rr_root)
+rr_figs   <- build_run_resources_figs(rr_root, rr_tables)
+
+found <- vapply(rr_tables, nrow, integer(1))
+if (sum(found) == 0) {
+  cat("No resource tables found under `", rr_root, "`.\n\n",
+      "From the mirage checkout (branch `benchmarking`):\n\n",
+      "    benchmarks/pull_run_resources.sh <run --outdir> ", here(), " [--trace <trace_dir>/trace.txt]\n\n",
+      "then re-knit. The trace lives in `trace_dir` (default `.trace` beside the launch\n",
+      "directory), not inside `--outdir`; pass `--trace` when the script cannot find it.\n", sep = "")
+} else {
+  cat("tables found — ",
+      paste(sprintf("%s: %d rows", names(found), found), collapse = " | "), "\n", sep = "")
+}
+```
+
+## The run
+
+```{r summary}
+s <- rr_tables$summary
+if (nrow(s)) {
+  s |>
+    transmute(run,
+              `mirage version` = mirage_version,
+              tasks = n_tasks, processes = n_processes, failed = n_failed,
+              `raw input GiB` = round(raw_input_gb, 1),
+              `wall-clock h` = round(wall_clock_h, 2),
+              `task time h (sum)` = round(task_realtime_total_h, 2),
+              `CPU-h used` = round(cpu_h_used_total, 1),
+              `CPU-h reserved` = round(cpu_h_reserved_total, 1),
+              `GiB-h reserved` = round(gb_h_reserved_total, 0),
+              `peak RSS GiB (max task)` = round(peak_rss_max_gb, 1)) |>
+    knitr::kable(caption = paste(
+      "The run in one row. `wall-clock h` is first task start to last task end;",
+      "`task time h (sum)` is the serial cost — the ratio is the parallelism the",
+      "scheduler actually delivered. `GiB-h reserved` is what the run occupied on the",
+      "cluster, memory × time, whether or not it was used."))
+}
+```
+
+## Per process
+
+```{r processes}
+pt <- run_resources_process_table(rr_tables)
+if (nrow(pt)) {
+  knitr::kable(pt, caption = paste(
+    "One row per process, most time first. `CPU efficiency` = CPU-h used / reserved;",
+    "`RSS / request (max)` is the tightest task's peak RSS as a fraction of what it asked",
+    "for — near 1 means the request is right, near 0 means it is a guess. `RSS per GiB",
+    "input` is the slope of the within-run fit and is blank where `fit n` < 3 or the",
+    "inputs were all one size."))
+}
+```
+
+## Figures
+
+```{r fig-notes}
+fig_notes <- c(
+  "01_wall_by_process" = paste(
+    "Bar: the process's task wall-time summed over its tasks. Tick: its longest single task,",
+    "which is what it costs on the critical path when its tasks run in parallel. A long bar",
+    "with a short tick is many cheap tasks; a bar that is all tick is one expensive one."),
+  "02_cpu_hours_used_vs_reserved" = paste(
+    "Grey: CPU-hours reserved (realtime × cpus). Black: CPU-hours the task actually kept busy",
+    "(realtime × %cpu / 100). A process whose black bar is a fraction of its grey one asked for",
+    "cores it did not use — the request in conf/modules.config is the place to look."),
+  "03_peak_rss_vs_request" = paste(
+    "One point per task. The dashed line is peak RSS = memory requested. Points far below it",
+    "are reservations the scheduler could not give to anyone else; a point near or on it is a",
+    "task one retry away from an OOM. Crosses are tasks that failed (non-zero exit)."),
+  "04_cost_vs_input" = paste(
+    "Peak RSS and wall-time of every task against the bytes it read (size_logs). A fitted line",
+    "appears only where a process ran on at least three inputs of different size; everywhere",
+    "else the points are shown as points. The slope of a drawn line is that process's cost",
+    "per GiB of input, in THIS run's configuration."))
+```
+
+```{r figures, results="asis", fig.width=fig_width("double"), fig.height=5.5}
+for (nm in names(rr_figs)) {
+  title <- gsub("_", " ", sub("^[0-9]+[a-z]?_", "", nm))
+  cat("\n\n### ", title, "\n\n", sep = "")
+  if (!is.na(fig_notes[nm])) cat(fig_notes[[nm]], "\n\n")
+  print(rr_figs[[nm]])
+  cat("\n\n")
+}
+```
+
+## Notes
+
+- **One run, by design.** `pull_run_resources.sh` replaces the tables each time it is
+  run, so this page always shows one run. Pooling runs would mix configurations and make
+  the within-run fits meaningless; the synthetic sweep is where configurations are compared.
+- **Cached tasks (`-` in the trace) contribute nothing.** A resumed run shows only what
+  actually executed; its wall-clock and totals are for the resumed part.
+- **`raw input GiB` is what `CONVERT_IMAGE` read** — the slides as they arrived, before
+  conversion. Every later process's `input_gb` is the size of the pipeline's own
+  intermediate it consumed.
+
+```{r export-pdfs, include=FALSE}
+export_pdf_figures(SLUG)
+```

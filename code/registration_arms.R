@@ -15,12 +15,21 @@
 # ranking measured on real tissue rather than on a synthetic offset.
 #
 # THE AXES
-#   registration_method  the BACKEND: `valis` (default) or `tiled` (STARE, JVM-free,
-#                  internally tiled). This is a different axis from the two below, not
-#                  a third level of them: memory_mode and reg_micro_reg are VALIS-only
-#                  params, so a tiled arm has NEITHER and carries NA for both. A tiled
-#                  arm is "the other backend at its defaults", one point of comparison,
-#                  not a cell of the preset x depth grid.
+#   registration_method  the BACKEND: `valis` (default), `tiled` (STARE, JVM-free,
+#                  internally tiled) or `ashlar` (labsyspharm ASHLAR, the external
+#                  baseline). This is a different axis from the two below, not a third
+#                  level of them: memory_mode and reg_micro_reg are VALIS-only params, so
+#                  a tiled or ashlar arm has NEITHER and carries NA for both. Each is
+#                  "another backend", a point of comparison against the whole preset x
+#                  depth grid, not a cell of it.
+#
+#                  The ashlar arms fan out over GRID GRANULARITY (`ashlar_tile1024`,
+#                  `ashlar_tile4096`) because ASHLAR takes one independent shift per
+#                  tile: a finer grid buys it more local freedom, so tile size is a
+#                  FAIRNESS knob against STARE's reg_tiled_tile, not a cost knob.
+#                  ASHLAR attempts NO non-rigid warp at all, so read it against VALIS's
+#                  `rigid` stage for the like-for-like number and against `micro` to see
+#                  what non-rigid buys; reporting only the second overstates VALIS.
 #   memory_mode    VALIS accuracy preset. `low` = BRISK/RANSAC at small dims,
 #                  `high` = SuperPoint/SuperGlue at larger dims. NOTE: these are
 #                  DIFFERENT FEATURE MATCHERS, not one matcher at two resolutions.
@@ -30,12 +39,17 @@
 #                    2 = + micro non-rigid (register_micro)
 #
 # THE BACKENDS DO NOT SHARE A STAGE VOCABULARY. lib/WarpBackends.groovy:
-#   valis -> native, rigid, non_rigid, micro
-#   tiled -> native, rigid, refined
+#   valis  -> native, rigid, non_rigid, micro
+#   tiled  -> native, rigid, refined
+#   ashlar -> native, rigid, refined
 # The segmentation-overlap SCORER is method-agnostic (bin/warp_seg_qc.py takes
 # `--method` and builds its warper from either a VALIS registrar pickle or a STARE
 # transform manifest), so the metric itself IS comparable across backends — which is
-# the whole reason a tiled arm can join this page at all. What is not comparable is
+# the whole reason a tiled arm can join this page at all. ASHLAR shares the tiled
+# vocabulary because it shares the ARTIFACT: bin/ashlar_solve.py rewrites ASHLAR's
+# per-tile placements into the same M0 + mesh manifest STARE emits, which is the only
+# reason an ashlar arm can be ranked here rather than in a separate table of
+# residual-TRE numbers that share no column with this one. What is not comparable is
 # the stage axis: only `native` is a shared spelling with a shared meaning. `rigid`
 # is shared as a WORD and not as an operation (VALIS: affine, composed with
 # micro-rigid at depth >= 1; STARE: the coarse global anchor before mesh refinement).
@@ -95,6 +109,12 @@ ARMS_DIR <- here::here("data", "registration_arms")
 
 ARM_CAPTION <- "mirage staged registration QC (reg_qc = 2), study slides, one run per arm."
 
+# The unit of every final-transform panel, said the same way in each. A slide is one
+# staining round — one set of channels — and mirage scores each moving slide against
+# its patient's reference, so one QC record is one PAIR of channel sets.
+PAIR_UNIT_NOTE <- paste("One point per channel pair (reference vs moving slide),",
+                        "pooled over all pairs and all patients.")
+
 # --- Which arm is which ------------------------------------------------------
 # MANIFEST FIRST, name-parsing second. A mislabelled arm does not fail: it produces
 # a clean figure with the conclusion inverted, which is the worst failure mode
@@ -110,10 +130,18 @@ ARM_CAPTION <- "mirage staged registration QC (reg_qc = 2), study slides, one ru
 # still appears in the figures — unlabelled, rather than dropped.
 .parse_arm_dir <- function(nm) {
   low <- tolower(nm)
-  # The backend first: a tiled arm has no preset and no micro depth, so reading those
+  # The backend first: a non-VALIS arm has no preset and no micro depth, so reading those
   # off its name would invent knob values it was never run with.
-  backend <- if (grepl("tiled|stare", low)) "tiled" else "valis"
-  if (backend == "tiled")
+  #
+  # ASHLAR is tested BEFORE the tiled pattern, and the `else` is VALIS -- so a backend
+  # added upstream without a rule here is silently read as VALIS, complete with a preset
+  # and a depth parsed out of a name that never had them. That is not hypothetical: the
+  # ashlar arm dirs are `ashlar_tile1024` / `ashlar_tile4096`, and the old two-way test
+  # would have called both of them VALIS with memory_mode = NA.
+  backend <- if (grepl("ashlar", low)) "ashlar"
+             else if (grepl("tiled|stare", low)) "tiled"
+             else "valis"
+  if (backend %in% c("tiled", "ashlar"))
     return(tibble::tibble(backend = backend,
                           memory_mode = NA_character_, micro_reg = NA_integer_))
   mode <- if (grepl("high", low) && !grepl("low", low)) "high"
@@ -162,14 +190,25 @@ arm_manifest <- function(root = ARMS_DIR) {
     dplyr::mutate(
       micro_reg = suppressWarnings(as.integer(micro_reg)),
       backend   = dplyr::coalesce(backend, "valis"),
-      # A tiled arm is named for its backend, not for knobs it does not have.
+      # A non-VALIS arm is named for its backend, not for knobs it does not have. The
+      # ashlar arms differ only by grid granularity, which IS in the directory name, so
+      # the fallback recovers it rather than collapsing both arms onto one label -- two
+      # identically-labelled boxes would read as a duplicated bar, not as two arms.
       arm = dplyr::coalesce(label, dplyr::case_when(
         backend == "tiled" ~ "tiled (STARE, defaults)",
+        backend == "ashlar" ~ {
+          t <- regmatches(tolower(arm_dir),
+                          regexec("tile[^0-9]{0,2}([0-9]+)", tolower(arm_dir)))
+          t <- vapply(t, function(m) if (length(m) == 2) m[2] else NA_character_,
+                      character(1))
+          ifelse(is.na(t), "ashlar", sprintf("ashlar (tile %s)", t))
+        },
         !is.na(memory_mode) & !is.na(micro_reg) ~
           sprintf("%s / micro %d", memory_mode, micro_reg),
         TRUE ~ arm_dir))) |>
-    # VALIS arms first, grouped by preset then depth; the tiled comparator last, since
-    # it is a different backend rather than another cell of the grid.
+    # VALIS arms first, grouped by preset then depth; the other BACKENDS after them,
+    # alphabetically by directory (ashlar_tile1024, ashlar_tile4096, tiled_defaults),
+    # since each is a different backend rather than another cell of the VALIS grid.
     dplyr::arrange(backend != "valis", dplyr::desc(memory_mode), micro_reg, arm_dir)
 }
 
@@ -327,8 +366,10 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   .arm_f   <- function(x) factor(x, levels = intersect(arm_lvls, unique(x)))
 
   # -- 1. THE ARM RANKING. Residual displacement in microns at each arm's final
-  # transform. Physical units, so it is the number to quote; one point per slide,
-  # because with a handful of slides the points are the evidence.
+  # transform. Physical units, so it is the number to quote. One point per CHANNEL
+  # PAIR (one reference-vs-moving QC record), pooled over every pair and every
+  # patient: that is the main-text panel. The same points split by patient and by
+  # pair are the S-figures at the end of this builder.
   if (any(is.finite(fin$disp_um_p50))) {
     d <- dplyr::filter(fin, is.finite(disp_um_p50)) |> dplyr::mutate(arm = .arm_f(arm))
     figs[["01_final_residual_um_by_arm"]] <-
@@ -340,8 +381,10 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       scale_colour_arm() +
       coord_flip() +
       labs(title = "Residual alignment error at each arm's final transform",
-           subtitle = paste("Matched-nucleus centroid residual, median per slide.",
-                            "Physical units; lower = tighter. One point per slide."),
+           # The unit note takes its own line in all three main panels: run on, the
+           # subtitle overruns a double-column panel and the clipped part is the unit.
+           subtitle = paste0("Matched-nucleus centroid residual, median per channel pair. ",
+                             "Physical units; lower = tighter.\n", PAIR_UNIT_NOTE),
            x = NULL, y = "residual displacement, median (µm)", caption = ARM_CAPTION)
   }
 
@@ -358,8 +401,50 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       scale_colour_arm() +
       coord_flip() +
       labs(title = "Matched-nucleus Dice at each arm's final transform",
-           subtitle = "Higher = better. Same arms and slides as the residual figure.",
+           subtitle = paste0("Higher = better. Same arms and channel pairs as the ",
+                             "residual figure.\n", PAIR_UNIT_NOTE),
            x = NULL, y = "Matched-nucleus Dice (unitless, 0-1)", caption = ARM_CAPTION)
+  }
+
+  # -- 2b. VALIS grading itself, at each arm's final transform — the third main-text
+  # panel, and the only one of the three that owes nothing to the segmentation.
+  # Same unit as 1 and 2 (a channel pair), but NOT the same pairs: VALIS reports a
+  # slide against the neighbour it was aligned toward (`from -> to`), the overlap QC
+  # reports every moving slide against the reference. VALIS arms only, because the
+  # other backends write no registered/summary/*.csv; STARE's pixel TRE stays in
+  # figure 8, on its own axis.
+  #
+  # "Final" is the last VALIS stage the slide reported, `original` excluded. A single
+  # ordering is safe here — unlike arm_final_stage() — because only one backend's
+  # vocabulary is ever in this frame.
+  vl <- if (nrow(valis)) valis_error_long(valis) else tibble::tibble()
+  vf <- if (nrow(vl) && "arm" %in% names(vl))
+    dplyr::filter(vl, is.finite(error)) |> dplyr::mutate(arm = .arm_f(arm))
+  else tibble::tibble()
+  vfin <- tibble::tibble()
+  if (nrow(vf)) {
+    vfin <- vf |>
+      dplyr::filter(stage != "original") |>
+      dplyr::group_by(arm, patient_id, slide) |>
+      dplyr::slice_max(order_by = as.integer(stage), n = 1, with_ties = FALSE) |>
+      dplyr::ungroup()
+    for (k in setdiff(c("backend", "micro_reg"), names(vfin))) vfin[[k]] <- NA
+    vfin$backend <- dplyr::coalesce(as.character(vfin$backend), "valis")
+  }
+  if (nrow(vfin)) {
+    figs[["02b_final_valis_error_by_arm"]] <-
+      ggplot(vfin, aes(arm, error)) +
+      geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      scale_x_discrete(labels = label_n(vfin$arm, sep = " ")) +
+      geom_jitter(aes(colour = .arm_kind(backend, micro_reg)), width = .12, height = 0,
+                  alpha = .85, size = 2.2) +
+      scale_colour_arm() +
+      coord_flip() +
+      labs(title = "VALIS's own reported error at each arm's final transform",
+           subtitle = paste0("Lower = better. VALIS arms only; independent of the two ",
+                             "segmentation-overlap panels.\n", PAIR_UNIT_NOTE),
+           x = NULL, y = vfin$metric[1] %||% "VALIS rTRE / distance",
+           caption = ARM_CAPTION)
   }
 
   # -- 3. The stage ladder, WITHIN each arm. This is where the per-stage story is
@@ -470,10 +555,11 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 
   # -- 7. VALIS grading itself, ONE figure: the stage axis, faceted by arm.
   #
-  # This replaces a per-arm summary at each arm's final stage. That collapsed an arm to
-  # one number and threw away the ladder, which is the interesting part — and the ladder
-  # is what makes the arms comparable at all, because the STAGE MEANINGS differ by depth
-  # and faceting is what fixes them (same reason figure 3 facets).
+  # The companion of figure 2b, which summarises each arm at its final stage for the
+  # main text. On its own that collapses an arm to one box and throws away the ladder,
+  # which is the interesting part — and the ladder is what makes the arms comparable at
+  # all, because the STAGE MEANINGS differ by depth and faceting is what fixes them
+  # (same reason figure 3 facets).
   #
   # Three stages, two columns. VALIS's error_df is `from`/`filename`, `rigid_D`,
   # `non_rigid_D`; micro-registration has no column of its own because it UPDATES the
@@ -483,33 +569,29 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   # The depth-0 and depth-1 arms therefore show NO micro box, and that blank is the
   # finding: micro-registration did not run. A duplicated non_rigid box would instead
   # read as "micro bought nothing".
-  vl <- if (nrow(valis)) valis_error_long(valis) else tibble::tibble()
-  if (nrow(vl) && "arm" %in% names(vl)) {
-    vf <- dplyr::filter(vl, is.finite(error)) |> dplyr::mutate(arm = .arm_f(arm))
-    if (nrow(vf)) {
-      med <- vf |>
-        dplyr::group_by(arm, stage) |>
-        dplyr::summarise(error = stats::median(error, na.rm = TRUE), .groups = "drop")
-      figs[["07_valis_intrinsic_by_arm"]] <-
-        ggplot(vf, aes(stage, error)) +
-        geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
-        scale_x_discrete(labels = label_n(vf$stage)) +
-        geom_jitter(width = .12, height = 0, alpha = .8, size = 1.8, colour = oi[4]) +
-        geom_text(data = med, aes(label = signif(error, 3)), vjust = -1.0,
-                  size = pt_text(6.5), colour = "grey15") +
-        facet_wrap(~ arm) +
-        labs(title = "VALIS's own reported error, by stage, within each arm",
-             subtitle = paste("Independent of every segmentation-overlap metric above:",
-                              "VALIS grading itself from feature correspondences.",
-                              "Label = median. A missing `micro` box means the arm wrote",
-                              "no pre-micro summary (reg_micro_reg < 2), so",
-                              "micro-registration never ran — not that it gained nothing.",
-                              "Read DOWN a panel; the stage meanings differ across depths,",
-                              "which is why this facets rather than sharing an axis."),
-             x = NULL, y = vf$metric[1] %||% "VALIS rTRE / distance",
-             caption = ARM_CAPTION) +
-        theme(axis.text.x = element_text(angle = 30, hjust = 1))
-    }
+  if (nrow(vf)) {
+    med <- vf |>
+      dplyr::group_by(arm, stage) |>
+      dplyr::summarise(error = stats::median(error, na.rm = TRUE), .groups = "drop")
+    figs[["07_valis_intrinsic_by_arm"]] <-
+      ggplot(vf, aes(stage, error)) +
+      geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+      scale_x_discrete(labels = label_n(vf$stage)) +
+      geom_jitter(width = .12, height = 0, alpha = .8, size = 1.8, colour = oi[4]) +
+      geom_text(data = med, aes(label = signif(error, 3)), vjust = -1.0,
+                size = pt_text(6.5), colour = "grey15") +
+      facet_wrap(~ arm) +
+      labs(title = "VALIS's own reported error, by stage, within each arm",
+           subtitle = paste("Independent of every segmentation-overlap metric above:",
+                            "VALIS grading itself from feature correspondences.",
+                            "Label = median. A missing `micro` box means the arm wrote",
+                            "no pre-micro summary (reg_micro_reg < 2), so",
+                            "micro-registration never ran — not that it gained nothing.",
+                            "Read DOWN a panel; the stage meanings differ across depths,",
+                            "which is why this facets rather than sharing an axis."),
+           x = NULL, y = vf$metric[1] %||% "VALIS rTRE / distance",
+           caption = ARM_CAPTION) +
+      theme(axis.text.x = element_text(angle = 30, hjust = 1))
   }
 
   # -- 8. STARE's own reported error, in its own units and its own figure. Kept
@@ -561,7 +643,69 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
               panel.grid = element_blank())
   }
 
+  # -- S1-S6. THE SUPPLEMENTARY SPLITS of the three main panels. The main panels pool
+  # every channel pair of every patient into one box per arm, which answers "which
+  # arm" and hides WHY an arm is wide. The two splits separate the two possible
+  # reasons: a hard patient (tissue, section quality) or a hard channel pair (two
+  # rounds that share little structure). Same points as the main panels, regrouped —
+  # nothing is re-summarised, so a point can be followed from one figure to the next.
+  splits <- list(
+    residual_um = list(d = dplyr::filter(fin, is.finite(disp_um_p50)), y = "disp_um_p50",
+                       what = "Residual alignment error",
+                       ylab = "residual displacement, median (µm)"),
+    dice        = list(d = dplyr::filter(fin, is.finite(dice_matched)), y = "dice_matched",
+                       what = "Matched-nucleus Dice",
+                       ylab = "Matched-nucleus Dice (unitless, 0-1)"),
+    valis_error = list(d = vfin, y = "error", what = "VALIS's own reported error",
+                       ylab = if (nrow(vfin)) vfin$metric[1] else NA_character_))
+  # The by-pair split only works if a pair is spelled the same in every patient. When
+  # NO label is shared between patients the figure still draws — one point per box —
+  # and looks like a finding. It is a naming problem (see .channel_pair()), so say so.
+  if (dplyr::n_distinct(fin$patient_id) > 1 &&
+      all(tapply(fin$patient_id, fin$pair, dplyr::n_distinct) == 1))
+    warning("registration arms: no channel-pair label is shared between patients, so ",
+            "the by-channel-pair figures hold one patient per box. The slide names ",
+            "probably embed the patient id somewhere other than a leading `<patient>_`.")
+  i <- 0
+  for (nm in names(splits)) {
+    sp <- splits[[nm]]
+    for (by in c("patient", "channel_pair")) {
+      i <- i + 1
+      if (nrow(sp$d) == 0) next
+      figs[[sprintf("S%d_%s_by_%s", i, nm, by)]] <-
+        .arm_split_fig(dplyr::mutate(sp$d, arm = .arm_f(arm)), sp$y, by, sp$what, sp$ylab)
+    }
+  }
+
   figs
+}
+
+# One supplementary split: the final-transform metric `y`, one panel per arm, grouped
+# by patient (each box = that patient's channel pairs) or by channel pair (each box =
+# that pair across patients).
+#
+# n goes in the subtitle, not on the ticks: label_n() counts from the whole vector, so
+# on a faceted axis it would print a patient's n pooled over every arm — a number that
+# describes no box on the page.
+.arm_split_fig <- function(d, y, by = c("patient", "channel_pair"), what, ylab) {
+  by  <- match.arg(by)
+  col <- if (by == "patient") "patient_id" else "pair"
+  sub <- if (by == "patient")
+    "Each box is ONE PATIENT, pooled across its channel pairs; one point per pair."
+  else
+    "Each box is ONE CHANNEL PAIR, pooled across patients; one point per patient."
+  ggplot(d, aes(.data[[col]], .data[[y]])) +
+    geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
+    geom_jitter(aes(colour = .arm_kind(backend, micro_reg)), width = .12, height = 0,
+                alpha = .85, size = 1.8) +
+    scale_colour_arm() +
+    coord_flip() +
+    facet_wrap(~ arm) +
+    labs(title = paste0(what, " at each arm's final transform, by ",
+                        if (by == "patient") "patient" else "channel pair"),
+         subtitle = paste0(sub, " ", n_note(d$patient_id, "patients"), ", ",
+                           n_note(d$pair, "channel pairs"), "."),
+         x = NULL, y = ylab, caption = ARM_CAPTION)
 }
 
 # How to colour an arm: by BACKEND, with the VALIS micro depth as the sub-level. A
@@ -570,9 +714,12 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 # plot_theme.R with the other recurring category palettes; use scale_colour_arm().
 
 .arm_kind <- function(backend, micro_reg) {
+  # ASHLAR named explicitly: it has no micro depth either, so without its own branch
+  # it fell through to the plain "valis" level and was drawn, and keyed, as VALIS.
   lab <- ifelse(backend == "tiled", "tiled (STARE)",
+         ifelse(backend == "ashlar", "ashlar",
                 ifelse(is.na(micro_reg), "valis",
-                       paste0("valis · micro ", micro_reg)))
+                       paste0("valis · micro ", micro_reg))))
   factor(lab, levels = names(ARM_KIND_COLS))
 }
 

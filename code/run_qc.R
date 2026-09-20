@@ -165,6 +165,34 @@ QC_ARTIFACTS <- c(seg_qc = "qc/registration",
   ifelse(startsWith(s, pre), substring(s, nchar(pre) + 1L), s)
 }
 
+# The CHANNEL PAIR one QC record scores, as a label shared ACROSS patients.
+#
+# Each slide is one staining round, i.e. one set of channels, and mirage scores every
+# moving slide against its patient's reference — so one `*_seg_qc.json` is one pair of
+# channel sets, and that pair is the unit a registration boxplot is made of. Both names
+# go through .slide_token(), which drops the `<patient>_` prefix: without that the same
+# pair would be spelled once per patient and "this pair, across patients" would be N
+# boxes of one point each.
+#
+# WHAT THE LABEL IS NOT PROMISED TO BE. mirage does not define a slide name: on the
+# VALIS path it is the input file's stem, on the manifest path the channel list joined
+# by `_`, optionally patient-prefixed (benchmarks/reg_mosaic.py, SlideRow.names, lists
+# the same set). So this reads as a channel set only when the inputs are named for their
+# channels, and a stem carrying the patient id anywhere but as the leading prefix gives
+# each patient its own label. registration_arms.R warns when that has happened.
+#
+# `reference` is written by bin/warp_seg_qc.py (`"reference": basename(reference_name)`).
+# A record from before that key existed falls back to the moving token alone, which is
+# still a valid pair label because a patient has exactly one reference.
+.channel_pair <- function(reference, moving, patient_id = NULL) {
+  mv  <- .slide_token(moving, patient_id)
+  ref <- ifelse(is.na(reference) | !nzchar(as.character(reference)), NA_character_,
+                .slide_token(reference, patient_id))
+  # Plain " vs ", not an arrow glyph: U+2194 falls back to an emoji font on the PNG
+  # device and is not promised to exist in the PDF one, and this string is an axis label.
+  ifelse(is.na(ref), mv, paste(ref, mv, sep = " vs "))
+}
+
 # `%||%` is defined in cell_tables.R / plot_theme.R's siblings; keep run_qc.R
 # self-contained so it can be sourced alone.
 if (!exists("%||%")) `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
@@ -177,6 +205,7 @@ if (!exists("%||%")) `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) 
 # `nrow()` and column check downstream.
 SEG_QC_EMPTY <- tibble::tibble(
   patient_id = character(), moving = character(), slide_token = character(),
+  reference = character(), pair = character(),
   stage = factor(levels = QC_STAGE_LEVELS),
   stage_index = integer(),
   n_pairs = numeric(), pair_fraction = numeric(), iou_mean = numeric(),
@@ -191,6 +220,7 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
       if (is.null(d) || is.null(d$stages)) return(tibble::tibble())
       stages <- d$stage_order %||% names(d$stages)
       mv     <- d$moving %||% fs::path_ext_remove(fs::path_file(f))
+      ref    <- as.character(d$reference %||% NA_character_)
       purrr::map_dfr(seq_along(stages), function(i) {
         st <- stages[[i]]
         s  <- d$stages[[st]]
@@ -199,6 +229,8 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
           patient_id       = slide_key(d$patient_id %||% fs::path_file(dir)),
           moving           = mv,
           slide_token      = .slide_token(mv, fs::path_file(dir)),
+          reference        = ref,
+          pair             = .channel_pair(ref, mv, fs::path_file(dir)),
           stage            = st,
           # This run's OWN position for the stage, straight from its `stage_order`.
           # "Which stage did this run end on" must not be answered by a global factor
@@ -305,7 +337,17 @@ valis_error_long <- function(valis) {
   cols <- cols[sub("_(rTRE|D)$", "", cols) %in%
                  c("original", "rigid", "non_rigid")]   # the columns that exist
   if (!length(cols)) return(tibble::tibble())
-  id <- intersect(c("img_name", "name", "filename"), names(valis))[1]
+  # `from` is VALIS's own spelling and the one mirage's report reads first
+  # (bin/generate_qc_report.py: `row.get("from") or row.get("filename")`). It was missing
+  # here, so a summary carrying only `from` fell through to the csv's FILE name as its
+  # slide and every slide of a patient collapsed onto one label.
+  id <- intersect(c("img_name", "name", "filename", "from"), names(valis))[1]
+  # VALIS's `to` is the slide this one was aligned TOWARD — its neighbour in the series,
+  # which is the reference only for a slide adjacent to it. So a VALIS channel pair is
+  # `from -> to`, and is NOT promised to equal the seg-QC pair (always moving vs
+  # reference). Without a `to` column the slide alone labels the pair.
+  # Named `to_col`, not `to`: inside mutate() a bare `to` is the data COLUMN.
+  to_col <- intersect("to", names(valis))[1]
 
   # Columns a caller may have attached before handing the frame over (the arm sweep
   # adds five). Carried through by name rather than dropped by a fixed select: this
@@ -316,8 +358,10 @@ valis_error_long <- function(valis) {
 
   long <- valis |>
     dplyr::mutate(slide = if (is.na(id)) summary_csv else .data[[id]],
-                  slide_token = .slide_token(slide, patient_dir)) |>
-    dplyr::select(patient_id, slide, slide_token, stage_scope,
+                  slide_token = .slide_token(slide, patient_dir),
+                  pair = if (is.na(to_col)) slide_token
+                         else .channel_pair(.data[[to_col]], slide, patient_dir)) |>
+    dplyr::select(patient_id, slide, slide_token, pair, stage_scope,
                   dplyr::all_of(extra), dplyr::all_of(cols)) |>
     tidyr::pivot_longer(dplyr::all_of(cols), names_to = ".col", values_to = "error") |>
     dplyr::mutate(.col = sub("_(rTRE|D)$", "", .col)) |>
@@ -348,7 +392,7 @@ valis_error_long <- function(valis) {
     dplyr::filter(!is.na(stage)) |>
     dplyr::mutate(stage  = factor(stage, levels = VALIS_STAGE_LEVELS),
                   metric = metric) |>
-    dplyr::select(patient_id, slide, slide_token, dplyr::all_of(extra),
+    dplyr::select(patient_id, slide, slide_token, pair, dplyr::all_of(extra),
                   stage, error, metric, source_file = stage_scope)
 }
 
