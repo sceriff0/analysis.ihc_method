@@ -382,11 +382,11 @@ LINEAGE_PALETTE <- c(LINEAGE_COLS, GATED_COLS,
                      Unknown = "grey85", Unclassified = "grey85")
 
 # Registration arms. Ordered so the valis micro-registration ladder (0 -> 1 -> 2)
-# reads as a progression in the blue-green direction, with the two non-ladder arms
-# in contrasting grey and vermillion.
+# reads as a progression in the blue-green direction, with the non-ladder arms in
+# contrasting grey, vermillion (STARE) and reddish purple (ASHLAR).
 ARM_KIND_COLS <- c("valis · micro 0" = "#0072B2", "valis · micro 1" = "#56B4E9",
                    "valis · micro 2" = "#009E73", "valis"           = "#7F8C8D",
-                   "tiled (STARE)"   = "#D55E00")
+                   "tiled (STARE)"   = "#D55E00", "ashlar"          = "#CC79A7")
 
 # Collapse a raw lineage column to the legible subset, as an ORDERED factor with
 # the full level set present (drop = FALSE then keeps colours stable across

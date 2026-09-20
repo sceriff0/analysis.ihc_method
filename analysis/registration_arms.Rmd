@@ -212,13 +212,23 @@ arm_notes <- c(
   "01_final_residual_um_by_arm" = paste(
     "**The arm ranking.** Matched-nucleus centroid residual (median per slide) at",
     "each arm's final transform, in microns. Physical units and no resolution floor,",
-    "so this is the number to quote. One point per slide: with a handful of slides",
-    "the points are the evidence, not the box."),
+    "so this is the number to quote. **One point per channel pair** — one QC record,",
+    "a moving slide scored against its patient's reference — pooled over every pair",
+    "and every patient. This is the main-text panel; the same points split by patient",
+    "and by pair are in the supplementary section below."),
   "02_final_dice_by_arm" = paste(
     "**The same ranking, measured differently.** Areal Dice over the matched pairs.",
     "It is bounded above by segmentation agreement rather than by registration, so",
     "read the ORDER, not the absolute level. Agreement with the residual figure is",
-    "corroboration; disagreement is a reason to distrust both."),
+    "corroboration; disagreement is a reason to distrust both. Same unit: one point",
+    "per channel pair, pooled over pairs and patients."),
+  "02b_final_valis_error_by_arm" = paste(
+    "**The third main-text panel: VALIS grading itself**, at each arm's final",
+    "transform. It owes nothing to the segmentation, so it is the independent check on",
+    "the two panels above. VALIS arms only — the other backends write no",
+    "`registered/summary/*.csv`. One point per channel pair, but **not the same pairs**:",
+    "VALIS reports a slide against the neighbour it was aligned toward (`from → to`),",
+    "while the overlap QC scores every moving slide against the reference."),
   "03_stage_ladder_within_arm" = paste(
     "**What each stage bought, within an arm.** One line per moving slide, log y.",
     "Read DOWN a panel — inside one arm `rigid` has a fixed meaning. Do not read",
@@ -265,13 +275,39 @@ arm_notes <- c(
     "column-and-file to stage mapping."))
 
 figs <- if (nrow(seg)) build_arm_figs(seg, read_arms_valis(arms), arms) else list()
-for (nm in names(figs)) {
-  cat("\n\n### ", gsub("_", " ", sub("^[0-9]+_", "", nm)), "\n\n", sep = "")
+is_supp <- grepl("^S[0-9]+_", names(figs))
+print_figs <- function(nms) for (nm in nms) {
+  cat("\n\n### ", gsub("_", " ", sub("^S?[0-9]+[a-z]?_", "", nm)), "\n\n", sep = "")
   if (!is.na(arm_notes[nm])) cat(arm_notes[[nm]], "\n\n")
   print(figs[[nm]])
   cat("\n\n")
 }
+print_figs(names(figs)[!is_supp])
 if (!length(figs)) cat("\n_No figures — see the loader note above._\n")
+```
+
+## Supplementary: the main panels, split
+
+The three main-text panels (residual, Dice, VALIS's own error) pool **every channel
+pair of every patient** into one box per arm. That answers *which arm* and hides *why
+an arm is wide*. There are two possible reasons, and each split isolates one:
+
+- **by patient** — each box is one patient, pooled across its channel pairs. A wide
+  arm that is tight within every patient is a *between-patient* effect: tissue,
+  section quality, acquisition.
+- **by channel pair** — each box is one pair, pooled across patients. A pair that sits
+  high in every patient is a *pair* effect: two rounds that share little structure to
+  register on.
+
+These are the **same points as the main panels, regrouped** — nothing is
+re-summarised — and one panel per arm, because the split is a question asked *within*
+a configuration. A pair label is patient-free (`reference vs moving`, with the
+`<patient>_` prefix dropped), which is what lets one box collect the same pair from
+every patient.
+
+```{r figures-supp, results="asis", fig.width=fig_width("double"), fig.height=7.5}
+print_figs(names(figs)[is_supp])
+if (!any(is_supp)) cat("\n_No supplementary figures — see the loader note above._\n")
 ```
 
 ## Notes

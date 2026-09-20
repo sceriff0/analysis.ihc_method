@@ -299,7 +299,7 @@ panel_slot(
   source = "mirage `GENERATE_REGISTRATION_QC` output, or full-res crops from the same run")
 ```
 
-## 4(b) and 4(c) Target registration error and Dice, by configuration — **computed**
+## 4(b) and 4(c) Residual displacement, Dice and VALIS's own error, by configuration — **computed**
 
 The arm-ranking panels. There are **two possible sources**, and they are not
 equivalent:
@@ -323,8 +323,12 @@ if (have_helpers && dir.exists(here("data", "registration_arms"))) {
   .man <- arm_manifest()
   .seg <- if (nrow(.man)) read_arms_seg_qc(.man) else tibble::tibble()
   if (nrow(.seg)) {
-    arm_figs   <- build_arm_figs(.seg, tibble::tibble(), .man)[c("01_final_residual_um_by_arm",
-                                                                "02_final_dice_by_arm")]
+    # Residual, Dice and VALIS's own error: one point per CHANNEL PAIR, pooled over
+    # every pair and every patient. The by-patient and by-pair splits of these same
+    # points (S1-S6) are supplementary and stay on the registration_arms page.
+    arm_figs   <- build_arm_figs(.seg, read_arms_valis(.man), .man)[
+      c("01_final_residual_um_by_arm", "02_final_dice_by_arm",
+        "02b_final_valis_error_by_arm")]
     arm_source <- "real"
   }
 }
@@ -340,7 +344,11 @@ for (p in arm_figs) print(p)
 ```{r fig4bc-note, results="asis"}
 if (identical(arm_source, "real")) {
   cat("**Source: the real arm sweep** on the study slides — the right source for",
-      "the manuscript. Arms are ranked at each run's FINAL transform, because",
+      "the manuscript. **Each point is one channel pair** (a moving slide scored",
+      "against its patient's reference), pooled over all pairs and all patients; the",
+      "same points split by patient and by channel pair are the supplementary",
+      "figures S1-S6 on [registration arms](registration_arms.html#supplementary-the-main-panels-split).",
+      "Arms are ranked at each run's FINAL transform, because",
       "`reg_micro_reg` 0 and 1 emit no `micro` stage and ranking on a fixed stage",
       "would drop those arms. See [registration arms](registration_arms.html) for",
       "the stage ladder, the pair-fraction trust check, and why the `rigid` stage",
