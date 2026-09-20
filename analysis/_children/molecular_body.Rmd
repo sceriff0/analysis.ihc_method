@@ -723,7 +723,14 @@ if (requireNamespace("immunedeconv", quietly = TRUE)) {
       "| deconvolution rows:", if (is.null(deconv_long)) 0L else nrow(deconv_long),
       "|", n_unmapped, "RNA sample(s) had no slide crosswalk\n")
 } else {
-  message("immunedeconv not installed — install it to run this report.")
+  # cat(), not message(): message=FALSE on this page swallows a message, and the
+  # rendered report then shows a chunk with no output — which is exactly how the
+  # deconvolution section (and Figure 5c downstream) went missing without anyone
+  # noticing. A visible line names the fix.
+  cat("**immunedeconv not installed — deconvolution skipped, and",
+      "`output/paired_deconv.rds` not written (Figure 5c depends on it).**",
+      "Install it with `remotes::install_github(\"omnideconv/immunedeconv\")`",
+      "and re-knit.\n")
 }
 ```
 
