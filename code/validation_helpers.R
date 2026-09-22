@@ -660,9 +660,16 @@ ihc_lineage_fraction <- function(ihc_data) {
 
 # Map an immunedeconv cell_type string to one of `comparable_lineages` (or NA).
 # Pattern-based because the exact strings differ across methods.
+#
+# ORDER MATTERS. immunedeconv spells the helper population "T cell CD4+
+# (non-regulatory)" (quanTIseq, EPIC), and a rule that tests "regulatory" first
+# folds every CD4 helper cell into Treg — the CD4T facet of Fig 5(c) then
+# disappears without a warning and the Treg fraction is inflated by the larger
+# population. The negated spelling is therefore tested before the positive one.
 deconv_to_lineage <- function(cell_type) {
   ct <- tolower(cell_type)
   dplyr::case_when(
+    stringr::str_detect(ct, "non-?regulatory")        ~ "CD4T",
     stringr::str_detect(ct, "regulatory|treg")        ~ "Treg",
     stringr::str_detect(ct, "cd8")                    ~ "CD8T",
     stringr::str_detect(ct, "cd4")                    ~ "CD4T",

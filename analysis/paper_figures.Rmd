@@ -141,7 +141,10 @@ if (have_helpers && dir.exists(as_spec$region_csv$path)) {
     # has to knit anywhere, so it catches that and says what was lost — the panels
     # then fall back to the export flag, which is a DIFFERENT membership rule and
     # therefore reported, not absorbed.
-    pids <- unique(c(as_cells$patient_id, as_ucells$patient_id))
+    # An arm with no union tier hands back an EMPTY tibble with no columns, and
+    # `$patient_id` on that warns on every knit.
+    pids <- unique(c(as_cells$patient_id,
+                     if ("patient_id" %in% names(as_ucells)) as_ucells$patient_id))
     as_polys <- tryCatch(arm_annotations(as_spec, "region", patient_ids = pids),
       error = function(e) { geom_failure <<- conditionMessage(e); NULL })
     as_upoly <- tryCatch(arm_annotations(as_spec, "union", patient_ids = pids),
@@ -318,17 +321,20 @@ which one produced the figure changes what the figure is allowed to claim.
 reg_dir  <- here("data", "benchmark")
 arm_figs <- list(); arm_source <- NULL
 
+.man <- tibble::tibble(); .seg <- tibble::tibble(); .val <- tibble::tibble()
 if (have_helpers && dir.exists(here("data", "registration_arms"))) {
   suppressMessages(source(here("code", "registration_arms.R")))
   .man <- arm_manifest()
   .seg <- if (nrow(.man)) read_arms_seg_qc(.man) else tibble::tibble()
+  .val <- if (nrow(.man)) read_arms_valis(.man)  else tibble::tibble()
   if (nrow(.seg)) {
-    # Residual, Dice and VALIS's own error: one point per CHANNEL PAIR, pooled over
-    # every pair and every patient. The by-patient and by-pair splits of these same
+    # (b) is VALIS's own reported error and (c) the independent nucleus overlap,
+    # each at the arm's final transform, one point per CHANNEL PAIR (a moving slide
+    # scored against its reference), pooled over every pair and every patient, each
+    # with the no-registration and rigid-only baselines read from the depth-0 runs.
+    # See build_arm_paper_figs(). The by-patient and by-pair splits of the same
     # points (S1-S6) are supplementary and stay on the registration_arms page.
-    arm_figs   <- build_arm_figs(.seg, read_arms_valis(.man), .man)[
-      c("01_final_residual_um_by_arm", "02_final_dice_by_arm",
-        "02b_final_valis_error_by_arm")]
+    arm_figs   <- build_arm_paper_figs(.seg, .val, .man)[c("tre_by_arm", "dice_by_arm")]
     arm_source <- "real"
   }
 }
@@ -350,9 +356,18 @@ if (identical(arm_source, "real")) {
       "figures S1-S6 on [registration arms](registration_arms.html#supplementary-the-main-panels-split).",
       "Arms are ranked at each run's FINAL transform, because",
       "`reg_micro_reg` 0 and 1 emit no `micro` stage and ranking on a fixed stage",
-      "would drop those arms. See [registration arms](registration_arms.html) for",
-      "the stage ladder, the pair-fraction trust check, and why the `rigid` stage",
-      "cannot be compared across depths.\n")
+      "would drop those arms. (b) is the error VALIS reports from its own feature",
+      "correspondences; (c) is the matched-nucleus Dice from mirage's staged QC, which",
+      "never sees those features. The two baselines are the `native` / `original` and",
+      "`rigid` stages of the **depth-0 runs only** — at depth ≥ 1 `rigid` already",
+      "contains micro-rigid refinement, so it is not \"rigid only\" there. The tiled",
+      "(STARE) arm writes no VALIS summary, so it cannot appear on (b); to keep (b)",
+      "and (c) the same arms, as the legend says, it is left off (c) too. It stays on",
+      "the [registration arms](registration_arms.html) page and in Additional file 2.",
+      "See [registration arms](registration_arms.html) for the stage ladder, the",
+      "pair-fraction trust check, and why `rigid` cannot be compared across depths.\n")
+  if (!is.null(arm_figs$tre_by_arm))
+    cat("\nVALIS error metric on (b): `", arm_figs$tre_by_arm$labels$y, "`.\n", sep = "")
 } else if (identical(arm_source, "synthetic")) {
   cat("> **Source: the SYNTHETIC sweep.** These arms come from",
       "`data/benchmark/param_matrix.csv`, whose moving panels are shifted copies of",
@@ -367,23 +382,53 @@ if (identical(arm_source, "real")) {
 }
 ```
 
-> **Two legend corrections this sweep forces.**
+> **What the sweep says about the legend.**
 >
-> - The presets are **not** "two accuracy presets differing in feature-matching
->   resolution, not in the feature matcher". `memory_mode` selects the matcher:
->   `low` = BRISK/RANSAC, `high` = SuperPoint/SuperGlue. It is a different matcher.
+> - "Two VALIS accuracy presets differing in feature-matching resolution, not in
+>   the feature matcher" is **correct**. Every `memory_mode` tier uses SuperPoint +
+>   SuperGlue (mirage `bin/utils/valis_config.py`, `MEMORY_PRESETS`); `low` detects
+>   on a 512 px processed image and fits the non-rigid field at 512 px, `medium` at
+>   1024 / 1024 px, `high` at 2048 / 2048 px. An earlier note on this page said
+>   `low` was BRISK/RANSAC; that
+>   came from a comment in mirage's benchmark config, not from the shipped code.
 > - Micro-registration is **not** on/off. `reg_micro_reg` is a nested depth
 >   (`0` none, `1` micro-rigid, `2` + micro non-rigid), so a preset × depth sweep has
->   **six** arms, not four.
->
-> **And there is no clean "rigid-only" baseline in a depth-crossed sweep.** mirage's
-> `rigid` QC stage means affine ∘ micro-rigid whenever `reg_micro_reg ≥ 1`, so a
-> rigid-only baseline exists only in the depth-0 arms. The `native` stage is the
-> honest no-registration baseline.
+>   **six** arms, not four. The legend should say "three micro-registration depths".
+> - The **rigid-only baseline is read from the depth-0 arms only**, because mirage's
+>   `rigid` QC stage means affine ∘ micro-rigid whenever `reg_micro_reg ≥ 1`. The
+>   no-registration baseline is the `native` stage (QC) / `original` column (VALIS)
+>   of the same runs. Both are drawn in grey on (b) and (c) and are not arms.
 
 ---
 
 # Figure 5 — proof-of-concept concordance
+
+## The hot/cold axis — shared by (a), (b) and (c)
+
+```{r hotcold-groups}
+# WHICH VARIABLE DEFINES HOT AND COLD. The clinical table carries two different
+# things: a continuous `HOT score` and a categorical `Immuno-phenotype`. The
+# legend's selection axis is the score, so the score is used and the top/bottom
+# three cases become the groups. That IS a threshold on rank — the legend may say
+# "no threshold on the score" but not "no grouping". Set HOTCOLD_SOURCE to
+# "immuno_phe" to group by the clinical category instead; it is a different
+# variable and the figure must then say so.
+#
+# ONE derivation, paper_hotcold_groups(), feeds all three panels — and
+# figures/fig5.R — so (c) cannot colour by one variable while (b) groups by another.
+HOTCOLD_SOURCE <- "hot_score"
+
+groups <- NULL; cases <- character(0)
+if (have_cells)
+  groups <- paper_hotcold_groups(here("data", "clinical_data.xlsx"),
+                                 patient_ids = as_union$patient_id,
+                                 source = HOTCOLD_SOURCE)
+if (!is.null(groups)) {
+  cases <- paper_representative_cases(groups, available = as_cells$patient_id)
+  knitr::kable(dplyr::arrange(groups, group, dplyr::desc(hot_score)),
+               caption = "Cases as grouped for panels 5(a)–(c), by hotscore rank.")
+}
+```
 
 ## 5(a) Registered, phenotyped cases — **computed**
 
@@ -400,10 +445,26 @@ compartment: tumour (red), immune (the five immune lineages pooled, green), stro
 (the SMA+ call, violet), other (grey). Each panel states its cell count. Exported
 one PDF per case.
 
+The two cases shown first are the representative pair the legend asks for — the
+most extreme hotscore in each group among the cases with imaging — derived from
+the same ranking as (b), so the choice is reproducible rather than an
+`[author to supply]`. The remaining cases follow for completeness.
+
+```{r fig5a-representative, results="asis"}
+.case <- function(g) if (g %in% names(cases)) cases[[g]] else "—"
+if (length(cases))
+  cat("Representative cases: **hot = ", .case("hot"), "**, **cold = ", .case("cold"),
+      "**.\n", sep = "")
+```
+
 ```{r fig5a, fig.width=fig_width("double"), fig.height=panel_height(100)}
 if (have_cells) {
-  for (pid in sort(unique(as_cells$patient_id))) {
-    pr <- paper_phenotype_map_pair(as_cells, pid, annots = as_polys, per = as_per)
+  order <- c(unname(cases), setdiff(sort(unique(as_cells$patient_id)), unname(cases)))
+  for (pid in order) {
+    grp <- if (!is.null(groups)) groups$group[slide_key(groups$patient_id) == slide_key(pid)] else character(0)
+    pr  <- paper_phenotype_map_pair(as_cells, pid, annots = as_polys, per = as_per,
+                                    title = paste0("Patient ", pid,
+                                                   if (length(grp)) paste0(" (", grp[1], ")") else ""))
     if (is.null(pr$overview)) next
     if (is.null(pr$inset) || !have_patchwork) {
       print(pr$overview)
@@ -417,48 +478,6 @@ if (have_cells) {
 ```
 
 ## 5(b) Imaging immune fraction, hot vs cold — **computed**
-
-```{r fig5b-groups}
-# WHICH VARIABLE DEFINES HOT AND COLD. The clinical table carries two different
-# things: a continuous `HOT score` and a categorical `Immuno-phenotype`. The
-# legend's selection axis is the score, so the score is used here and the top/bottom
-# three cases become the groups. That IS a threshold — the legend cannot also claim
-# "no threshold" while showing two boxes. Set HOTCOLD_SOURCE to "immuno_phe" to
-# group by the clinical category instead.
-HOTCOLD_SOURCE <- "hot_score"
-
-groups <- NULL
-clin_path <- here("data", "clinical_data.xlsx")
-if (file.exists(clin_path) && have_cells) {
-  # Same idiom as molecular_hot_cold.Rmd: select(any_of(...)) so a clinical table missing
-  # either column loses that column rather than aborting the chunk.
-  clin <- readxl::read_excel(clin_path) |>
-    dplyr::filter(!is.na(`ID PATIENT`)) |>
-    dplyr::mutate(patient_id = slide_key(`ID PATIENT`)) |>
-    dplyr::select(patient_id,
-                  hot_score  = dplyr::any_of("HOT score"),
-                  immuno_phe = dplyr::any_of("Immuno-phenotype")) |>
-    dplyr::filter(patient_id %in% slide_key(as_union$patient_id))
-  if ("hot_score" %in% names(clin))
-    clin$hot_score <- suppressWarnings(as.numeric(clin$hot_score))
-
-  if (HOTCOLD_SOURCE == "hot_score" && "hot_score" %in% names(clin) &&
-      sum(is.finite(clin$hot_score)) >= 2) {
-    k <- min(3, floor(sum(is.finite(clin$hot_score)) / 2))
-    r <- rank(-clin$hot_score, ties.method = "first")
-    groups <- clin |>
-      dplyr::mutate(group = dplyr::case_when(r <= k ~ "hot",
-                                             r > dplyr::n() - k ~ "cold",
-                                             TRUE ~ NA_character_)) |>
-      dplyr::filter(!is.na(group)) |>
-      dplyr::select(patient_id, group)
-  } else if ("immuno_phe" %in% names(clin)) {
-    groups <- clin |> dplyr::transmute(patient_id, group = immuno_phe) |>
-      dplyr::filter(!is.na(group))
-  }
-}
-if (!is.null(groups)) knitr::kable(groups, caption = "Cases as grouped for panel 5(b).")
-```
 
 ```{r fig5b, fig.width=panel_width(68), fig.height=panel_height(72)}
 if (!is.null(groups) && nrow(as_union) > 0) {
@@ -479,7 +498,8 @@ panel is the one place that must not, because its legend says so.
 ```{r fig5c, fig.width=panel_width(144), fig.height=panel_height(112)}
 paired_path <- here("output", "paired_deconv.rds")
 if (have_helpers && file.exists(paired_path)) {
-  p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq")
+  # `groups` is (b)'s axis. Passing it is what makes hot in (b) mean hot in (c).
+  p <- paper_deconv_scatter(readRDS(paired_path), method = "quantiseq", groups = groups)
   if (!is.null(p)) print(p)
 } else {
   cat("_Needs `output/paired_deconv.rds`._ Knit [a molecular page](molecular_massimo2.html)",
@@ -502,19 +522,55 @@ the legend's `[author to supply: full list of populations plotted]`.
 # Additional files
 
 ```{r addfile-2}
-if (have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
+# The same source rule as Fig 4(b)/(c): the real arm sweep first, the synthetic
+# sweep as a labelled fallback. The table is the figure's numbers — VALIS TRE, the
+# µm residual, matched-nucleus Dice and the pair fraction — per arm, plus the two
+# baseline rows, so the legend's "[author to supply: per-arm values]" is read off
+# here rather than from the plot.
+if (identical(arm_source, "real")) {
+  at <- arm_paper_table(.seg, .val, .man)
+  dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(at, here("output", "additional_file_2_registration_arms.csv"))
+  knitr::kable(at, digits = c(NA, NA, NA, 0, 0, NA, 5, NA, 2, 3, 2), caption = paste(
+    "Additional file 2 — per-arm registration accuracy on the study slides.",
+    "Medians over slides at each arm's final transform; `no registration` and",
+    "`rigid only` are the native and affine-only stages of the depth-0 runs.",
+    "Also written to output/additional_file_2_registration_arms.csv."))
+} else if (have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
   pm <- readr::read_csv(file.path(reg_dir, "param_matrix.csv"), show_col_types = FALSE)
   at <- .reg_arm_table(pm)
   if (!is.null(at))
     knitr::kable(dplyr::arrange(at, tre), digits = 4, caption = paste(
-      "Additional file 2 — per-arm registration accuracy.",
-      "TRE and DAPI-overlap Dice for every benchmarked configuration."))
+      "Additional file 2 (SYNTHETIC sweep fallback) — per-arm registration accuracy.",
+      "Replace with the real arm sweep before submission."))
 } else {
-  cat("**Additional file 2** (per-arm TRE and Dice table) needs `data/benchmark/param_matrix.csv`.\n")
+  cat("**Additional file 2** (per-arm TRE and Dice table) needs the real arm sweep",
+      "under `data/registration_arms/` (or, as a fallback, `data/benchmark/param_matrix.csv`).\n")
 }
 ```
 
-**Additional files 1, 3, 4, 5 and 6.**
+```{r addfile-4}
+# Additional file 4: the population vocabulary, generated from the join objects the
+# analyses use, so it cannot drift from what was computed. The legend calls the
+# three groupings tiers; in this codebase they are cd45_over_inside (pan-immune),
+# comparable_lineages (the four mapped lineages) and Immune_other (the catch-all).
+if (have_helpers) {
+  lt <- paper_lineage_table() |>
+    dplyr::mutate(tier = dplyr::case_when(
+      lineage %in% comparable_lineages ~ "Tier 2 — mappable lineage",
+      lineage == "Immune_other"        ~ "Tier 3 — non-T/NK immune",
+      lineage == "(unmapped)"          ~ "Tier 3 — non-T/NK immune (no imaging lineage)",
+      TRUE                             ~ "not compared"))
+  dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(lt, here("output", "additional_file_4_lineage_mapping.csv"))
+  knitr::kable(lt, caption = paste(
+    "Additional file 4 — every phenotype call and every deconvolution cell type,",
+    "with the lineage and comparison tier it is assigned to.",
+    "Also written to output/additional_file_4_lineage_mapping.csv."))
+}
+```
+
+**Additional files 1, 3, 5 and 6.**
 
 - **1 — full pipeline configuration.** `mirage/docs/parameters.md` is already the
   complete per-module table. Missing from it: the compartment-to-marker map and a
@@ -522,9 +578,8 @@ if (have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
 - **3 — Tier 2 / Tier 3 scatters.** Blocked: the tier vocabulary does not exist in
   this codebase. Its content maps onto `cd45_over_inside` (Tier 1),
   `deconv_to_lineage()` (Tier 2) and `Immune_other` (Tier 3) — settle the naming first.
-- **4 — vocabulary mapping table.** Withdrawn. `paper_lineage_table()` in
-  `code/paper_figures.R` still generates the phenotype/cell-type-to-lineage mapping as
-  data, and is still tested, if it is ever wanted back.
+- **4 — vocabulary mapping table.** Generated above from `paper_lineage_table()`,
+  with the tier each row belongs to.
 - **5 — epitope / tissue-integrity monitoring.** Per-round DAPI retention exists
   nowhere; imaging-team deliverable. For the CD8+ ⊂ CD3+ biological-consistency check,
   the machinery is [marker QC](marker_qc.html), which computes worst-case

@@ -219,3 +219,96 @@ test_that("the lineage table maps exactly four deconvolution types and no more",
   # The imaging side is generated from the join table itself, so it cannot drift.
   expect_equal(sum(t$side == "imaging (phenotype call)"), nrow(phenotype_lineage_labels))
 })
+
+# --- The hot/cold axis, shared by 5(a), 5(b) and 5(c) -------------------------
+.clin <- function() tibble::tibble(
+  `ID PATIENT`       = c("046", "052", "10338", "15897", "5456", "24086"),
+  `HOT score`        = c(0.9, 0.7, 0.8, 0.1, 0.2, 0.3),
+  `Immuno-phenotype` = c("HOT", "INTERMEDIATE", "HOT", "COLD", "COLD", "INTERMEDIATE"))
+
+test_that("hotscore groups are the top and bottom k of the continuous score", {
+  g <- paper_hotcold_groups(.clin())
+  expect_setequal(names(g), c("patient_id", "group", "hot_score"))
+  expect_setequal(g$patient_id[g$group == "hot"],  c("046", "052", "10338"))
+  expect_setequal(g$patient_id[g$group == "cold"], c("15897", "5456", "24086"))
+})
+
+test_that("the clinical category is a different axis and is only used when asked", {
+  g <- paper_hotcold_groups(.clin(), source = "immuno_phe")
+  expect_setequal(g$patient_id[g$group == "INTERMEDIATE"], c("052", "24086"))
+  # Default is the score: 052 ranks hot by score, intermediate by category.
+  expect_equal(paper_hotcold_groups(.clin())$group[
+    paper_hotcold_groups(.clin())$patient_id == "052"], "hot")
+})
+
+test_that("k shrinks with the cohort and never overlaps the two groups", {
+  g <- paper_hotcold_groups(.clin()[1:4, ])
+  expect_equal(sum(g$group == "hot"), 2)
+  expect_equal(sum(g$group == "cold"), 2)
+  expect_equal(anyDuplicated(g$patient_id), 0)
+})
+
+test_that("patients without imaging are dropped before ranking", {
+  g <- paper_hotcold_groups(.clin(), patient_ids = c("046", "052", "15897", "5456"))
+  expect_setequal(g$patient_id, c("046", "052", "15897", "5456"))
+})
+
+test_that("representative cases are the most extreme of each group that has imaging", {
+  g <- paper_hotcold_groups(.clin())
+  cases <- paper_representative_cases(g, available = c("052", "10338", "5456", "24086"))
+  expect_equal(unname(cases["hot"]),  "10338")   # 046 has no imaging; next by score
+  expect_equal(unname(cases["cold"]), "5456")    # 15897 has no imaging; next by score
+})
+
+# --- The deconvolution mapping ------------------------------------------------
+test_that("quanTIseq's helper T cells map to CD4T, not to Treg", {
+  # immunedeconv spells the population "T cell CD4+ (non-regulatory)". A mapper
+  # that tests for "regulatory" first folds every CD4 helper cell into the Treg
+  # fraction and the CD4T facet of Fig 5(c) silently disappears.
+  expect_equal(deconv_to_lineage("T cell CD4+ (non-regulatory)"), "CD4T")
+  expect_equal(deconv_to_lineage("T cell regulatory (Tregs)"),    "Treg")
+  expect_equal(deconv_to_lineage("T cell CD8+"),                  "CD8T")
+  expect_equal(deconv_to_lineage("NK cell"),                      "NK")
+  expect_true(is.na(deconv_to_lineage("Myeloid dendritic cell")))
+})
+
+test_that("the lineage table lists the real immunedeconv spellings", {
+  t <- paper_lineage_table()
+  expect_true("T cell CD4+ (non-regulatory)" %in% t$label)
+  expect_equal(t$lineage[t$label == "T cell CD4+ (non-regulatory)"], "CD4T")
+})
+
+# --- Fig 5(c) shares 5(b)'s axis ----------------------------------------------
+test_that("the deconvolution panel shapes by the hotscore groups when given them", {
+  paired <- tidyr::expand_grid(method = "quantiseq",
+                               lineage = c("CD8T", "CD4T", "Treg", "NK"),
+                               patient_id = c("046", "052", "10338", "15897", "5456", "24086"))
+  paired$ihc_frac <- runif(nrow(paired)); paired$score <- runif(nrow(paired))
+  # A stale clinical category rides along in the cache; the groups must win.
+  paired$immuno_phe <- "INTERMEDIATE"
+  g <- paper_hotcold_groups(.clin())
+  p <- paper_deconv_scatter(paired, "quantiseq", groups = g)
+  expect_true("group" %in% names(p$data))
+  expect_setequal(unique(as.character(p$data$group)), c("hot", "cold"))
+  expect_equal(levels(p$data$group)[1], "cold")
+  # One panel, so the groups ride on SHAPE: colour stays with the population.
+  expect_s3_class(p$facet, "FacetNull")
+  expect_match(rlang::quo_text(p$layers[[1]]$mapping$shape), "group")
+  built <- ggplot2::ggplot_build(p)
+  expect_true(all(unique(built$data[[1]]$colour) %in% unname(LINEAGE_COLS)))
+})
+
+test_that("the hot/cold panel is a boxplot with every case drawn over it", {
+  m <- tibble::tibble(patient_id = c("046", "052", "10338", "15897", "5456", "24086"),
+                      cd45_over_inside = c(.31, .28, .35, .09, .11, .07))
+  g <- tibble::tibble(patient_id = m$patient_id,
+                      group = c("hot", "hot", "hot", "cold", "cold", "cold"))
+  p <- paper_immune_fraction_hotcold(m, g)
+  geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
+  expect_true("GeomBoxplot" %in% geoms)
+  expect_true("GeomPoint" %in% geoms)
+  # No outlier glyph: every case is already a point.
+  box <- p$layers[[which(geoms == "GeomBoxplot")[1]]]$geom_params
+  expect_true(is.null(box$outlier.shape) || all(is.na(box$outlier.shape)) ||
+                isFALSE(box$outliers))
+})

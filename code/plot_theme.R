@@ -386,7 +386,11 @@ LINEAGE_PALETTE <- c(LINEAGE_COLS, GATED_COLS,
 # contrasting grey, vermillion (STARE) and reddish purple (ASHLAR).
 ARM_KIND_COLS <- c("valis · micro 0" = "#0072B2", "valis · micro 1" = "#56B4E9",
                    "valis · micro 2" = "#009E73", "valis"           = "#7F8C8D",
-                   "tiled (STARE)"   = "#D55E00", "ashlar"          = "#CC79A7")
+                   "tiled (STARE)"   = "#D55E00", "ashlar"          = "#CC79A7",
+                   # The no-registration / rigid-only rows of the manuscript's Fig 4:
+                   # not an arm, so not a hue — a reader must not count them as
+                   # configurations that were run.
+                   "baseline"        = "grey62")
 
 # Collapse a raw lineage column to the legible subset, as an ORDERED factor with
 # the full level set present (drop = FALSE then keeps colours stable across
