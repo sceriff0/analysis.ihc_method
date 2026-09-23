@@ -632,8 +632,6 @@ Each method is gated by the inputs it needs, not preference:
 - CIBERSORT / CIBERSORT (abs.) — license-gated `CIBERSORT.R` + `LM22.txt`, paths
   from env vars `CIBERSORT_BINARY` / `CIBERSORT_MAT`. Run iff both are set and the
   files exist.
-- BayesPrism — needs an scRNA-seq reference at `data/sc_reference.rds` via
-  `omnideconv`. Run iff present.
 
 ```{r deconv-method-config}
 # First-generation methods that run on the bulk matrix with no extra artifacts.
@@ -650,10 +648,6 @@ methods_indication <- if (!is.null(INDICATIONS)) c("timer", "consensus_tme") els
 # Absent -> CIBERSORT and CIBERSORT (abs.) are skipped.
 CIBERSORT_BINARY <- Sys.getenv("CIBERSORT_BINARY", unset = NA)  # path to CIBERSORT.R
 CIBERSORT_MAT    <- Sys.getenv("CIBERSORT_MAT",    unset = NA)  # path to LM22.txt
-
-# BayesPrism (second-generation) needs a cell-type-annotated scRNA-seq reference,
-# read from here() below. Absent -> BayesPrism is skipped.
-SC_REFERENCE <- here("data", "sc_reference.rds")
 ```
 
 ### Run deconvolution methods
@@ -739,58 +733,6 @@ if (!is.null(deconv_status))
   knitr::kable(deconv_status,
     caption = paste("Deconvolution method run status. A FAILED row is why that",
                     "method is absent downstream; the `detail` is its error message."))
-```
-
-### BayesPrism (single-cell reference; scaffolded)
-
-`immunedeconv::deconvolute()` covers only bulk-signature methods. BayesPrism is a
-second-generation method (fractions from a cell-type-annotated scRNA-seq
-reference, via `omnideconv`); this project ships no reference, so the block is a
-ready-to-run scaffold that activates only when `data/sc_reference.rds` is present
-(an `.rds` list: `counts` = gene by cell, `labels` = per-cell type, `batch` =
-per-cell sample id) and skips cleanly otherwise. Its output is mapped to
-(patient_id, lineage) by the same `norm_id` -> `crf2slide` / `deconv_to_lineage`
-pipeline as the other methods, then row-bound into `deconv_long`. Verify the
-`omnideconv` argument names against your installed version before trusting the
-numbers.
-
-```{r deconv-bayesprism}
-bayes_long <- NULL
-if (file.exists(SC_REFERENCE) && requireNamespace("omnideconv", quietly = TRUE)) {
-  ref <- readRDS(SC_REFERENCE)
-  bayes_long <- tryCatch({
-    # build_model(): learn the reference; deconvolute(): apply it to the bulk matrix.
-    model <- omnideconv::build_model(
-      single_cell_object    = ref$counts,
-      cell_type_annotations = ref$labels,
-      batch_ids             = ref$batch,
-      method                = "bayesprism",
-      bulk_gene_expression  = expr_mat)
-    frac <- omnideconv::deconvolute(
-      bulk_gene_expression  = expr_mat,
-      model                 = model,
-      single_cell_object    = ref$counts,
-      cell_type_annotations = ref$labels,
-      batch_ids             = ref$batch,
-      method                = "bayesprism")
-    as.data.frame(frac) |>
-      tibble::rownames_to_column("sample") |>            # omnideconv returns sample x cell_type
-      pivot_longer(-sample, names_to = "cell_type", values_to = "score") |>
-      mutate(method = "bayesprism")
-  }, error = function(e) { message("BayesPrism failed: ", conditionMessage(e)); NULL })
-} else {
-  message("BayesPrism skipped — needs data/sc_reference.rds + the omnideconv package.")
-}
-
-if (!is.null(bayes_long) && !is.null(deconv_long)) {
-  bayes_long <- bayes_long |>
-    mutate(crf_id     = norm_id(sample),
-           patient_id = unname(crf2slide[crf_id]),
-           lineage    = deconv_to_lineage(cell_type)) |>
-    filter(!is.na(patient_id))
-  deconv_long <- bind_rows(deconv_long, bayes_long)
-  cat("BayesPrism added:", nrow(bayes_long), "rows\n")
-}
 ```
 
 ### IHC lineage fractions (reference)
@@ -1032,9 +974,8 @@ if (!is.null(agr) && nrow(agr) > 0) {
   spurious correlation, and mean_rho averages over the finite lineages only.
   With this cohort's size the agreement matrix is descriptive — read it for
   *pattern*, not significance.
-- The CIBERSORT and BayesPrism blocks are scaffolds — verify `set_cibersort_*()`
-  and `omnideconv::build_model()/deconvolute()` argument names against your
-  installed versions before trusting their output.
+- The CIBERSORT block has not been exercised on a licensed `CIBERSORT.R` yet —
+  check the status table's row for it the first time it runs.
 
 ```{r deconv-cache-paired, include=FALSE, eval = have_arm}
 # Gated with the rest of the deconvolution section: `deconv_paired` is BUILT there,
