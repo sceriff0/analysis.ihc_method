@@ -9,9 +9,9 @@
 #   data/cibersortx/output/*_Results.txt   fractions; *_Adjusted.txt with  (job -> page)
 #                                          B-mode batch correction
 #
-# Credentials never touch the repo: the token lives in ~/.cibersortx_token and the
-# username (the e-mail the token was issued to — the two are bound together) in
-# $CIBERSORTX_USERNAME. Tokens expire; request a new one at
+# The token never touches the repo: it lives in ~/.cibersortx_token (one line, the
+# token alone). The username is the e-mail that token was issued to — the two are
+# bound together — and is set below. Tokens expire; request a new one at
 # https://cibersortx.stanford.edu/getoken.php when the run says so.
 #
 # Settings, and why (README_CIBERSORTxFractions.txt, v1.0):
@@ -40,7 +40,10 @@ SIGMATRIX="${CIBERSORTX_SIGMATRIX:-LM22.txt}"       # must sit in INPUT_DIR
 SIF="${CIBERSORTX_SIF:-$HOME/containers/cibersortx_fractions.sif}"
 # Build the image once with:  singularity pull "$SIF" docker://cibersortx/fractions
 
-: "${CIBERSORTX_USERNAME:?set CIBERSORTX_USERNAME to the e-mail registered on cibersortx.stanford.edu}"
+# The account the token was issued to. Set in the script so the job is one
+# command; an exported CIBERSORTX_USERNAME still overrides it.
+CIBERSORTX_USERNAME="${CIBERSORTX_USERNAME:-mohammadreza.javadinamin@ieo.it}"
+[[ -s "$HOME/.cibersortx_token" ]] || { echo "no token in ~/.cibersortx_token — paste the token from https://cibersortx.stanford.edu/getoken.php there" >&2; exit 1; }
 CIBERSORTX_TOKEN="$(cat "$HOME/.cibersortx_token")"
 
 [[ -f "$INPUT_DIR/$MIXTURE"   ]] || { echo "no $INPUT_DIR/$MIXTURE — knit the molecular page first" >&2; exit 1; }
