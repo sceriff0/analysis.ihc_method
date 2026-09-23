@@ -850,6 +850,34 @@ if (!is.null(deconv_status))
                     "method is absent downstream; the `detail` is its error message."))
 ```
 
+### Every cell type each method returned, and where it went
+
+`deconv_to_lineage()` is a pattern match on the label, not a per-method table,
+so the only way to audit it is to print what each method actually emitted next
+to the lineage it was assigned. One row per (method, cell type); `(unmapped)`
+means the label matched no rule and the cell type is dropped before the
+comparison. Read down each method for a label that was pulled into a lineage it
+does not belong to, or one that should have mapped and did not. The same table
+is written to `output/deconv_celltype_map.csv`.
+
+```{r deconv-celltype-map}
+if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
+  celltype_map <- deconv_long |>
+    distinct(method, cell_type, lineage) |>
+    mutate(lineage = tidyr::replace_na(lineage, "(unmapped)"),
+           lineage = factor(lineage, levels = c(comparable_lineages, "(unmapped)"))) |>
+    arrange(method, lineage, cell_type)
+  dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(celltype_map, here("output", "deconv_celltype_map.csv"))
+  cat("cell types:", nrow(celltype_map), "across", dplyr::n_distinct(celltype_map$method),
+      "methods;", sum(celltype_map$lineage != "(unmapped)"), "mapped to a lineage\n")
+  knitr::kable(celltype_map,
+               caption = "Every deconvolution cell type, by method, and the lineage deconv_to_lineage() assigned it.")
+} else {
+  cat("_No deconvolution rows yet, so nothing to map._\n")
+}
+```
+
 ### IHC lineage fractions (reference)
 
 `ihc_lineage_fraction(ihc_data)` counts cells per patient and lineage and
