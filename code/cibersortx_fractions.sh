@@ -46,7 +46,7 @@ INPUT_DIR="$ROOT/data/cibersortx/input"
 OUTPUT_DIR="$ROOT/data/cibersortx/output"
 MIXTURE="mixture.txt"
 SIGMATRIX="${CIBERSORTX_SIGMATRIX:-LM22.txt}"       # must sit in INPUT_DIR
-SIF="${CIBERSORTX_SIF:-$HOME/containers/cibersortx_fractions.sif}"
+SIF="${CIBERSORTX_SIF:-$HOME/workflowR/ihc_method/fractions_latest.sif}"
 # Build the image once with:  singularity pull "$SIF" docker://cibersortx/fractions
 
 # The account the token was issued to. Set in the script so the job is one
