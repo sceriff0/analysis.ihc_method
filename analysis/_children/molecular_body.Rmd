@@ -125,6 +125,51 @@ genes of a marker = marker_gene_map[<marker>]: a comma-separated gene list
 
 Paired associations are Spearman correlations via `paired_spearman`.
 
+### The three expression scales
+
+`counts_data` is the size-factor-normalised scale and every figure on this page
+reads it. The same `dds` also yields the raw counts and, when gene lengths are on
+hand, TPM (`code/expression_scales.R`, exposed by `load_data.R` as `expr_scales`):
+
+```
+raw(g, s)        = counts(dds)[g, s]                       what the aligner counted
+normalized(g, s) = raw(g, s) / sizeFactor(s)               library depth removed
+tpm(g, s)        = 1e6 * (raw(g, s) / length_kb(g)) / sum over genes of the same
+                                                           depth AND length removed
+```
+
+TPM exists only if lengths were found (tximport's `avgTxLength`, `basepairs`,
+`rowRanges`, or `data/gene_lengths.tsv`); it is never computed from a guessed
+length. The table names the source, and the distribution plot shows what each
+step did to the samples.
+
+```{r rna-scales}
+scales_here <- c("raw", "normalized", "tpm")[
+  !vapply(expr_scales[c("raw", "normalized", "tpm")], is.null, logical(1))]
+cat("scales available:", paste(scales_here, collapse = ", "),
+    "| gene-length source:", expr_scales$length_source, "\n")
+
+sf <- tryCatch(DESeq2::sizeFactors(dds)[expr_scales$samples], error = function(e) NA)
+knitr::kable(
+  tibble::tibble(sample       = expr_scales$samples,
+                 patient_id   = unname(crf2slide[norm_id(expr_scales$samples)]),
+                 library_size = unname(expr_scales$library_size),
+                 size_factor  = round(unname(sf), 3)),
+  caption = "Bulk-RNA samples: library size (sum of raw counts) and DESeq2 size factor.")
+```
+
+```{r rna-scales-plot, fig.height=fig_height("double")}
+scale_df <- scale_long(expr_scales) |> filter(value > 0)
+ggplot(scale_df, aes(sample, log10(value))) +
+  geom_boxplot(outlier.size = 0.3, linewidth = 0.3) +
+  facet_wrap(~ scale, ncol = 1, scales = "free_y") +
+  scale_x_discrete(labels = label_n(scale_df$sample)) +
+  labs(title = "Per-sample expression distribution on each scale",
+       subtitle = with_n(NULL, expr_scales$samples, "samples"),
+       x = "RNA sample (CRF id); n = expressed genes", y = "log10(value), zeros dropped") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
 ### Per-patient bulk expression of each marker's gene(s)
 
 RNA samples are keyed in CRF space; `crf2slide` bridges them to slide space.
@@ -234,6 +279,32 @@ rna_summary <- rna_paired |>
 
 knitr::kable(rna_summary, digits = 3,
              caption = "Spearman: IHC positive-cell fraction vs bulk-RNA expression")
+```
+
+The same statistic under each scale, side by side. Spearman is rank-based, so
+`raw` and `normalized` differ only where the size factors reorder patients, and
+`tpm` only where gene length does; a marker whose rho moves a lot between columns
+is one whose ranking is being decided by the normalisation, not the biology.
+
+```{r rna-concordance-scales, eval = have_arm}
+rho_by_scale <- scale_long(expr_scales) |>
+  inner_join(marker_genes, by = "gene", relationship = "many-to-many") |>
+  mutate(crf_id = norm_id(sample)) |>
+  group_by(scale, marker, crf_id) |>
+  summarise(rna_expr = mean(value), .groups = "drop") |>
+  mutate(patient_id = unname(crf2slide[crf_id])) |>
+  filter(!is.na(patient_id)) |>
+  inner_join(ihc_marker_frac, by = c("marker", "patient_id")) |>
+  filter(is.finite(rna_expr), is.finite(ihc_posfrac)) |>
+  group_by(scale, marker) |>
+  group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |>
+  ungroup() |>
+  select(scale, marker, rho) |>
+  pivot_wider(names_from = scale, values_from = rho)
+
+knitr::kable(select(rna_summary, marker) |> left_join(rho_by_scale, by = "marker"),
+             digits = 3,
+             caption = "Spearman rho per marker under each expression scale (same order as above).")
 ```
 
 Scatter per marker: `ihc_posfrac` against `log1p(rna_expr)` (`log1p` keeps zeros),
@@ -583,8 +654,9 @@ Every value below is derived from two inputs, bridged by the clinical table:
 - `ihc_data` — FlowPath single cells deduplicated to **one copy per patient**
   (whole slide, no annotation boundary). Each cell carries a `lineage` =
   `phenotype_clean` collapsed via the `phenotype_lineage` table.
-- `counts_data` — DESeq2-normalized bulk RNA, one row per sample, one column per
-  gene, keyed by `Sample` (a CRF id).
+- `expr_scales` — the bulk RNA on its three scales (part 1, *The three
+  expression scales*); the deconvolution reads TPM when it exists, else the
+  DESeq2-normalised scale.
 - `crf2slide` and `clin` — the id bridge and the hot/cold call, both built once in
   **Shared keys** above and only read here.
 
@@ -599,26 +671,27 @@ vector is constant).
 
 ### Bulk-RNA expression matrix
 
-`expr_mat` is `counts_data` (sample by gene) transposed to gene by sample, cast
-double, with gene symbols as row names:
-
-```
-expr_mat[gene, sample] = counts_data[sample, gene]   (transpose)
-```
+`expr_mat` is gene by sample, cast double, gene symbols as row names, on the TPM
+scale when gene lengths were found and on the DESeq2-normalised scale otherwise.
+`EXPR_SCALE` records which; set it by hand to force one. This is the one place
+the scale is not cosmetic: quanTIseq, EPIC and CIBERSORT were fit on TPM, and
+the length correction changes a long gene's share of a sample. MCP-counter and
+xCell rank genes within a sample and are indifferent to it.
 
 ```{r deconv-expr-matrix}
-expr_mat <- counts_data |>
-  column_to_rownames("Sample") |>
-  as.matrix() |>
-  t()
-
+EXPR_SCALE <- if (!is.null(expr_scales$tpm)) "tpm" else "normalized"
+expr_mat   <- expr_scales[[EXPR_SCALE]]
 storage.mode(expr_mat) <- "double"
-cat("expression matrix:", nrow(expr_mat), "genes x", ncol(expr_mat), "samples\n")
+cat("expression matrix:", nrow(expr_mat), "genes x", ncol(expr_mat), "samples",
+    "| scale:", EXPR_SCALE, "| gene lengths from:", expr_scales$length_source, "\n")
 ```
 
-> Caveat: quanTIseq/EPIC are designed for TPM. DESeq2-normalized counts are used
-> here as a pragmatic proxy; absolute fractions are therefore approximate, but the
+> When `EXPR_SCALE` is `normalized`, no gene lengths were found: absolute
+> fractions from the TPM-trained methods are then approximate, though the
 > *cross-patient ranking* (what the Spearman validation uses) is robust to this.
+> To switch to TPM, write `data/gene_lengths.tsv` (columns `gene`, `length` in
+> bp, from the GTF the counts were made against) beside `counts.RData` and
+> re-knit; nothing else changes.
 
 ### Method configuration
 
@@ -725,6 +798,48 @@ if (requireNamespace("immunedeconv", quietly = TRUE)) {
       "`output/paired_deconv.rds` not written (Figure 5c depends on it).**",
       "Install it with `remotes::install_github(\"omnideconv/immunedeconv\")`",
       "and re-knit.\n")
+}
+```
+
+### CIBERSORTx (container; run outside R)
+
+CIBERSORTx is CIBERSORT's successor and ships only as a Docker / Singularity
+image, so `immunedeconv` cannot call it. The page hands it the SAME `expr_mat`
+(written to `data/cibersortx/input/mixture.txt`, `GeneSymbol` first, one column
+per sample, unquoted) and, on the next knit, reads what
+`code/cibersortx_fractions.sh` left under `data/cibersortx/output/`: the
+B-mode-corrected `*_Adjusted.txt` when present, else `*_Results.txt`, with the
+per-sample `P-value` / `Correlation` / `RMSE` columns dropped. Rows go through
+the same `norm_id` -> `crf2slide` -> `deconv_to_lineage` pipeline as every other
+method (LM22's three `T cells CD4 *` subsets sum into CD4T, the two `NK cells *`
+into NK, `regulatory (Tregs)` into Treg; follicular helper and gamma delta map to
+nothing) and are appended to `deconv_long` as method `cibersortx`, with a row in
+the status table. No output yet: the status row says so and nothing else changes.
+
+```{r deconv-cibersortx}
+cbx_in  <- here("data", "cibersortx", "input", "mixture.txt")
+cbx_out <- here("data", "cibersortx", "output")
+write_cibersortx_mixture(expr_mat, cbx_in)
+cbx <- read_cibersortx_results(cbx_out)
+if (nrow(cbx)) {
+  cbx <- cbx |>
+    mutate(crf_id     = norm_id(sample),
+           patient_id = unname(crf2slide[crf_id]),
+           lineage    = deconv_to_lineage(cell_type)) |>
+    filter(!is.na(patient_id))
+  deconv_long   <- bind_rows(deconv_long, select(cbx, -source_file))
+  deconv_status <- bind_rows(deconv_status, tibble::tibble(
+    method = "cibersortx", status = "ok",
+    detail = sprintf("%d cell types from %s", dplyr::n_distinct(cbx$cell_type),
+                     cbx$source_file[1])))
+  cat("cibersortx:", nrow(cbx), "rows read from", cbx$source_file[1], "\n")
+} else {
+  deconv_status <- bind_rows(deconv_status, tibble::tibble(
+    method = "cibersortx", status = "not run",
+    detail = paste("no *_Results.txt under data/cibersortx/output/; the mixture is",
+                   "at data/cibersortx/input/mixture.txt — run",
+                   "code/cibersortx_fractions.sh and re-knit")))
+  cat("cibersortx: no output yet; mixture exported to", cbx_in, "\n")
 }
 ```
 
@@ -976,6 +1091,10 @@ if (!is.null(agr) && nrow(agr) > 0) {
   *pattern*, not significance.
 - The CIBERSORT block has not been exercised on a licensed `CIBERSORT.R` yet —
   check the status table's row for it the first time it runs.
+- The deconvolution input scale is `EXPR_SCALE` (TPM when gene lengths exist,
+  else DESeq2-normalised); part 1's per-scale rho table shows how much the
+  marker-level ranking depends on that choice. CIBERSORTx is read back from
+  `data/cibersortx/output/` and is only as current as the last container run.
 
 ```{r deconv-cache-paired, include=FALSE, eval = have_arm}
 # Gated with the rest of the deconvolution section: `deconv_paired` is BUILT there,

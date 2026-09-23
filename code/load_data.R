@@ -8,6 +8,10 @@
 #   neoplastic_massimo2     the same for ARM 2. Both LONG: one row per
 #                           (SAMPLE, annotation) — see the note at their definition
 #   counts_data             normalised counts, wide: one row per bulk-RNA Sample
+#   expr_scales             the SAME counts on three scales, gene x sample:
+#                           $raw, $normalized, $tpm (NULL without gene lengths),
+#                           plus $library_size and $length_source — see
+#                           expression_scales.R for where lengths are looked for
 #   ihc_massimo1            single cells, one row per cell per patient, ARM 1
 #   ihc_massimo2            the same for ARM 2
 #   ihc_massimo1_inverted   the same for ARM 3
@@ -45,6 +49,7 @@ library("data.table")
 # anything this file defines.
 source(here("code", "validation_helpers.R"))   # pulls in cell_tables.R + plot_theme.R
 source(here("code", "arm_cells.R"))            # pulls in arms.R
+source(here("code", "expression_scales.R"))   # raw / normalised / TPM from one dds
 
 dds <- get(load(here("data", "counts.RData")))
 dds <- DESeq(dds)
@@ -167,6 +172,12 @@ neoplastic_for <- function(arm = ARM_MODES) {
          massimo1_inverted = neoplastic_massimo1,
          massimo2          = neoplastic_massimo2)
 }
+
+# The same matrix on its three scales, restricted to the samples the clinical table
+# knows (the same filter counts_data applies below). counts_data stays the
+# normalised scale every existing figure reads; expr_scales is for the pages that
+# want to SEE the other two, and for the deconvolution input, which prefers TPM.
+expr_scales <- expression_scales(dds, samples = clinical_data$`ID CRF PRESERVE`)
 
 counts_data <-  counts(dds, normalized = TRUE) |>
   as_tibble(rownames = "GENE") |>

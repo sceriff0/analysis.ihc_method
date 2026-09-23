@@ -23,6 +23,8 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `registration_arms.R` | the **arm sweep** on the real slides — one run per configuration (both registration backends), ranked, with the cross-arm comparability guard |
 | `run_qc.R` | the **run's own** QC on the study samples: readers for mirage's per-patient QC artifacts, plus `build_run_qc_figs()` |
 | `paper_figures.R` | the **manuscript panels** — re-cuts of existing quantities in the shape each figure legend asks for |
+| `expression_scales.R` | the bulk RNA on its **three scales** — raw, DESeq2-normalised, TPM (only when gene lengths are found) — plus the CIBERSORTx mixture writer and results reader |
+| `cibersortx_fractions.sh` | the **CIBERSORTx Fractions** job (Singularity, run on the cluster): reads the mixture the molecular page exports, writes what it reads back |
 | `export_summary_table.R` | the **cross-source export** — RNA markers, pathologist cellularity, in-annotation fractions and the immune score as two csvs for analysis OUTSIDE this repo |
 
 The dependency order is `cell_tables.R` + `arms.R` → `validation_helpers.R` → `membership.R`

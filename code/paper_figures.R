@@ -412,7 +412,7 @@ method_label <- function(method) {
   known <- c(quantiseq = "quanTIseq", epic = "EPIC", mcp_counter = "MCP-counter",
              xcell = "xCell", abis = "ABIS", timer = "TIMER",
              consensus_tme = "ConsensusTME", cibersort = "CIBERSORT",
-             cibersort_abs = "CIBERSORT (abs.)")
+             cibersort_abs = "CIBERSORT (abs.)", cibersortx = "CIBERSORTx")
   m <- tolower(method)
   ifelse(m %in% names(known), known[m], method)
 }
