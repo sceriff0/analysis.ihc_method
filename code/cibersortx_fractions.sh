@@ -60,8 +60,16 @@ CIBERSORTX_TOKEN="$(cat "$HOME/.cibersortx_token")"
 [[ -f "$SIF" ]]                  || { echo "no image at $SIF — singularity pull docker://cibersortx/fractions" >&2; exit 1; }
 mkdir -p "$OUTPUT_DIR"
 
+# THE CONTAINER RUNS ITS OWN R, AND THAT R MUST NOT SEE THIS PROJECT. Singularity
+# binds the submit directory as the working directory by default, so R inside the
+# image read the repo's .Rprofile, bootstrapped renv against an EMPTY library, and
+# the B-mode correction step died on library(e1071). --contain + --pwd keep the
+# working directory inside the image, and R_PROFILE_USER=/dev/null makes the
+# container's R skip any .Rprofile it could still reach (e.g. in $HOME).
+export SINGULARITYENV_R_PROFILE_USER=/dev/null
 echo "[INFO] CIBERSORTx Fractions: $MIXTURE vs $SIGMATRIX (QN off, B-mode on)"
 singularity exec \
+  --contain --pwd /src/outdir \
   --bind "$INPUT_DIR:/src/data" \
   --bind "$OUTPUT_DIR:/src/outdir" \
   "$SIF" \
@@ -75,3 +83,5 @@ singularity exec \
     --perm 100 \
     --verbose TRUE
 echo "[DONE] output in $OUTPUT_DIR:"; ls -1 "$OUTPUT_DIR"
+# The container echoes the token into the job log; keep that log to yourself.
+[[ -n "${SLURM_JOB_ID:-}" ]] && chmod 600 "slurm-${SLURM_JOB_ID}.out" 2>/dev/null || true
