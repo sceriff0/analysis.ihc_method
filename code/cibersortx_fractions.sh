@@ -32,7 +32,16 @@
 #SBATCH --cpus-per-task=2
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# The project root. Under sbatch the script runs from Slurm's spool copy, so its
+# own path says nothing; the submit directory does (submit from the project root,
+# as the header says). Outside Slurm, walk up from the script's own location.
+if [[ -n "${SLURM_SUBMIT_DIR:-}" ]]; then
+  ROOT="$SLURM_SUBMIT_DIR"
+else
+  ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+fi
+ROOT="${IHC_ROOT:-$ROOT}"                             # or name it outright
+[[ -f "$ROOT/code/cibersortx_fractions.sh" ]] || { echo "$ROOT is not the ihc_method root — sbatch from the project root, or export IHC_ROOT" >&2; exit 1; }
 INPUT_DIR="$ROOT/data/cibersortx/input"
 OUTPUT_DIR="$ROOT/data/cibersortx/output"
 MIXTURE="mixture.txt"
