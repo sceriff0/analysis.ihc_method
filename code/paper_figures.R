@@ -406,16 +406,8 @@ paper_deconv_scatter <- function(paired, method = "quantiseq", groups = NULL,
   p
 }
 
-# The method name as a reader meets it. immunedeconv keys are lower-case slugs; the
-# tools have house capitalisation that a legend should respect.
-method_label <- function(method) {
-  known <- c(quantiseq = "quanTIseq", epic = "EPIC", mcp_counter = "MCP-counter",
-             xcell = "xCell", abis = "ABIS", timer = "TIMER",
-             consensus_tme = "ConsensusTME", cibersort = "CIBERSORT",
-             cibersort_abs = "CIBERSORT (abs.)", cibersortx = "CIBERSORTx")
-  m <- tolower(method)
-  ifelse(m %in% names(known), known[m], method)
-}
+# method_label() lives in validation_helpers.R, beside deconv_to_lineage(): the
+# molecular pages title one figure per method with it.
 
 # --- Additional file 4: the mapping, as data ---------------------------------
 # The tier -> cell-type mapping the legends promise, generated from the SAME

@@ -658,6 +658,17 @@ ihc_lineage_fraction <- function(ihc_data) {
     dplyr::ungroup()
 }
 
+# The method name as a reader meets it. immunedeconv keys are lower-case slugs; the
+# tools have house capitalisation that a legend should respect.
+method_label <- function(method) {
+  known <- c(quantiseq = "quanTIseq", epic = "EPIC", mcp_counter = "MCP-counter",
+             xcell = "xCell", abis = "ABIS", timer = "TIMER",
+             consensus_tme = "ConsensusTME", cibersort = "CIBERSORT",
+             cibersort_abs = "CIBERSORT (abs.)", cibersortx = "CIBERSORTx")
+  m <- tolower(method)
+  ifelse(m %in% names(known), known[m], method)
+}
+
 # Map an immunedeconv cell_type string to one of `comparable_lineages` (or NA).
 # Pattern-based because the exact strings differ across methods.
 #

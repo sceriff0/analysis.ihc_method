@@ -972,42 +972,53 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
 }
 ```
 
-Scatter of `ihc_frac` (x) vs `score` (y), faceted method by lineage. The x axis is
-shared across the whole grid (one unit, IHC fraction of all cells); the y axis is
-shared along each method's row and free BETWEEN methods, because deconvolution
-scores are not on a common scale from one method to the next.
+Scatter of `ihc_frac` (x) vs `score` (y), **one figure per method**, panels by
+lineage, in the ranking's order so the best-agreeing method comes first. Within a
+figure the four panels share both axes: x is the IHC fraction on 0..1 and y is that
+method's score, so the spread across lineages reads on one scale. Between figures
+y is free by construction, because deconvolution scores are not on a common scale
+from one method to the next. Each strip carries that lineage's Spearman rho from
+the table above, so the picture and the number sit together.
 
-```{r deconv-concordance-plot, eval = have_arm}
+```{r deconv-concordance-plot, eval = have_arm, fig.height=3.4}
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
-  # cloud rather than as a middling overall rho.
+  # cloud rather than as a middling overall rho. left_join: a patient with no
+  # immuno-phenotype stays in the plot (grey) rather than shrinking the fit.
   df <- deconv_paired |>
     left_join(clin, by = "patient_id") |>
-    mutate(immuno_phe = hotcold_order(immuno_phe))
-  ggplot(df, aes(ihc_frac, score)) +
-    geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
-    geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_grid(method ~ lineage, scales = "free_y") +
-    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
-                        na.value = "grey70", name = "Immuno-phenotype") +
-    # `free_y`, NOT `free`, and in facet_grid that distinction is the whole design.
-    # x is `ihc_frac`: one unit, the same meaning in all twenty panels, so a free x
-    # gave every panel its own slice of 0..1 and the same IHC value landed at a
-    # different place in every row — the one axis that WAS comparable was the one
-    # being rescaled. facet_grid's `free_y` frees y by ROW, which is exactly the
-    # split the data has: the methods' scores are on genuinely incomparable scales,
-    # so a y shared between methods would be a lie, while a y shared across lineages
-    # within one method is the comparison a reader actually wants.
-    #
-    # theme_paper_panels() stays: twenty small panels edge to edge still read as one
-    # continuous field, and the y axis still changes from row to row, so the hairline
-    # border and the wider gutter are still saying something true.
-    theme_paper_panels() +
-    labs(title = "IHC lineage fraction vs bulk-RNA deconvolution score",
-         subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients; x is shared across the grid, y is shared within a method row",
-         x = "IHC fraction of all cells (unitless, 0-1)",
-         y = "Deconvolution score (unitless)")
+    mutate(immuno_phe = hotcold_order(immuno_phe),
+           lineage    = factor(lineage, levels = comparable_lineages))
+
+  plot_deconv_method <- function(m) {
+    d   <- filter(df, method == m)
+    rho <- filter(deconv_summary, method == m)
+    lab <- stats::setNames(
+      sprintf("%s (rho = %s)", rho$lineage,
+              ifelse(is.finite(rho$rho), formatC(rho$rho, format = "f", digits = 2), "NA")),
+      as.character(rho$lineage))
+    ggplot(d, aes(ihc_frac, score)) +
+      geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+      geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
+      # Shared x AND y within the method: the same IHC value lands in the same place
+      # in every panel, and the lineages' scores are compared on the method's own scale.
+      facet_wrap(~ lineage, nrow = 1,
+                 labeller = as_labeller(function(x) ifelse(x %in% names(lab), lab[x], x))) +
+      scale_colour_manual(values = hotcold_cols(levels(d$immuno_phe)),
+                          na.value = "grey70", name = "Immuno-phenotype") +
+      # Three x ticks and a wider gutter: with four panels in a row, the default
+      # 0.00 / 1.00 labels of neighbouring panels ran into each other.
+      scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1)) +
+      theme(panel.spacing.x = unit(1.2, "lines")) +
+      labs(title = paste0(method_label(m), ": IHC lineage fraction vs deconvolution score"),
+           subtitle = with_n(paste("points coloured by the clinical immuno-phenotype;",
+                                   "the fit is over all patients; axes shared across the panels"),
+                             d$patient_id, "patients"),
+           x = "IHC fraction of all cells (unitless, 0-1)",
+           y = paste(method_label(m), "score (unitless)"))
+  }
+  for (m in method_rank$method) print(plot_deconv_method(m))
 }
 ```
 
