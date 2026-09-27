@@ -521,3 +521,32 @@ test_that("placeholder mode ON: the plan's missing slides are synthesised, flagg
   pf <- build_arm_paper_figs(seg, val, man)
   expect_match(pf$dice_by_arm$labels$subtitle, "^PLACEHOLDER — ")
 })
+
+# --- DRAPE arms ------------------------------------------------------------------
+# The DRAPE branch names its tiled-backend arms tiled_<tier>_s<stride>[_<cross>], and
+# its arms.csv still writes the pre-rename "tiled (STARE, ...)" label.
+test_that("DRAPE arms are labelled DRAPE with tier and stride, never 'tiled (STARE, defaults)'", {
+  expect_identical(.drape_arm_label("tiled_high_s128"), "DRAPE (high, stride 128 px)")
+  expect_identical(.drape_arm_label("tiled_low_s64_segstardist"),
+                   "DRAPE (low, stride 64 px) [QC seg: stardist]")
+  expect_identical(.drape_arm_label("tiled_medium_s256_segcellsam_pairmutual_nn"),
+                   "DRAPE (medium, stride 256 px) [QC seg: cellsam] [QC pairing: mutual_nn]")
+  # The manifest's own label is kept, with the method renamed.
+  expect_identical(.drape_arm_label("tiled_high_s128", "tiled (STARE, high, stride 128 px) [QC seg: stardist]"),
+                   "DRAPE (high, stride 128 px) [QC seg: stardist]")
+  # Not a DRAPE arm: untouched.
+  expect_identical(.drape_arm_label(c("tiled_defaults", "tiled_high_gate05", "valis_high_micro2"),
+                                    c(NA, "tiled (STARE, high, gate 0.5 px)", "high / micro 2")),
+                   c(NA, "tiled (STARE, high, gate 0.5 px)", "high / micro 2"))
+
+  root <- arms_tree(modes = "high", depths = 2, tiled = TRUE)
+  for (a in c("tiled_high_s128", "tiled_low_s64_segstardist"))
+    fs::dir_copy(file.path(root, "tiled_defaults"), file.path(root, a))
+  man <- suppressMessages(arm_manifest(root))
+  lab <- stats::setNames(man$arm, man$arm_dir)
+  expect_identical(unname(lab["tiled_high_s128"]), "DRAPE (high, stride 128 px)")
+  expect_identical(unname(lab["tiled_low_s64_segstardist"]),
+                   "DRAPE (low, stride 64 px) [QC seg: stardist]")
+  expect_true(all(man$backend[man$arm_dir %in% c("tiled_high_s128", "tiled_low_s64_segstardist")] == "tiled"))
+  expect_false(any(grepl("STARE", lab[startsWith(names(lab), "tiled_") & grepl("_s[0-9]", names(lab))])))
+})

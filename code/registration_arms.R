@@ -159,6 +159,47 @@ PAIR_UNIT_NOTE <- paste("One point per channel pair (reference vs moving slide),
   tibble::tibble(backend = backend, memory_mode = mode, micro_reg = micro)
 }
 
+# DRAPE arms. The DRAPE branch of mirage names its tiled-backend arms
+# `tiled_<tier>_s<stride>` (benchmarks/build_arm_plan.py: tiled_arm_name), optionally
+# followed by a cross suffix (`_segstardist`, `_segcellsam`, `_pairmutual_nn`, ...).
+# They run registration_method = tiled, so `backend` stays `tiled` and every reader
+# and the stage vocabulary are unchanged — but the METHOD is DRAPE, and its arms.csv
+# still writes the pre-rename label "tiled (STARE, <tier>, stride <s> px)". Rendering
+# that as STARE would name the wrong method on the manuscript's arm axis, so the label
+# is rewritten here, and a DRAPE arm with no label at all gets "DRAPE (<tier>, stride
+# <s> px)" instead of falling through to "tiled (STARE, defaults)", which would
+# collapse every tier x stride onto one name.
+DRAPE_ARM_RE <- "^tiled_(low|medium|high)_s([0-9]+)(_.*)?$"
+
+.drape_cross_label <- function(parts) {
+  parts <- parts[nzchar(parts)]
+  if (!length(parts)) return("")
+  tag <- ifelse(startsWith(parts, "seg"), paste0("QC seg: ", sub("^seg", "", parts)),
+         ifelse(startsWith(parts, "pair"), paste0("QC pairing: ", sub("^pair", "", parts)),
+                parts))
+  paste0(" ", paste0("[", tag, "]", collapse = " "))
+}
+
+.drape_arm_label <- function(arm_dir, label = NA_character_) {
+  out <- rep_len(as.character(label), length(arm_dir))
+  low <- tolower(arm_dir)
+  hit <- grepl(DRAPE_ARM_RE, low)
+  if (!any(hit)) return(out)
+  tier   <- sub(DRAPE_ARM_RE, "\\1", low[hit])
+  stride <- sub(DRAPE_ARM_RE, "\\2", low[hit])
+  sfx    <- sub("^_", "", sub(DRAPE_ARM_RE, "\\3", low[hit]))
+  # `_segcellsam_pairmutual_nn` -> segcellsam | pairmutual_nn: split only where a
+  # new cross starts, so an underscore inside a value (mutual_nn) survives.
+  cross  <- vapply(strsplit(sfx, "_(?=seg|pair)", perl = TRUE), .drape_cross_label,
+                   character(1))
+  built <- sprintf("DRAPE (%s, stride %s px)%s", tier, stride, cross)
+  lab <- out[hit]
+  out[hit] <- ifelse(is.na(lab) | !nzchar(lab), built,
+                     gsub("STARE", "DRAPE", sub("^tiled \\(STARE,\\s*", "DRAPE (", lab),
+                          fixed = TRUE))
+  out
+}
+
 arm_manifest <- function(root = ARMS_DIR) {
   if (!fs::dir_exists(root)) {
     warning("registration arms: no directory at ", root)
@@ -213,6 +254,7 @@ arm_manifest <- function(root = ARMS_DIR) {
   }
 
   if (!"label" %in% names(out)) out$label <- NA_character_
+  out$label <- .drape_arm_label(out$arm_dir, as.character(out$label))
   out |>
     dplyr::mutate(
       micro_reg = suppressWarnings(as.integer(micro_reg)),

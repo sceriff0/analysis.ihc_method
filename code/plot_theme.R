@@ -566,12 +566,23 @@ scale_color_arm <- scale_colour_arm
 # (STARE)`, so the two benchmark pages agree on a backend's hue; the challenge
 # baseline takes the green; no-registration is the grey the arm palette uses
 # for its plain control.
+#
+# `stare` (the first STARE, kept as a leg for comparison) takes Okabe-Ito's orange,
+# the neighbour of the tiled vermillion it descends from; `drape` (its successor)
+# takes the reddish purple. A leg the palette does not name yet is NOT dropped: the
+# two scales below take their limits from the data and draw an unlisted key in
+# ANHIR_UNKNOWN_COL, in the legend under its own key, so a new `evaluate.py
+# --warped <name>=...` leg shows up grey instead of vanishing from the figure.
 ANHIR_METHOD_COLS <- c(initial = "#7F8C8D", bunwarpj = "#009E73",
-                       valis = "#0072B2", tiled = "#D55E00")
+                       valis = "#0072B2", tiled = "#D55E00",
+                       stare = "#E69F00", drape = "#CC79A7")
 ANHIR_METHOD_LABELS <- c(initial  = "initial (no registration)",
                          bunwarpj = "bUnwarpJ (challenge baseline)",
                          valis    = "VALIS",
-                         tiled    = "STARE (tiled)")
+                         tiled    = "STARE (tiled)",
+                         stare    = "STARE v1",
+                         drape    = "DRAPE")
+ANHIR_UNKNOWN_COL <- "#A6A6A6"
 
 # Display name for a method key; an unlisted key is shown as itself.
 .anhir_method_labels <- function(breaks) {
@@ -581,10 +592,24 @@ ANHIR_METHOD_LABELS <- c(initial  = "initial (no registration)",
   unname(ifelse(is.na(lab), as.character(breaks), lab))
 }
 
+# Two things make an unlisted method draw grey instead of vanishing:
+#  - `limits = function(x) x`: the legend's keys are the methods IN THE DATA. The
+#    default (named values, drop = TRUE) restricts the limits to the named keys, which
+#    draws an unlisted method in na.value but leaves it out of the legend.
+#  - the values are PADDED with spare entries under names no method will ever have.
+#    A manual scale aborts ("Insufficient values") once the data holds more methods than
+#    it has values, before any name lookup happens; the padding only satisfies that
+#    count. Mapping is still by name, so the padded entries never colour anything and an
+#    unlisted key falls to na.value = ANHIR_UNKNOWN_COL.
+.ANHIR_METHOD_VALUES <- c(ANHIR_METHOD_COLS,
+                          stats::setNames(rep(ANHIR_UNKNOWN_COL, 64),
+                                          sprintf(".unlisted_%02d", seq_len(64))))
 scale_colour_anhir_method <- function(..., drop = TRUE, name = NULL, labels = .anhir_method_labels)
-  scale_colour_manual(values = ANHIR_METHOD_COLS, drop = drop, name = name, labels = labels, ...)
+  scale_colour_manual(values = .ANHIR_METHOD_VALUES, drop = drop, name = name, labels = labels,
+                      limits = function(x) x, na.value = ANHIR_UNKNOWN_COL, ...)
 scale_fill_anhir_method <- function(..., drop = TRUE, name = NULL, labels = .anhir_method_labels)
-  scale_fill_manual(values = ANHIR_METHOD_COLS, drop = drop, name = name, labels = labels, ...)
+  scale_fill_manual(values = .ANHIR_METHOD_VALUES, drop = drop, name = name, labels = labels,
+                    limits = function(x) x, na.value = ANHIR_UNKNOWN_COL, ...)
 scale_color_anhir_method <- scale_colour_anhir_method
 
 # --- FlowPath panel titles ---------------------------------------------------

@@ -73,8 +73,8 @@ anhir_load <- function(dir = here::here("data", "benchmark")) {
 }
 
 # PLACEHOLDER MODE ONLY (code/placeholders.R; a no-op otherwise). The expected set is
-# every SCORED case x every method: the methods the palette names, those in the
-# table, and those anhir_missing.csv lists. A (case, method) with no row — a leg that
+# every SCORED case x every method evaluate.py was run with: those in the table and
+# those anhir_missing.csv lists. A (case, method) with no row — a leg that
 # has not run — gets a synthetic row, drawn from the same method on the same tissue,
 # then the same method, then the other REGISTERED methods on that tissue (`initial`
 # is kept apart: it is no registration, and borrowing its error would make a missing
@@ -98,7 +98,9 @@ anhir_load <- function(dir = here::here("data", "benchmark")) {
   miss_m <- if (file.exists(miss_path))
     tryCatch(unique(readr::read_csv(miss_path, show_col_types = FALSE)$method),
              error = function(e) character(0)) else character(0)
-  methods <- unique(c(ANHIR_METHOD_LEVELS, as.character(cases$method), miss_m))
+  # The plan is what evaluate.py was run with, i.e. the methods in its own tables —
+  # NOT the palette, which names legs that may never be run (a colour is not a plan).
+  methods <- unique(c(as.character(cases$method), miss_m))
   methods <- methods[!is.na(methods)]
   exp <- tidyr::expand_grid(per_case, method = methods) |>
     dplyr::mutate(scored = TRUE,
@@ -253,7 +255,10 @@ plot_anhir_rank <- function(aggregates) {
     .anhir_label_methods()
   if (!nrow(d)) return(.anhir_empty(title, "ranked methods (subset == \"all\")"))
   # coord_flip() draws the LAST level at the top, so reverse the order by rank.
-  d$method_lab <- stats::reorder(d$method_lab, -d$avg_rank_median_rtre)
+  # droplevels() first: a palette method with no aggregate row (a leg not run yet)
+  # would otherwise keep an unused level, which reorder() leaves at the END — i.e. at
+  # the top of the flipped axis, above the actual best method.
+  d$method_lab <- stats::reorder(droplevels(d$method_lab), -d$avg_rank_median_rtre)
   n_by <- stats::setNames(d$n_cases, as.character(d$method_lab))
   ggplot(d, aes(method_lab, avg_rank_median_rtre, fill = method)) +
     geom_col(width = .6) +

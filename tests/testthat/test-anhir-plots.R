@@ -205,3 +205,27 @@ test_that("placeholder mode: an unrun (case, method) leg is synthesised, flagged
   expect_false(grepl("PLACEHOLDER", plot_anhir_rank(a$aggregates)$labels$subtitle))
   expect_no_error(ggplot2::ggplot_build(plot_anhir_rtre_by_method(a$cases)))
 })
+
+# --- new legs: DRAPE, STARE v1, and a leg the palette does not know yet -------------
+test_that("drape and stare have their own colour and label; an unknown leg is drawn grey, not dropped", {
+  expect_true(all(c("drape", "stare") %in% names(ANHIR_METHOD_COLS)))
+  expect_identical(.anhir_method_labels(c("drape", "stare", "brandnew")),
+                   c("DRAPE", "STARE v1", "brandnew"))
+  cases <- dplyr::bind_rows(
+    synth_cases(),
+    dplyr::mutate(dplyr::filter(synth_cases(), method == "valis"), method = "drape"),
+    dplyr::mutate(dplyr::filter(synth_cases(), method == "valis"), method = "stare"),
+    dplyr::mutate(dplyr::filter(synth_cases(), method == "valis"), method = "brandnew"))
+  a <- anhir_load(write_fixture(tmp_data(), cases = cases))
+  for (p in list(plot_anhir_rtre_by_method(a$cases), plot_anhir_rtre_by_tissue(a$cases),
+                 plot_anhir_robustness(a$cases))) {
+    b  <- ggplot2::ggplot_build(p)
+    sc <- b$plot$scales$get_scales("colour")
+    expect_true(all(c("drape", "stare", "brandnew") %in% sc$get_limits()))
+    cols <- stats::setNames(sc$map(sc$get_limits()), sc$get_limits())
+    expect_identical(unname(cols[c("drape", "stare", "brandnew")]),
+                     unname(c(ANHIR_METHOD_COLS[c("drape", "stare")], ANHIR_UNKNOWN_COL)))
+    pts <- b$data[[which(vapply(b$data, function(d) "colour" %in% names(d) && nrow(d) > 4, logical(1)))[1]]]
+    expect_false(anyNA(pts$colour))
+  }
+})
