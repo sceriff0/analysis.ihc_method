@@ -23,6 +23,7 @@ if (length(.missing))
 suppressPackageStartupMessages(lapply(.need, library, character.only = TRUE))
 
 source(here::here("code", "plot_theme.R"))   # house theme + ANHIR_METHOD_COLS + label_n()
+source(here::here("code", "placeholders.R")) # opt-in synthetic stand-ins (default OFF)
 
 ANHIR_CAPTION <- "ANHIR challenge · training cases, scored locally on the released landmarks"
 
@@ -68,7 +69,54 @@ anhir_load <- function(dir = here::here("data", "benchmark")) {
     # quoted or oddly-cased value would arrive as character.
     dplyr::mutate(scored = as.logical(scored))
   aggregates <- .anhir_read(file.path(dir, "anhir_aggregates.csv"), ANHIR_AGG_COLS, .ANHIR_AGG_NUM)
-  list(cases = cases, aggregates = aggregates)
+  list(cases = .anhir_placeholders(cases, dir), aggregates = aggregates)
+}
+
+# PLACEHOLDER MODE ONLY (code/placeholders.R; a no-op otherwise). The expected set is
+# every SCORED case x every method: the methods the palette names, those in the
+# table, and those anhir_missing.csv lists. A (case, method) with no row — a leg that
+# has not run — gets a synthetic row, drawn from the same method on the same tissue,
+# then the same method, then the other REGISTERED methods on that tissue (`initial`
+# is kept apart: it is no registration, and borrowing its error would make a missing
+# method look catastrophically bad), then everything.
+#
+# NOT synthesised, deliberately:
+#   - a row evaluate.py already scored at the initial pose (`imputed_initial`): that
+#     is the challenge's own rule for a missing registration, a real number;
+#   - `rank_median_rtre` and every AGGREGATE (anhir_aggregates.csv): a rank is a
+#     statement about the other methods on the case, and the rank figure is the
+#     challenge's own statistic. It stays real-only, which the page callout says.
+#   - evaluation cases: they are scored server-side and are NA by design.
+.anhir_placeholders <- function(cases, dir) {
+  if (!placeholder_mode() || !nrow(cases)) return(cases)
+  scored <- dplyr::filter(cases, scored %in% TRUE)
+  if (!nrow(scored)) return(cases)
+  case_cols <- intersect(c("case_id", "tissue", "scale", "status", "source_image",
+                           "target_image", "n_landmarks"), names(scored))
+  per_case <- dplyr::slice(dplyr::group_by(scored[case_cols], case_id), 1) |> dplyr::ungroup()
+  miss_path <- file.path(dir, "anhir_missing.csv")
+  miss_m <- if (file.exists(miss_path))
+    tryCatch(unique(readr::read_csv(miss_path, show_col_types = FALSE)$method),
+             error = function(e) character(0)) else character(0)
+  methods <- unique(c(ANHIR_METHOD_LEVELS, as.character(cases$method), miss_m))
+  methods <- methods[!is.na(methods)]
+  exp <- tidyr::expand_grid(per_case, method = methods) |>
+    dplyr::mutate(scored = TRUE,
+                  .family = ifelse(method == "initial", "initial", "registered"))
+  real <- dplyr::mutate(cases, .family = ifelse(method == "initial", "initial", "registered"))
+  metrics <- c("rtre_median", "rtre_mean", "rtre_max", "tre_median_px", "robustness")
+  logm <- c("rtre_median", "rtre_mean", "rtre_max", "tre_median_px")
+  out <- placeholder_fill(
+    real, exp, keys = c("case_id", "method"), metrics = metrics,
+    levels = list(method_tissue = c("method", "tissue"), method = "method",
+                  family_tissue = c(".family", "tissue"), family = ".family"),
+    ranges = c(stats::setNames(rep(list(c(1e-9, Inf)), length(logm)), logm),
+               list(robustness = c(0, 1))),
+    log_scale = logm, na_structure = c("scored", ".family"),
+    what = "anhir/cases")
+  # A companion row stands for a scored case; an unscored (evaluation) row whose
+  # metrics are NA by design never qualifies, because no scored=FALSE row carries them.
+  dplyr::select(out, -".family")
 }
 
 # --- shared helpers -----------------------------------------------------------
@@ -121,7 +169,7 @@ plot_anhir_rtre_by_method <- function(cases) {
   title <- "ANHIR: registration error by method"
   d <- .anhir_scored(cases, "rtre_median", positive = TRUE)
   if (!nrow(d)) return(.anhir_empty(title))
-  ggplot(d, aes(method_lab, rtre_median, colour = method)) +
+  p <- ggplot(d, aes(method_lab, rtre_median, colour = method)) +
     geom_boxplot(outlier.shape = NA, width = .55, colour = "grey35") +
     geom_jitter(width = .12, height = 0, alpha = .7, size = 1.6) +
     # rTRE spans two orders of magnitude between `initial` and a good non-rigid
@@ -136,6 +184,7 @@ plot_anhir_rtre_by_method <- function(cases) {
                           "Lower = better.", n_note(d$case_id, "cases")),
          x = NULL, y = "median rTRE per case (fraction of image diagonal, log10)",
          caption = ANHIR_CAPTION)
+  placeholder_style(p)   # a no-op unless placeholder mode drew a synthetic case
 }
 
 # Method x tissue: the median over cases of the per-case median rTRE, tissues
@@ -148,9 +197,12 @@ plot_anhir_rtre_by_tissue <- function(cases) {
   d$tissue <- stats::reorder(factor(d$tissue), -d$rtre_median, FUN = stats::median)
   med <- d %>%
     dplyr::group_by(method, tissue) %>%
-    dplyr::summarise(rtre = stats::median(rtre_median), .groups = "drop")
+    dplyr::summarise(rtre = stats::median(rtre_median),
+                     # placeholder mode: a median that includes any synthetic case
+                     dplyr::across(dplyr::any_of("is_placeholder"), ~ any(.x %in% TRUE)),
+                     .groups = "drop")
   per_tissue <- dplyr::distinct(d, tissue, case_id)
-  ggplot(med, aes(tissue, rtre, colour = method, group = method)) +
+  p <- ggplot(med, aes(tissue, rtre, colour = method, group = method)) +
     geom_line(alpha = .8) +
     geom_point(size = 2) +
     scale_y_log10() +
@@ -163,6 +215,7 @@ plot_anhir_rtre_by_tissue <- function(cases) {
          x = NULL, y = "median rTRE (fraction of image diagonal, log10)",
          caption = ANHIR_CAPTION) +
     theme(axis.text.x = element_text(angle = 30, hjust = 1))
+  placeholder_style(p)
 }
 
 # Robustness per method. `initial` is left out: robustness is DEFINED as the
@@ -175,7 +228,7 @@ plot_anhir_robustness <- function(cases) {
     dplyr::filter(as.character(method) != "initial") %>%
     .anhir_label_methods()
   if (!nrow(d)) return(.anhir_empty(title))
-  ggplot(d, aes(method_lab, robustness, colour = method)) +
+  p <- ggplot(d, aes(method_lab, robustness, colour = method)) +
     geom_hline(yintercept = 0.5, linetype = "dashed", colour = REF_LINE) +
     geom_boxplot(outlier.shape = NA, width = .55, colour = "grey35") +
     geom_jitter(width = .12, height = 0, alpha = .7, size = 1.6) +
@@ -188,6 +241,7 @@ plot_anhir_robustness <- function(cases) {
                           n_note(d$case_id, "cases")),
          x = NULL, y = "robustness (fraction of landmarks improved)",
          caption = ANHIR_CAPTION)
+  placeholder_style(p)
 }
 
 # The challenge's primary ranking metric, subset == "all": each method's rank on

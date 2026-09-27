@@ -35,6 +35,14 @@ anhir_dir  <- here("data", "benchmark")
 have_anhir <- file.exists(file.path(anhir_dir, "anhir_cases.csv"))
 ```
 
+```{r placeholder-callout, results="asis"}
+# Placeholder mode (code/placeholders.R, sourced by pdf_export.R): an empty string
+# unless IHC_PLACEHOLDER_MISSING / options(ihc.placeholder_missing) is set, in which
+# case this is the page-wide warning that synthetic points are drawn below.
+cat(placeholder_callout())
+```
+
+
 ## Starting data and notation
 
 **ANHIR** (Automatic Non-rigid Histological Image Registration,

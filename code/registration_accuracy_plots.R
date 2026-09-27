@@ -12,6 +12,7 @@ if (length(.missing))
 suppressPackageStartupMessages(lapply(.need, library, character.only = TRUE))
 
 source(here::here("code", "plot_theme.R"))   # house theme + oi/oi_ext palettes
+source(here::here("code", "placeholders.R")) # opt-in synthetic stand-ins (default OFF)
 
 REG_CAPTION          <- "Mirage registration QC · landmark-free · per moving slide"
 STAGE_LEVELS_RTRE    <- c("original", "rigid", "non_rigid")            # VALIS rTRE stages
@@ -35,11 +36,17 @@ STAGE_LEVELS_OVERLAP <- c("native", "rigid", "non_rigid", "micro")     # warp_se
 build_reg_figs <- function(dir = here::here("data", "benchmark")) {
   figs <- list()
 
+  # Placeholder mode (code/placeholders.R): a no-op unless the switch is on. All three
+  # tables are read and filled together, because the expected RUN set is their union.
+  tabs <- .reg_placeholders(vs = .reg_read_opt(dir, "registration_valis_rtre.csv"),
+                            ra = .reg_read_opt(dir, "registration_accuracy.csv"),
+                            pm = .reg_read_opt(dir, "param_matrix.csv"), dir = dir)
+
   # -- §1 VALIS self-reported feature rTRE, per moving slide, across stages -----
   # mirage auto-emits registration_valis_rtre.csv (make_tables.py). Columns are VALIS's
   # verbatim + run_id/summary_csv, so detect the id column and the stage columns rather than
   # hard-coding them: prefer the relative rTRE columns, fall back to the raw distance (_D) ones.
-  vs <- .reg_read_opt(dir, "registration_valis_rtre.csv")
+  vs <- tabs$vs
   if (!is.null(vs)) {
     id_col <- intersect(c("img_name", "name", "filename", "summary_csv"), names(vs))[1]
     rtre_cols <- grep("_rTRE$", names(vs), value = TRUE)
@@ -51,7 +58,7 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     rtre_cols <- rtre_cols[sub("_(rTRE|D)$", "", rtre_cols) %in% STAGE_LEVELS_RTRE]
     if (!is.na(id_col) && length(rtre_cols) >= 2) {
       long <- vs %>%
-        dplyr::select(dplyr::all_of(c(id_col, rtre_cols))) %>%
+        dplyr::select(dplyr::all_of(c(id_col, rtre_cols)), dplyr::any_of("is_placeholder")) %>%
         tidyr::pivot_longer(dplyr::all_of(rtre_cols),
                             names_to = "stage", values_to = "rTRE") %>%
         dplyr::mutate(stage = factor(sub("_(rTRE|D)$", "", stage), levels = STAGE_LEVELS_RTRE)) %>%
@@ -88,7 +95,7 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
   }
 
   # -- §2 independent overlap accuracy (DAPI-nucleus Dice + centroid residual) --
-  ra <- .reg_read_opt(dir, "registration_accuracy.csv")
+  ra <- tabs$ra
   if (!is.null(ra) && all(c("stage", "dice_matched") %in% names(ra))) {
     ra <- ra %>%
       dplyr::mutate(stage = factor(stage, levels = STAGE_LEVELS_OVERLAP)) %>%
@@ -160,7 +167,7 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
   }
 
   # -- §4 accuracy vs cost (Pareto) --------------------------------------------
-  pm <- .reg_read_opt(dir, "param_matrix.csv")
+  pm <- tabs$pm
   if (!is.null(pm) && all(c("reg_displacement_um_p50", "cpu_hours") %in% names(pm))) {
     pmf <- pm %>% dplyr::filter(is.finite(reg_displacement_um_p50), is.finite(cpu_hours))
     if (nrow(pmf)) {
@@ -226,8 +233,10 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     if ("tre" %in% names(arm_tbl) && any(is.finite(arm_tbl$tre))) {
       d <- dplyr::bind_rows(
         dplyr::transmute(dplyr::filter(arm_tbl, is.finite(tre)),
-                         arm, value = tre, kind = "configuration"),
-        if (!is.null(base_tre)) dplyr::transmute(base_tre, arm = label, value, kind = "baseline"))
+                         arm, value = tre, kind = "configuration",
+                         dplyr::across(dplyr::any_of("is_placeholder"))),
+        if (!is.null(base_tre)) dplyr::transmute(base_tre, arm = label, value, kind = "baseline",
+                                                 dplyr::across(dplyr::any_of("is_placeholder"))))
       d$arm <- stats::reorder(factor(d$arm), d$value)
       figs[["06_tre_by_arm"]] <-
         ggplot(d, aes(arm, value, colour = kind)) +
@@ -249,8 +258,10 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
                                        c(native = "no registration", rigid = "rigid only"))
       d <- dplyr::bind_rows(
         dplyr::transmute(dplyr::filter(arm_tbl, is.finite(dice)),
-                         arm, value = dice, kind = "configuration"),
-        if (!is.null(base_dice)) dplyr::transmute(base_dice, arm = label, value, kind = "baseline"))
+                         arm, value = dice, kind = "configuration",
+                         dplyr::across(dplyr::any_of("is_placeholder"))),
+        if (!is.null(base_dice)) dplyr::transmute(base_dice, arm = label, value, kind = "baseline",
+                                                  dplyr::across(dplyr::any_of("is_placeholder"))))
       d$arm <- stats::reorder(factor(d$arm), d$value)
       figs[["07_dice_by_arm"]] <-
         ggplot(d, aes(arm, value, colour = kind)) +
@@ -268,7 +279,97 @@ build_reg_figs <- function(dir = here::here("data", "benchmark")) {
     }
   }
 
-  figs
+  lapply(figs, placeholder_style)   # a no-op on a figure with no synthetic row
+}
+
+# --- Placeholder mode ---------------------------------------------------------
+# OFF by default (code/placeholders.R). With it on, the EXPECTED run set is every
+# run_id seen in any of the three tables, plus data/benchmark/run_plan.csv (or
+# sweep_plan.csv) if one was handed off — pull_to_ihc_method.sh does not copy the
+# plan today, so without it only a run present in ONE table and missing from
+# another is filled (e.g. a run with cost in param_matrix but no overlap QC yet).
+#   param_matrix  one row per run: headline metrics, from runs sharing the same
+#                 preset/micro knobs, then the same varied axis, then all runs.
+#   accuracy      one row per (run, moving, stage): a missing run takes the (moving,
+#                 stage) template of the run with the most rows, values from the same
+#                 stage across runs.
+#   valis_rtre    one wide row per (run, slide), likewise.
+# measurements.csv / run_cost.csv (benchmark_plots.R) are NOT filled: their figures
+# are power-law fits whose exponents are printed as numbers in the facet strips, and
+# a synthetic point would change a printed result rather than only add a marked dot.
+.reg_plan_runs <- function(dir) {
+  for (f in c("run_plan.csv", "sweep_plan.csv")) {
+    p <- file.path(dir, f)
+    if (file.exists(p)) {
+      d <- tryCatch(readr::read_csv(p, show_col_types = FALSE), error = function(e) NULL)
+      if (!is.null(d) && "run_id" %in% names(d)) return(d)
+    }
+  }
+  NULL
+}
+
+.reg_template_fill <- function(d, runs, keys, metrics, what, levels, log_scale, ranges) {
+  if (is.null(d) || !nrow(d) || !"run_id" %in% names(d)) return(d)
+  todo <- .reg_as_id(setdiff(runs, as.character(d$run_id)), d$run_id)
+  if (!length(todo)) return(placeholder_fill(d, NULL, keys, metrics, levels = levels,
+                                             log_scale = log_scale, ranges = ranges, what = what))
+  cnt  <- sort(table(d$run_id), decreasing = TRUE)
+  tmpl <- dplyr::distinct(dplyr::select(d[d$run_id == names(cnt)[1], ],
+                                        dplyr::all_of(setdiff(keys, "run_id"))))
+  exp  <- tidyr::expand_grid(run_id = todo, tmpl)
+  placeholder_fill(d, exp, keys, metrics, levels = levels, log_scale = log_scale,
+                   ranges = ranges, what = what)
+}
+
+# A run id in the TABLE's own type: the real column is never coerced.
+.reg_as_id <- function(x, like) if (is.numeric(like)) as.numeric(x) else as.character(x)
+
+.reg_placeholders <- function(vs, ra, pm, dir) {
+  out <- list(vs = vs, ra = ra, pm = pm)
+  if (!placeholder_mode()) return(out)
+  plan <- .reg_plan_runs(dir)
+  runs <- unique(stats::na.omit(c(pm$run_id, ra$run_id, vs$run_id, plan$run_id)))
+  if (!length(runs)) return(out)
+  runs <- as.character(runs)
+
+  if (!is.null(pm) && "run_id" %in% names(pm)) {
+    knobs <- unique(stats::na.omit(unlist(lapply(REG_ARM_PATTERNS, function(pat)
+      grep(pat, names(pm), value = TRUE, ignore.case = TRUE)[1]))))
+    exp <- tibble::tibble(run_id = .reg_as_id(setdiff(runs, as.character(pm$run_id)), pm$run_id))
+    if (!is.null(plan) && nrow(exp)) {
+      pl  <- dplyr::mutate(plan, run_id = .reg_as_id(run_id, pm$run_id))
+      exp <- dplyr::left_join(exp, dplyr::select(pl, run_id, dplyr::any_of(names(pm))),
+                              by = "run_id")
+    }
+    lv <- Filter(length, list(arm = knobs, axis = intersect("varied_axis", names(pm))))
+    m  <- intersect(c("reg_displacement_um_p50", "reg_dice_matched", "valis_non_rigid_rTRE",
+                      "valis_non_rigid_D", "cpu_hours"), names(pm))
+    out$pm <- placeholder_fill(
+      pm, exp, keys = "run_id", metrics = m, levels = lv,
+      log_scale = intersect(c("reg_displacement_um_p50", "valis_non_rigid_rTRE",
+                              "valis_non_rigid_D", "cpu_hours"), m),
+      ranges = list(reg_dice_matched = c(0, 1)), what = "benchmark/param_matrix")
+  }
+  if (!is.null(ra) && all(c("run_id", "stage") %in% names(ra))) {
+    mv <- intersect(c("moving", "moving_image", "slide"), names(ra))[1]
+    keys <- c("run_id", if (!is.na(mv)) mv, "stage")
+    m <- intersect(c("dice_matched", "displacement_um_p50", "displacement_um_p90"), names(ra))
+    out$ra <- .reg_template_fill(
+      ra, runs, keys, m, "benchmark/registration_accuracy",
+      levels = list(run = c("run_id", "stage"), stage = "stage"),
+      log_scale = intersect(c("displacement_um_p50", "displacement_um_p90"), m),
+      ranges = list(dice_matched = c(0, 1)))
+  }
+  if (!is.null(vs) && "run_id" %in% names(vs)) {
+    id <- intersect(c("img_name", "name", "filename", "summary_csv"), names(vs))[1]
+    m  <- grep("^(original|rigid|non_rigid)_(rTRE|D)$", names(vs), value = TRUE)
+    if (!is.na(id) && length(m))
+      out$vs <- .reg_template_fill(
+        vs, runs, c("run_id", id), m, "benchmark/registration_valis_rtre",
+        levels = list(run = "run_id"), log_scale = m,
+        ranges = stats::setNames(rep(list(c(1e-9, Inf)), length(m)), m))
+  }
+  out
 }
 
 # --- §6 helpers ---------------------------------------------------------------
@@ -309,6 +410,7 @@ REG_ARM_PATTERNS <- c(preset = "preset|accuracy|max_?dim|max_image_dim",
     arm  = arm,
     tre  = if (is.na(tre_col))  NA_real_ else suppressWarnings(as.numeric(pm[[tre_col]])),
     dice = if (is.na(dice_col)) NA_real_ else suppressWarnings(as.numeric(pm[[dice_col]])))
+  if ("is_placeholder" %in% names(pm)) out$is_placeholder <- pm$is_placeholder
   attr(out, "tre_label") <- if (is.na(tre_col)) NULL
     else if (grepl("rTRE$", tre_col)) "VALIS rTRE (relative)" else "VALIS matched-feature distance (D)"
   out
@@ -323,10 +425,13 @@ REG_ARM_PATTERNS <- c(preset = "preset|accuracy|max_?dim|max_image_dim",
     col <- grep(paste0("^", st, "_(rTRE|D)$"), names(df), value = TRUE)[1]
     if (is.na(col)) col <- if (st %in% names(df)) st else NA_character_
     if (is.na(col)) return(NULL)
-    v <- suppressWarnings(as.numeric(df[[col]]))
-    v <- v[is.finite(v)]
-    if (!length(v)) return(NULL)
-    tibble::tibble(label = unname(stages[[st]]), value = v)
+    v  <- suppressWarnings(as.numeric(df[[col]]))
+    ph <- if ("is_placeholder" %in% names(df)) df$is_placeholder else NULL
+    ok <- is.finite(v)
+    if (!any(ok)) return(NULL)
+    out <- tibble::tibble(label = unname(stages[[st]]), value = v[ok])
+    if (!is.null(ph)) out$is_placeholder <- ph[ok]
+    out
   })
   rows <- Filter(Negate(is.null), rows)
   if (!length(rows)) return(NULL)
@@ -339,10 +444,13 @@ REG_ARM_PATTERNS <- c(preset = "preset|accuracy|max_?dim|max_image_dim",
 .reg_long_baselines <- function(df, value_col, stages) {
   if (is.null(df) || !all(c("stage", value_col) %in% names(df))) return(NULL)
   rows <- lapply(names(stages), function(st) {
-    v <- suppressWarnings(as.numeric(df[[value_col]][as.character(df$stage) == st]))
-    v <- v[is.finite(v)]
-    if (!length(v)) return(NULL)
-    tibble::tibble(label = unname(stages[[st]]), value = v)
+    at <- as.character(df$stage) == st
+    v  <- suppressWarnings(as.numeric(df[[value_col]][at]))
+    ok <- is.finite(v)
+    if (!any(ok)) return(NULL)
+    out <- tibble::tibble(label = unname(stages[[st]]), value = v[ok])
+    if ("is_placeholder" %in% names(df)) out$is_placeholder <- df$is_placeholder[at][ok]
+    out
   })
   rows <- Filter(Negate(is.null), rows)
   if (!length(rows)) return(NULL)

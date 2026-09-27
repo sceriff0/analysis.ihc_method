@@ -39,6 +39,14 @@ have_arms <- dir.exists(here("data", "registration_arms"))
 if (have_arms) suppressMessages(source(here("code", "registration_arms.R")))
 ```
 
+```{r placeholder-callout, results="asis"}
+# Placeholder mode (code/placeholders.R, sourced by pdf_export.R): an empty string
+# unless IHC_PLACEHOLDER_MISSING / options(ihc.placeholder_missing) is set, in which
+# case this is the page-wide warning that synthetic points are drawn below.
+cat(placeholder_callout())
+```
+
+
 ## Starting data and notation
 
 The study slides, registered **once per configuration**. Three pages now read
@@ -124,7 +132,8 @@ arms <- if (have_arms) arm_manifest() else tibble::tibble()
 seg  <- if (nrow(arms)) read_arms_seg_qc(arms) else tibble::tibble()
 
 if (nrow(arms)) {
-  knitr::kable(dplyr::select(arms, arm, arm_dir, backend, memory_mode, micro_reg),
+  knitr::kable(dplyr::select(arms, arm, arm_dir, backend, memory_mode, micro_reg,
+                             dplyr::any_of("on_disk")),   # placeholder mode only
                caption = paste("The arms found, and how each was labelled.",
                                "A `tiled` arm carries no preset and no micro depth —",
                                "those params do not exist on that backend."))

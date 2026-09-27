@@ -170,3 +170,38 @@ test_that("a method the palette does not name still draws", {
   expect_true(inherits(p, "ggplot"))
   expect_true("ashlar" %in% levels(p$data$method))
 })
+
+# --- placeholder mode (code/placeholders.R) ---------------------------------------
+test_that("placeholder mode: an unrun (case, method) leg is synthesised, flagged and drawn as such", {
+  # STARE never ran on case 1, and VALIS's robustness is missing on case 0.
+  cases <- synth_cases() |>
+    dplyr::filter(!(case_id == 1L & method == "tiled")) |>
+    dplyr::mutate(robustness = ifelse(case_id == 0L & method == "valis", NA_real_, robustness))
+  d <- write_fixture(tmp_data(), cases = cases)
+
+  withr::local_options(ihc.placeholder_missing = FALSE)
+  a0 <- anhir_load(d)
+  expect_false("is_placeholder" %in% names(a0$cases))
+  expect_equal(nrow(a0$cases), 11)
+
+  withr::local_options(ihc.placeholder_missing = TRUE)
+  a <- suppressMessages(anhir_load(d))
+  expect_identical(dplyr::select(a$cases[!a$cases$is_placeholder, ], -is_placeholder,
+                                 -placeholder_rule), a0$cases)
+  syn <- a$cases[a$cases$is_placeholder, ]
+  expect_equal(nrow(syn), 2)
+  leg <- dplyr::filter(syn, case_id == 1L, method == "tiled")
+  expect_true(leg$scored && is.finite(leg$rtre_median))
+  expect_match(leg$placeholder_rule, "rtre_median method mean")      # same method, other case
+  expect_true(is.na(leg$rank_median_rtre))                           # ranks are never invented
+  comp <- dplyr::filter(syn, case_id == 0L, method == "valis")
+  expect_true(is.finite(comp$robustness) && is.na(comp$rtre_median))
+  expect_false(any(syn$status == "evaluation"))                      # scored server-side only
+  expect_identical(a$aggregates, a0$aggregates)                      # the challenge's own stats
+
+  expect_match(plot_anhir_rtre_by_method(a$cases)$labels$subtitle, "^PLACEHOLDER — 1 synthetic point")
+  expect_match(plot_anhir_robustness(a$cases)$labels$subtitle, "^PLACEHOLDER — 2 synthetic points")
+  expect_match(plot_anhir_rtre_by_tissue(a$cases)$labels$subtitle, "^PLACEHOLDER — ")
+  expect_false(grepl("PLACEHOLDER", plot_anhir_rank(a$aggregates)$labels$subtitle))
+  expect_no_error(ggplot2::ggplot_build(plot_anhir_rtre_by_method(a$cases)))
+})

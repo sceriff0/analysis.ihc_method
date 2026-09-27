@@ -56,6 +56,14 @@ MANUAL_DIR <- here("output", "figures", "manual")
 dir.create(MANUAL_DIR, recursive = TRUE, showWarnings = FALSE)
 ```
 
+```{r placeholder-callout, results="asis"}
+# Placeholder mode (code/placeholders.R, sourced by pdf_export.R): an empty string
+# unless IHC_PLACEHOLDER_MISSING / options(ihc.placeholder_missing) is set, in which
+# case this is the page-wide warning that synthetic points are drawn below.
+cat(placeholder_callout())
+```
+
+
 This page is **not an analysis**. It is the sheet the manuscript figures are cut
 from: one panel per plot, at publication proportions, exported as vector PDFs to
 `output/figures/paper_figures/` so they can be placed and labelled by hand in
@@ -530,12 +538,16 @@ the legend's `[author to supply: full list of populations plotted]`.
 if (identical(arm_source, "real")) {
   at <- arm_paper_table(.seg, .val, .man)
   dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
-  readr::write_csv(at, here("output", "additional_file_2_registration_arms.csv"))
+  # placeholder_output_path() is the identity unless placeholder mode is on, when it
+  # moves the table to output/placeholders/..._PLACEHOLDER.csv: a table of synthetic
+  # medians must never overwrite Additional file 2.
+  af2 <- placeholder_output_path(here("output", "additional_file_2_registration_arms.csv"))
+  readr::write_csv(at, af2)
   knitr::kable(at, digits = c(NA, NA, NA, 0, 0, NA, 5, NA, 2, 3, 2), caption = paste(
     "Additional file 2 — per-arm registration accuracy on the study slides.",
     "Medians over slides at each arm's final transform; `no registration` and",
     "`rigid only` are the native and affine-only stages of the depth-0 runs.",
-    "Also written to output/additional_file_2_registration_arms.csv."))
+    "Also written to", sub(paste0(here(), "/"), "", af2, fixed = TRUE), "."))
 } else if (have_helpers && file.exists(file.path(reg_dir, "param_matrix.csv"))) {
   pm <- readr::read_csv(file.path(reg_dir, "param_matrix.csv"), show_col_types = FALSE)
   at <- .reg_arm_table(pm)

@@ -152,3 +152,45 @@ test_that("feature_dist/*.json builds the (legacy) distance-reduction figure whe
   figs <- build_reg_figs(d)
   expect_true("03_feature_distance_reduction" %in% names(figs))
 })
+
+# --- placeholder mode (code/placeholders.R) ---------------------------------------
+test_that("placeholder mode fills a run the plan lists but no table has yet, and marks it", {
+  d <- tmp_data()
+  readr::write_csv(tibble::tibble(
+    run_id = c("r1", "r2", "r3"), reg_preset = c("high", "high", "low"),
+    cpu_hours = c(1.2, 2.5, 4.1), reg_displacement_um_p50 = c(2.1, 1.4, NA),
+    reg_dice_matched = c(.7, .75, .6)), file.path(d, "param_matrix.csv"))
+  readr::write_csv(tibble::tibble(
+    run_id = "r1", moving = rep(c("m1", "m2"), each = 2),
+    stage = rep(c("rigid", "non_rigid"), 2),
+    dice_matched = c(.5, .7, .52, .71), displacement_um_p50 = c(3, 1.2, 3.2, 1.3)),
+    file.path(d, "registration_accuracy.csv"))
+  readr::write_csv(tibble::tibble(run_id = c("r1", "r2", "r3", "r4"),
+                                  reg_preset = c("high", "high", "low", "low")),
+                   file.path(d, "run_plan.csv"))
+
+  withr::local_options(ihc.placeholder_missing = FALSE)
+  f0 <- build_reg_figs(d)
+  expect_false(any(grepl("PLACEHOLDER", vapply(f0, function(p) p$labels$subtitle %||% "", ""))))
+
+  withr::local_options(ihc.placeholder_missing = TRUE)
+  f <- suppressMessages(build_reg_figs(d))
+  # r3 ran but its residual is NA: the real row keeps its NA and a companion row
+  # carries ONLY the synthetic residual (its real cost is not copied, so nothing real
+  # is counted twice). r4 is planned and has no row at all.
+  tabs <- suppressMessages(.reg_placeholders(NULL, NULL,
+    readr::read_csv(file.path(d, "param_matrix.csv"), show_col_types = FALSE), d))
+  syn <- tabs$pm[tabs$pm$is_placeholder, ]
+  expect_setequal(syn$run_id, c("r3", "r4"))
+  expect_true(is.na(syn$cpu_hours[syn$run_id == "r3"]))
+  expect_true(is.na(tabs$pm$reg_displacement_um_p50[!tabs$pm$is_placeholder & tabs$pm$run_id == "r3"]))
+  expect_match(syn$placeholder_rule[syn$run_id == "r4"], "reg_displacement_um_p50 global")
+  # The cost-vs-accuracy scatter needs both metrics on one row, so only r4 draws.
+  pd <- f[["04_accuracy_vs_cost"]]$data
+  expect_equal(pd$run_id[pd$is_placeholder], "r4")
+  expect_equal(pd$reg_displacement_um_p50[!pd$is_placeholder], c(2.1, 1.4))
+  expect_match(f[["04_accuracy_vs_cost"]]$labels$subtitle, "^PLACEHOLDER — 1 synthetic point ")
+  ov <- f[["02_overlap_dice_by_stage"]]$data
+  expect_equal(sum(ov$is_placeholder), 3 * 4)                       # r2, r3, r4 x template
+  expect_match(f[["02_overlap_dice_by_stage"]]$labels$subtitle, "^PLACEHOLDER")
+})

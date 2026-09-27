@@ -17,6 +17,7 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `scope_compare.R` | **whole slide vs `annotation_all` vs per-region** — one quantity at three nested scopes, and three ways to compare a single value against several |
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |
+| `placeholders.R` | **opt-in placeholder mode** — synthetic stand-ins for benchmark points not yet run, flagged, watermarked and kept out of `output/figures/` (default OFF) |
 | `benchmark_plots.R` | the benchmark sweep figures (vendored fork of mirage's `plots.R`) |
 | `registration_accuracy_plots.R` | the **sweep** registration-accuracy figures — the only place they are built |
 | `anhir_plots.R` | the **ANHIR challenge** figures — pure functions over the two tables mirage's `benchmarks/anhir/` hands off; `anhir_load()` is their only reader |
@@ -406,6 +407,52 @@ parse, a tree symlinked to the wrong root — not a stated rule, and promoting i
 turn a data problem into a silently 100 %-inside patient sitting on the x = y line
 looking like a result. `tests/testthat/test-scope-compare.R` reads one fixture under
 both arms and requires them to disagree.
+
+## Placeholder mode (seeing a figure before its runs finish)
+
+The registration arms, the synthetic sweep and the ANHIR legs arrive over days. To
+see the final SHAPE of a figure while runs are still missing, turn on placeholder
+mode — **it is off by default, and off it changes nothing**:
+
+```sh
+# every page, from a shell
+IHC_PLACEHOLDER_MISSING=1 Rscript -e 'workflowr::wflow_build(c("analysis/registration_arms.Rmd",
+  "analysis/benchmark_registration.Rmd", "analysis/benchmark_anhir.Rmd", "analysis/paper_figures.Rmd"))'
+# one page, from R
+options(ihc.placeholder_missing = TRUE, ihc.placeholder_seed = 20260927L)
+workflowr::wflow_build("analysis/registration_arms.Rmd", local = TRUE)
+```
+
+`wflow_build()` knits in a fresh R session, so an `options()` call reaches it only
+with `local = TRUE`; the env var reaches both. An explicitly set option wins over the
+env var. The seed (`ihc.placeholder_seed` / `IHC_PLACEHOLDER_SEED`) makes the draw
+reproducible, and the draw restores the caller's RNG state.
+
+**What is filled.** The expected set is the plan: every arm in `arms.csv` × every
+moving slide seen for that backend (`registration_arms.R`), every scored ANHIR case ×
+every method (`anhir_plots.R`), every sweep run seen in any table or in a handed-off
+`data/benchmark/run_plan.csv` (`registration_accuracy_plots.R`). A missing point is
+drawn from the same arm/method's real points (mean ± sd), else its neighbours (same
+micro depth, same tier, same backend), else the metric's global distribution, else a
+fixed prior (`PLACEHOLDER_PRIORS`); positive metrics on log scale, all clipped.
+Each synthetic row carries `is_placeholder = TRUE` and a `placeholder_rule`. Real
+rows are never edited — an NA metric is filled on a companion row.
+
+**What is deliberately NOT filled.** A slide that has its QC keeps its stage list (a
+missing `micro` stage is a claim, not a gap); the STARE per-tile error map (a
+synthetic spatial pattern); ANHIR ranks and `anhir_aggregates.csv` (the challenge's
+own statistic); `benchmark_plots.R` (power-law exponents are printed as numbers);
+`run_qc.R` / `run_resources.R` (one run, no plan to be missing from); every cell-level
+page.
+
+**How it is kept out of the paper.** Synthetic points are hollow, lines dashed, bars
+faded, and every affected figure carries a PLACEHOLDER watermark plus a subtitle
+count; aggregated tables gain `n_placeholder`; the covered pages print a red callout.
+`export_pdf_figures()` refuses `output/figures/` and writes
+`output/placeholders/figures/<slug>/*_PLACEHOLDER.pdf` plus
+`output/placeholders/<slug>_placeholders.csv` (every synthetic value and its rule);
+Additional file 2 moves to `output/placeholders/..._PLACEHOLDER.csv`; and the
+`figures/*.R` manuscript scripts stop at `figures/_common.R`.
 
 ## Figure style
 

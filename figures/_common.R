@@ -51,6 +51,14 @@ suppressPackageStartupMessages({
 here_root <- tryCatch(here::here(), error = function(e) normalizePath("."))
 source(file.path(here_root, "code", "plot_theme.R"))
 
+# PLACEHOLDER MODE IS REFUSED HERE, before any panel is built or any file written.
+# This directory produces the manuscript's figures and Additional file 2; there is no
+# placeholder version of either, so a figure script run with IHC_PLACEHOLDER_MISSING /
+# options(ihc.placeholder_missing) set stops rather than export synthetic points.
+# The website pages divert instead (pdf_export.R); see code/placeholders.R.
+source(file.path(here_root, "code", "placeholders.R"))
+placeholder_refuse("the manuscript figures under figures/ (and Additional file 2)")
+
 # --- The journal -------------------------------------------------------------
 # Medical Image Analysis (Elsevier). The numbers below are Elsevier's artwork
 # instructions as read on 2026-09-03 (elsevier.com/.../artwork-and-media-

@@ -355,6 +355,10 @@ valis_error_long <- function(valis) {
   # loses its grouping and its figure quietly stops being built.
   extra <- intersect(c("arm", "arm_dir", "backend", "memory_mode", "micro_reg"),
                      names(valis))
+  # Placeholder mode (code/placeholders.R) adds these two; they ride along but are
+  # NOT grouping keys below — a synthetic slide's pre-micro row must still decide its
+  # own stage labels exactly as a real one does.
+  ph <- intersect(c("is_placeholder", "placeholder_rule"), names(valis))
 
   long <- valis |>
     dplyr::mutate(slide = if (is.na(id)) summary_csv else .data[[id]],
@@ -362,7 +366,7 @@ valis_error_long <- function(valis) {
                   pair = if (is.na(to_col)) slide_token
                          else .channel_pair(.data[[to_col]], slide, patient_dir)) |>
     dplyr::select(patient_id, slide, slide_token, pair, stage_scope,
-                  dplyr::all_of(extra), dplyr::all_of(cols)) |>
+                  dplyr::all_of(extra), dplyr::all_of(ph), dplyr::all_of(cols)) |>
     tidyr::pivot_longer(dplyr::all_of(cols), names_to = ".col", values_to = "error") |>
     dplyr::mutate(.col = sub("_(rTRE|D)$", "", .col)) |>
     dplyr::filter(is.finite(error))
@@ -393,7 +397,7 @@ valis_error_long <- function(valis) {
     dplyr::mutate(stage  = factor(stage, levels = VALIS_STAGE_LEVELS),
                   metric = metric) |>
     dplyr::select(patient_id, slide, slide_token, pair, dplyr::all_of(extra),
-                  stage, error, metric, source_file = stage_scope)
+                  stage, error, metric, source_file = stage_scope, dplyr::all_of(ph))
 }
 
 # --- 3. STARE's own TRE (tiled path only) ------------------------------------

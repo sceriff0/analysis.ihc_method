@@ -110,6 +110,7 @@ suppressPackageStartupMessages({
 })
 
 source(here::here("code", "run_qc.R"))    # the readers, and QC_STAGE_LEVELS
+source(here::here("code", "placeholders.R"))   # opt-in synthetic stand-ins (default OFF)
 
 ARMS_DIR <- here::here("data", "registration_arms")
 
@@ -186,6 +187,26 @@ arm_manifest <- function(root = ARMS_DIR) {
         dplyr::select(-dplyr::any_of(setdiff(keep, "arm_dir"))) |>
         dplyr::left_join(dplyr::select(man, dplyr::all_of(keep)), by = "arm_dir")
       message("registration arms: labels taken from ", man_path)
+      # PLACEHOLDER MODE ONLY (code/placeholders.R): arms.csv is the FULL plan, so an
+      # arm it lists with no tree on disk yet is an EXPECTED arm, not an absent one.
+      # It joins the manifest with `path = NA` and `on_disk = FALSE`; every reader
+      # below skips a NA path, and the placeholder layer synthesises its rows. With
+      # the mode off this block does not run and an unrun arm stays absent.
+      if (placeholder_mode()) {
+        planned <- dplyr::filter(dplyr::select(man, dplyr::all_of(keep)),
+                                 !arm_dir %in% out$arm_dir)
+        if (nrow(planned)) {
+          parsed  <- purrr::map_dfr(planned$arm_dir, .parse_arm_dir)
+          for (k in setdiff(names(parsed), names(planned))) planned[[k]] <- parsed[[k]]
+          planned <- dplyr::mutate(planned, path = NA_character_,
+                                   micro_reg = suppressWarnings(as.integer(micro_reg)))
+          out <- dplyr::bind_rows(dplyr::mutate(out, micro_reg = suppressWarnings(
+                                    as.integer(micro_reg))), planned)
+          message("registration arms: PLACEHOLDER MODE — ", nrow(planned),
+                  " planned arm(s) with no tree yet: ", paste(planned$arm_dir, collapse = ", "))
+        }
+        out$on_disk <- !is.na(out$path)
+      }
     } else {
       warning("registration arms: ", man_path, " has no `arm_dir` column — ignoring it")
     }
@@ -223,8 +244,9 @@ arm_manifest <- function(root = ARMS_DIR) {
 # downstream figure can facet on them without re-deriving anything.
 read_arms_seg_qc <- function(manifest = arm_manifest()) {
   if (nrow(manifest) == 0) return(tibble::tibble())
-  purrr::pmap_dfr(manifest, function(arm_dir, path, backend, memory_mode, micro_reg,
-                                     label, arm) {
+  real <- purrr::pmap_dfr(manifest, function(arm_dir, path, backend, memory_mode, micro_reg,
+                                             label, arm, ...) {
+    if (is.na(path)) return(tibble::tibble())       # a planned arm (placeholder mode)
     d <- read_seg_qc(path)
     if (nrow(d) == 0) {
       warning("registration arms: no seg_qc under ", path)
@@ -233,19 +255,22 @@ read_arms_seg_qc <- function(manifest = arm_manifest()) {
     dplyr::mutate(d, arm = arm, arm_dir = arm_dir, backend = backend,
                   memory_mode = memory_mode, micro_reg = micro_reg, .before = 1)
   })
+  .arm_seg_placeholders(real, manifest)
 }
 
 read_arms_valis <- function(manifest = arm_manifest()) {
   if (nrow(manifest) == 0 || !"backend" %in% names(manifest)) return(tibble::tibble())
   # VALIS arms only, by construction: a tiled run writes no registered/summary/*.csv.
   # Its backend-native error is read by read_arms_stare_tre() instead, in pixels.
-  purrr::pmap_dfr(dplyr::filter(manifest, backend == "valis"),
-                  function(arm_dir, path, backend, memory_mode, micro_reg, label, arm) {
+  real <- purrr::pmap_dfr(dplyr::filter(manifest, backend == "valis"),
+                  function(arm_dir, path, backend, memory_mode, micro_reg, label, arm, ...) {
+    if (is.na(path)) return(tibble::tibble())
     d <- read_valis_summary(path)
     if (nrow(d) == 0) return(tibble::tibble())
     dplyr::mutate(d, arm = arm, arm_dir = arm_dir, backend = backend,
                   memory_mode = memory_mode, micro_reg = micro_reg, .before = 1)
   })
+  .arm_valis_placeholders(real, manifest)
 }
 
 # --- The comparability guard -------------------------------------------------
@@ -308,7 +333,10 @@ arm_final_stage <- function(seg) {
   seg |>
     dplyr::mutate(.ord = ord) |>
     dplyr::filter(!is.na(stage)) |>
-    dplyr::group_by(arm, arm_dir, backend, memory_mode, micro_reg, patient_id, moving) |>
+    # `is_placeholder` (placeholder mode only; absent otherwise) is a grouping key so
+    # a real row whose metric is NA and its synthetic companion both survive.
+    dplyr::group_by(arm, arm_dir, backend, memory_mode, micro_reg, patient_id, moving,
+                    dplyr::across(dplyr::any_of("is_placeholder"))) |>
     dplyr::slice_max(order_by = .ord, n = 1, with_ties = FALSE) |>
     dplyr::ungroup() |>
     dplyr::select(-.ord) |>
@@ -324,12 +352,14 @@ read_arms_stare_tre <- function(manifest = arm_manifest()) {
   if (nrow(manifest) == 0 || !"backend" %in% names(manifest)) return(tibble::tibble())
   tiled <- dplyr::filter(manifest, backend == "tiled")
   if (nrow(tiled) == 0) return(tibble::tibble())
-  purrr::pmap_dfr(tiled, function(arm_dir, path, backend, memory_mode, micro_reg,
-                                  label, arm) {
+  real <- purrr::pmap_dfr(tiled, function(arm_dir, path, backend, memory_mode, micro_reg,
+                                          label, arm, ...) {
+    if (is.na(path)) return(tibble::tibble())
     d <- read_stare_tre(path)
     if (nrow(d) == 0) return(tibble::tibble())
     dplyr::mutate(d, arm = arm, arm_dir = arm_dir, backend = backend, .before = 1)
   })
+  .arm_stare_placeholders(real, tiled)
 }
 
 # Recover a minimal manifest from an already-read seg frame, for a caller that passed
@@ -348,11 +378,150 @@ read_arms_stare_tiles <- function(manifest = arm_manifest()) {
   tiled <- dplyr::filter(manifest, backend == "tiled")
   if (nrow(tiled) == 0) return(tibble::tibble())
   purrr::pmap_dfr(tiled, function(arm_dir, path, backend, memory_mode, micro_reg,
-                                  label, arm) {
+                                  label, arm, ...) {
+    # No placeholder for the per-tile map, deliberately: a synthetic SPATIAL error map
+    # would draw a regional failure pattern that no run produced.
+    if (is.na(path)) return(tibble::tibble())
     d <- read_stare_tiles(path)
     if (nrow(d) == 0) return(tibble::tibble())
     dplyr::mutate(d, arm = arm, arm_dir = arm_dir, .before = 1)
   })
+}
+
+# --- Placeholder mode (code/placeholders.R) ----------------------------------
+# OFF by default: each of these returns `real` untouched unless the switch is set.
+# With it on, the EXPECTED set is the full plan — every arm in arms.csv (the
+# manifest carries the planned-only ones with path = NA) x every moving slide seen
+# for that backend in any arm — and a synthetic row is made for each expected slide
+# that has no QC yet.
+#
+# THE UNIT IS THE MOVING SLIDE, NOT THE STAGE. A slide either has its seg_qc JSON
+# (all its stages at once) or it does not, so stages are synthesised only for slides
+# with no JSON at all. A real slide that reported no `micro` stage keeps that blank:
+# in this project a missing micro stage is a CLAIM ("micro did not run"), and a
+# placeholder must not overwrite a claim with a number.
+#
+# The stage list for a synthetic slide is the arm's own (the union of what its real
+# slides reported) or, for an arm with nothing yet, the backend's documented
+# vocabulary: VALIS native/rigid/non_rigid (+ micro at depth 2 only), tiled and
+# ashlar native/rigid/refined.
+.arm_stage_vocab <- function(backend, micro_reg) {
+  if (identical(backend, "valis"))
+    c("native", "rigid", "non_rigid", if (isTRUE(micro_reg == 2L)) "micro")
+  else c("native", "rigid", "refined")
+}
+
+# The fallback ladder shared by the three arm tables: the same arm first, then arms
+# of the same backend at the same micro depth, then the same accuracy tier, then the
+# same backend, then any arm. `extra` is appended to every level (e.g. the stage).
+.arm_ph_levels <- function(extra = character(0)) list(
+  arm     = c("arm_dir", extra),
+  depth   = c("backend", "micro_reg", extra),
+  tier    = c("backend", "memory_mode", extra),
+  backend = c("backend", extra),
+  pooled  = extra)
+
+.arm_seg_placeholders <- function(real, manifest) {
+  if (!placeholder_mode() || !nrow(real) || is.null(manifest) || !nrow(manifest)) return(real)
+  slide_cols <- c("patient_id", "moving", "slide_token", "reference", "pair")
+  by_backend <- dplyr::distinct(real[c("backend", slide_cols)])
+  all_slides <- dplyr::distinct(real[slide_cols])
+  have <- dplyr::distinct(real[c("arm_dir", "patient_id", "moving")])
+  exp <- purrr::map_dfr(seq_len(nrow(manifest)), function(i) {
+    a <- manifest[i, ]
+    tmpl <- dplyr::select(dplyr::filter(by_backend, backend == a$backend), -backend)
+    if (!nrow(tmpl)) tmpl <- all_slides
+    tmpl <- dplyr::anti_join(tmpl, dplyr::filter(have, arm_dir == a$arm_dir),
+                             by = c("patient_id", "moving"))
+    if (!nrow(tmpl)) return(tibble::tibble())
+    own <- dplyr::filter(real, arm_dir == a$arm_dir)
+    st  <- if (nrow(own)) {
+      o <- dplyr::summarise(dplyr::group_by(own, stage = as.character(stage)),
+                            i = min(stage_index), .groups = "drop")
+      o$stage[order(o$i)]
+    } else .arm_stage_vocab(a$backend, a$micro_reg)
+    tidyr::expand_grid(tmpl, tibble::tibble(stage = st, stage_index = seq_along(st))) |>
+      dplyr::mutate(arm = a$arm, arm_dir = a$arm_dir, backend = a$backend,
+                    memory_mode = a$memory_mode, micro_reg = as.integer(a$micro_reg))
+  })
+  out <- placeholder_fill(
+    real, exp, keys = c("arm_dir", "patient_id", "moving", "stage"),
+    metrics = c("disp_um_p50", "dice_matched", "pair_fraction", "d_disp_um_vs_rigid"),
+    levels = .arm_ph_levels("stage"),
+    ranges = list(dice_matched = c(0, 1), pair_fraction = c(0, 1),
+                  disp_um_p50 = c(1e-6, Inf)),
+    log_scale = "disp_um_p50", na_structure = c("backend", "stage"),
+    what = "registration_arms/seg_qc")
+  if (!"is_placeholder" %in% names(out)) return(out)
+  # pair_fraction is ONE number per slide (the pairing is made once, at the rigid
+  # anchor), so a synthetic slide carries one value across its stages, not one each.
+  syn_slide <- out$is_placeholder & grepl("^no row", out$placeholder_rule)
+  if (any(syn_slide)) {
+    g  <- interaction(out$arm_dir, out$patient_id, out$moving, drop = TRUE)
+    pf <- tapply(ifelse(syn_slide, out$pair_fraction, NA_real_), g,
+                 function(v) v[is.finite(v)][1])
+    out$pair_fraction[syn_slide] <- unname(pf[as.character(g[syn_slide])])
+  }
+  out |>
+    dplyr::mutate(stage = factor(as.character(stage), levels = QC_STAGE_LEVELS))
+}
+
+# VALIS's own summaries, one wide row per (arm, patient, slide, source file). The
+# source-file axis is what valis_error_long() turns into stages, so a synthetic slide
+# gets the files its arm would have written: the final summary always, the pre-micro
+# one only at micro depth 2 (bin/register.py writes it nowhere else).
+.arm_valis_placeholders <- function(real, manifest) {
+  if (!placeholder_mode() || !nrow(real) || is.null(manifest) || !nrow(manifest)) return(real)
+  id <- intersect(c("img_name", "name", "filename", "from"), names(real))[1]
+  if (is.na(id)) return(real)
+  slide_cols <- intersect(c("patient_id", "patient_dir", id, "to"), names(real))
+  tmpl_all <- dplyr::distinct(real[slide_cols])
+  have <- dplyr::distinct(real[c("arm_dir", "patient_dir", id)])
+  exp <- purrr::map_dfr(which(manifest$backend == "valis"), function(i) {
+    a <- manifest[i, ]
+    tmpl <- dplyr::anti_join(tmpl_all, dplyr::filter(have, arm_dir == a$arm_dir),
+                             by = c("patient_dir", id))
+    if (!nrow(tmpl)) return(tibble::tibble())
+    scopes <- c("final", if (isTRUE(as.integer(a$micro_reg) == 2L)) "pre-micro")
+    tidyr::expand_grid(tmpl, stage_scope = scopes) |>
+      dplyr::mutate(arm = a$arm, arm_dir = a$arm_dir, backend = a$backend,
+                    memory_mode = a$memory_mode, micro_reg = as.integer(a$micro_reg),
+                    summary_csv = PLACEHOLDER_TAG)
+  })
+  metrics <- grep("^(original|rigid|non_rigid)_(rTRE|D)$", names(real), value = TRUE)
+  placeholder_fill(
+    real, exp, keys = c("arm_dir", "patient_dir", id, "stage_scope"), metrics = metrics,
+    levels = .arm_ph_levels("stage_scope"),
+    ranges = stats::setNames(rep(list(c(1e-9, Inf)), length(metrics)), metrics),
+    log_scale = metrics, na_structure = "stage_scope",
+    what = "registration_arms/valis_summary")
+}
+
+# STARE's own TRE, one row per (tiled arm, patient, moving). Its moving names are the
+# tiled path's own (`<patient>_<channels>`), so the template comes from tiled arms only.
+.arm_stare_placeholders <- function(real, tiled) {
+  if (!placeholder_mode() || !nrow(real) || is.null(tiled) || !nrow(tiled)) return(real)
+  tmpl_all <- dplyr::distinct(real[c("patient_id", "moving", "slide_token")])
+  have <- dplyr::distinct(real[c("arm_dir", "patient_id", "moving")])
+  exp <- purrr::map_dfr(seq_len(nrow(tiled)), function(i) {
+    a <- tiled[i, ]
+    tmpl <- dplyr::anti_join(tmpl_all, dplyr::filter(have, arm_dir == a$arm_dir),
+                             by = c("patient_id", "moving"))
+    if (!nrow(tmpl)) return(tibble::tibble())
+    dplyr::mutate(tmpl, arm = a$arm, arm_dir = a$arm_dir, backend = a$backend,
+                  memory_mode = a$memory_mode, micro_reg = as.integer(a$micro_reg))
+  })
+  metrics <- c("coarse_tre_px", "rigid_p50", "rigid_p90", "after_p50", "after_p90")
+  real2 <- real
+  for (k in c("memory_mode", "micro_reg")) if (!k %in% names(real2))
+    real2[[k]] <- tiled[[k]][match(real2$arm_dir, tiled$arm_dir)]
+  out <- placeholder_fill(
+    real2, exp, keys = c("arm_dir", "patient_id", "moving"), metrics = metrics,
+    levels = .arm_ph_levels(),
+    ranges = stats::setNames(rep(list(c(1e-9, Inf)), length(metrics)), metrics),
+    log_scale = metrics, what = "registration_arms/stare_tre")
+  # The two knob columns were borrowed for the fallback ladder only.
+  dplyr::select(out, -dplyr::any_of(setdiff(c("memory_mode", "micro_reg"), names(real))))
 }
 
 # --- Figures -----------------------------------------------------------------
@@ -431,7 +600,7 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   if (nrow(vf)) {
     vfin <- vf |>
       dplyr::filter(stage != "original") |>
-      dplyr::group_by(arm, patient_id, slide) |>
+      dplyr::group_by(arm, patient_id, slide, dplyr::across(dplyr::any_of("is_placeholder"))) |>
       dplyr::slice_max(order_by = as.integer(stage), n = 1, with_ties = FALSE) |>
       dplyr::ungroup()
     for (k in setdiff(c("backend", "micro_reg"), names(vfin))) vfin[[k]] <- NA
@@ -477,7 +646,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   if (any(is.finite(seg$pair_fraction))) {
     d <- seg |>
       dplyr::filter(is.finite(pair_fraction)) |>
-      dplyr::distinct(arm, micro_reg, patient_id, moving, pair_fraction) |>
+      dplyr::select(arm, micro_reg, patient_id, moving, pair_fraction,
+                    dplyr::any_of("is_placeholder")) |>
+      dplyr::distinct() |>
       dplyr::mutate(arm = .arm_f(arm))
     figs[["04_pair_fraction_by_arm"]] <-
       ggplot(d, aes(arm, pair_fraction)) +
@@ -608,7 +779,8 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
         else read_arms_stare_tre_from(seg)
   if (nrow(st)) {
     long <- st |>
-      dplyr::select(arm, patient_id, moving, rigid_p50, after_p50) |>
+      dplyr::select(arm, patient_id, moving, rigid_p50, after_p50,
+                    dplyr::any_of("is_placeholder")) |>
       tidyr::pivot_longer(c(rigid_p50, after_p50), names_to = "stage", values_to = "tre_px") |>
       dplyr::mutate(stage = factor(dplyr::recode(stage,
                       rigid_p50 = "rigid anchor", after_p50 = "after refinement"),
@@ -683,7 +855,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
     }
   }
 
-  figs
+  # Placeholder mode only: hollow/dashed synthetic points + watermark. A no-op on a
+  # figure that draws no synthetic row, which is every figure when the mode is off.
+  lapply(figs, placeholder_style)
 }
 
 # One supplementary split: the final-transform metric `y`, one panel per arm, grouped
@@ -788,7 +962,8 @@ BASELINE_RIGID <- "rigid only"
   if (nrow(vl) == 0) return(vl)
   vl |>
     dplyr::filter(as.character(stage) != "original") |>
-    dplyr::group_by(arm, arm_dir, backend, memory_mode, micro_reg, patient_id, slide) |>
+    dplyr::group_by(arm, arm_dir, backend, memory_mode, micro_reg, patient_id, slide,
+                    dplyr::across(dplyr::any_of("is_placeholder"))) |>
     dplyr::slice_max(order_by = as.integer(stage), n = 1, with_ties = FALSE) |>
     dplyr::ungroup() |>
     dplyr::rename(final_stage = stage) |>
@@ -854,7 +1029,7 @@ build_arm_paper_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_val
                      "Same arms and slides as the TRE panel; higher = better."),
     lvls = lvls)
 
-  figs[!vapply(figs, is.null, logical(1))]
+  lapply(figs[!vapply(figs, is.null, logical(1))], placeholder_style)
 }
 
 # Additional file 2: one row per arm plus the two baselines, both metrics side by
@@ -875,6 +1050,9 @@ arm_paper_table <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       disp_um_p50   = stats::median(disp_um_p50, na.rm = TRUE),
       dice_matched  = stats::median(dice_matched, na.rm = TRUE),
       pair_fraction = stats::median(pair_fraction, na.rm = TRUE),
+      # placeholder mode only: how many of those rows are synthetic
+      dplyr::across(dplyr::any_of("is_placeholder"), ~ sum(.x %in% TRUE),
+                    .names = "n_placeholder"),
       .groups = "drop")
 
   vl <- if (nrow(valis)) valis_error_long(valis) else tibble::tibble()
@@ -882,7 +1060,10 @@ arm_paper_table <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
     dplyr::bind_rows(.valis_final(vl), .arm_baselines(vl, "original")) |>
       dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
       dplyr::summarise(valis_tre = stats::median(error, na.rm = TRUE),
-                       valis_tre_metric = metric[1], .groups = "drop")
+                       valis_tre_metric = metric[1],
+                       dplyr::across(dplyr::any_of("is_placeholder"), ~ sum(.x %in% TRUE),
+                                     .names = "n_placeholder_tre"),
+                       .groups = "drop")
   } else {
     tibble::tibble(arm = character(), backend = character(), memory_mode = character(),
                    micro_reg = integer(), valis_tre = numeric(), valis_tre_metric = character())
@@ -895,14 +1076,17 @@ arm_paper_table <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   qc  <- collapse(qc)  |> dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
     dplyr::summarise(n_slides = sum(n_slides), stage = paste(unique(stage), collapse = "/"),
                      dplyr::across(c(disp_um_p50, dice_matched, pair_fraction),
-                                   ~ stats::median(.x, na.rm = TRUE)), .groups = "drop")
+                                   ~ stats::median(.x, na.rm = TRUE)),
+                     dplyr::across(dplyr::any_of("n_placeholder"), sum), .groups = "drop")
   tre <- collapse(tre) |> dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
     dplyr::summarise(valis_tre = stats::median(valis_tre, na.rm = TRUE),
-                     valis_tre_metric = valis_tre_metric[1], .groups = "drop")
+                     valis_tre_metric = valis_tre_metric[1],
+                     dplyr::across(dplyr::any_of("n_placeholder_tre"), sum), .groups = "drop")
 
   dplyr::left_join(qc, tre, by = keys) |>
     dplyr::select(arm, backend, memory_mode, micro_reg, n_slides, stage,
-                  valis_tre, valis_tre_metric, disp_um_p50, dice_matched, pair_fraction) |>
+                  valis_tre, valis_tre_metric, disp_um_p50, dice_matched, pair_fraction,
+                  dplyr::any_of(c("n_placeholder", "n_placeholder_tre"))) |>
     dplyr::mutate(arm = factor(arm, levels = intersect(lvls, unique(arm)))) |>
     dplyr::arrange(arm) |>
     dplyr::mutate(arm = as.character(arm))
@@ -920,6 +1104,8 @@ arm_ranking_table <- function(seg = read_arms_seg_qc()) {
       disp_um_p50   = stats::median(disp_um_p50, na.rm = TRUE),
       dice_matched  = stats::median(dice_matched, na.rm = TRUE),
       pair_fraction = stats::median(pair_fraction, na.rm = TRUE),
+      dplyr::across(dplyr::any_of("is_placeholder"), ~ sum(.x %in% TRUE),
+                    .names = "n_placeholder"),
       .groups = "drop") |>
     dplyr::arrange(disp_um_p50)
 }

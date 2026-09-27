@@ -445,3 +445,79 @@ test_that("Additional file 2 is one row per arm plus the two baselines, with bot
   expect_equal(tab$n_slides[tab$arm == BASELINE_NONE], 4L)
   expect_equal(tab$n_slides[tab$arm == "high / micro 2"], 2L)
 })
+
+# --- placeholder mode (code/placeholders.R) ---------------------------------------
+# arms.csv is the FULL plan. With the switch on, an arm it lists with no tree yet —
+# and a patient an arm has not reached — are synthesised, flagged, and drawn as such.
+# With the switch off the same tree reads exactly as it always did.
+ph_tree <- function() {
+  root <- arms_tree(manifest = TRUE, valis = TRUE)
+  unlink(file.path(root, "valis_low_micro2"), recursive = TRUE)        # not run yet
+  unlink(file.path(root, "valis_high_micro1", "052"), recursive = TRUE) # half run
+  root
+}
+
+test_that("placeholder mode OFF: a planned-but-unrun arm stays absent", {
+  withr::local_options(ihc.placeholder_missing = FALSE)
+  root <- ph_tree()
+  man  <- suppressMessages(arm_manifest(root))
+  expect_equal(nrow(man), 5)
+  expect_false("on_disk" %in% names(man))
+  seg <- read_arms_seg_qc(man)
+  expect_false("is_placeholder" %in% names(seg))
+  expect_false("valis_low_micro2" %in% seg$arm_dir)
+})
+
+test_that("placeholder mode ON: the plan's missing slides are synthesised, flagged, and real rows are untouched", {
+  root <- ph_tree()
+  withr::local_options(ihc.placeholder_missing = FALSE)
+  seg0 <- read_arms_seg_qc(suppressMessages(arm_manifest(root)))
+  val0 <- read_arms_valis(suppressMessages(arm_manifest(root)))
+
+  withr::local_options(ihc.placeholder_missing = TRUE)
+  man <- suppressMessages(arm_manifest(root))
+  expect_equal(nrow(man), 6)
+  expect_false(man$on_disk[man$arm_dir == "valis_low_micro2"])
+  seg <- suppressMessages(read_arms_seg_qc(man))
+  expect_identical(dplyr::select(seg[!seg$is_placeholder, ], -is_placeholder, -placeholder_rule),
+                   seg0)
+
+  syn <- seg[seg$is_placeholder, ]
+  lm2 <- dplyr::filter(syn, arm_dir == "valis_low_micro2")
+  # 2 patients x 1 moving slide x the depth-2 VALIS ladder, micro included.
+  expect_equal(nrow(lm2), 8)
+  expect_setequal(as.character(lm2$stage), c("native", "rigid", "non_rigid", "micro"))
+  expect_true(all(grepl("^no row", lm2$placeholder_rule)))
+  # A half-run arm is topped up for the missing patient only, on ITS OWN stage list:
+  # depth 1 reported no micro stage, so none is invented.
+  hm1 <- dplyr::filter(syn, arm_dir == "valis_high_micro1")
+  expect_equal(nrow(hm1), 3)
+  expect_true(all(hm1$patient_id == "052"))
+  expect_false("micro" %in% as.character(hm1$stage))
+  # delta-vs-rigid is undefined at the rigid stage itself and stays NA.
+  expect_true(all(is.na(syn$d_disp_um_vs_rigid[syn$stage == "rigid"])))
+  # One pairing per slide -> one pair_fraction per synthetic slide.
+  expect_equal(dplyr::n_distinct(lm2$pair_fraction[lm2$patient_id == "046"]), 1)
+  expect_s3_class(seg$stage, "factor")
+
+  # VALIS's own summary: the pre-micro file exists only at depth 2.
+  val <- suppressMessages(read_arms_valis(man))
+  expect_identical(dplyr::select(val[!val$is_placeholder, ], -is_placeholder, -placeholder_rule),
+                   val0)
+  vsyn <- val[val$is_placeholder, ]
+  expect_setequal(vsyn$stage_scope[vsyn$arm_dir == "valis_low_micro2"], c("final", "pre-micro"))
+  expect_setequal(vsyn$stage_scope[vsyn$arm_dir == "valis_high_micro1"], "final")
+  vl <- valis_error_long(val)
+  expect_true("micro" %in% vl$stage[vl$is_placeholder %in% TRUE & vl$arm_dir == "valis_low_micro2"])
+
+  # Every figure that draws a synthetic point says so; the tables count them.
+  figs <- suppressWarnings(build_arm_figs(seg, val, man))
+  expect_match(figs[["01_final_residual_um_by_arm"]]$labels$subtitle, "^PLACEHOLDER — ")
+  expect_match(figs[["07_valis_intrinsic_by_arm"]]$labels$subtitle, "^PLACEHOLDER — ")
+  rt <- arm_ranking_table(seg)
+  expect_equal(sum(rt$n_placeholder), nrow(arm_final_stage(seg)[arm_final_stage(seg)$is_placeholder, ]))
+  pt <- arm_paper_table(seg, val, man)
+  expect_true(all(c("n_placeholder", "n_placeholder_tre") %in% names(pt)))
+  pf <- build_arm_paper_figs(seg, val, man)
+  expect_match(pf$dice_by_arm$labels$subtitle, "^PLACEHOLDER — ")
+})
