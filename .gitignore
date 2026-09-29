@@ -9,6 +9,10 @@ analysis/*png
 analysis/*html
 analysis/*_cache
 analysis/site_libs
+# Patient data, never committed. Both spellings: `data/*` ignores the contents of a
+# real directory, `data` also ignores a SYMLINK named data (the cluster layout),
+# which `data/*` alone lets through as an untracked file.
+data
 data/*
 .planning/
 .citadel/
