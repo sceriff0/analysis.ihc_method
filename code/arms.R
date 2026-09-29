@@ -196,6 +196,37 @@ ARM_SPECS <- list(
 
 ARM_MODES <- names(ARM_SPECS)
 
+# --- csv-only patients: membership from the export's own flag ----------------
+# 15370 and 36766_2 arrived after the annotation sessions. Nobody drew a polygon
+# for them in any arm and the pathologist never scored them; what they have is a
+# FlowPath csv whose Out_of_annotation column records the in/out call made in
+# FlowPath. For them that flag IS the annotation: their one region is ANNOTATION_1,
+# membership comes from the flag, and `source` says so on every row.
+#
+# THIS LIST OUTRANKS `bare_region_is`. massimo2's "no annotation directory means
+# everything is inside" is a statement its producers made about the slides they
+# annotated in that session; these two were not among them, so applying it would
+# count every cell of a slide that was in fact cut. It also outranks massimo1's
+# "drop a bare region csv": a bare csv is the only shape these patients ship in.
+#
+# Kept as a registry constant rather than inferred from the data (e.g. "the flag
+# varies, so use it") because a rule nobody wrote down is how a 100 %-inside
+# patient ends up on the x = y line looking like a result.
+FLAG_MEMBERSHIP_PATIENTS <- c("15370", "36766_2")
+
+# Is this a csv-only patient? Matched on the same key slide_key() would give it —
+# digits only, so the directory "36766_2", a clinical "36766-2" and the key
+# "367662" agree. Re-stated here rather than imported: arms.R sits below
+# validation_helpers.R and cannot source it.
+arm_flag_patient <- function(patient_id) {
+  key <- function(x) {
+    x <- as.character(x); d <- gsub("[^0-9]", "", x)
+    ifelse(d == "" | is.na(x), toupper(gsub("[^A-Za-z0-9]", "", x)), d)
+  }
+  if (!length(patient_id)) return(logical(0))
+  key(patient_id) %in% key(FLAG_MEMBERSHIP_PATIENTS)
+}
+
 # DIRECTORY LOOKUP IS CASE-INSENSITIVE, DELIBERATELY.
 #
 # The producer ships `Massimo1`/`Massimo2`; the registry spells them lowercase to

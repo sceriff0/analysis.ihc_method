@@ -41,6 +41,15 @@
 # 100%-inside patient without anyone noticing, so it is per-arm and recorded in
 # `source` as "whole_slide" rather than "sf".
 #
+# A CSV-ONLY PATIENT IS CUT BY ITS OWN FLAG, IN EVERY ARM. arms.R's
+# FLAG_MEMBERSHIP_PATIENTS names the patients that arrived after the annotation
+# sessions with a FlowPath export and nothing else — no polygon, no pathologist
+# score. Their bare csv is their one region, ANNOTATION_1, and membership comes
+# from the export's Out_of_annotation flag. That rule OUTRANKS `bare_region_is`,
+# because massimo2's convention describes the slides annotated in that session
+# and these were not, and it is applied at every decision point below so a
+# metrics row and a per-cell verdict cannot disagree about the same patient.
+#
 # MEMBERSHIP INSIDE A REGION, in order of preference:
 #   1. "sf"          the region's own geojson, point-in-polygon. Primary: it is the
 #                    pathologist's line, and it is the only source that knows the
@@ -105,6 +114,14 @@ source(here::here("code", "arms.R"))
   if (nrow(meta) == 0) return(tibble::tibble())
 
   bare <- is.na(meta$annotation)
+  if (any(bare)) {
+    # A csv-only patient's bare file is its ONE region, in every arm (arms.R,
+    # FLAG_MEMBERSHIP_PATIENTS). Settled before the arm's own bare rule, so neither
+    # massimo2's whole-slide convention nor massimo1's "drop it" reaches these.
+    flagged <- bare & arm_flag_patient(meta$patient_id)
+    meta$annotation[flagged] <- "ANNOTATION_1"
+    bare <- is.na(meta$annotation)
+  }
   if (any(bare)) {
     if (is.na(spec$bare_region_is)) {
       warning("arm ", spec$arm, ": ", sum(bare), " region csv(s) carry no region suffix (",
@@ -212,6 +229,12 @@ arm_union_tier_cells <- function(spec) {
   }
   if (nrow(meta) == 0) return(tibble::tibble())
 
+  # Which patients have a union polygon at all — off the listing, as the region
+  # tier does. A whole-slide csv with no polygon (a csv-only patient) must not be
+  # reported as `sf`: arm_metrics() will cut it by its flag, and the row says so.
+  poly_meta <- suppressWarnings(.arm_tier_files(spec$union_poly, "geojson", "union polygon"))
+  annotated <- if (nrow(poly_meta)) unique(slide_key(poly_meta$patient_id)) else character(0)
+
   purrr::pmap_dfr(meta, function(path, patient_id, annotation) {
     pid   <- slide_key(patient_id)
     cells <- read_cell_csv(path, patient_id = pid)
@@ -219,10 +242,11 @@ arm_union_tier_cells <- function(spec) {
       warning("arm ", spec$arm, ": ", path, " has no cells — skipping")
       return(arm_empty_metrics())
     }
+    has_ann <- pid %in% annotated
     dplyr::mutate(cells, arm = spec$arm, annotation = "union",
                   classification = spec$union_csv$classification %||% "normal",
-                  file_origin = spec$arm, has_annotation = TRUE,
-                  .membership_source = "sf")
+                  file_origin = spec$arm, has_annotation = has_ann,
+                  .membership_source = if (has_ann) "sf" else "flag")
   })
 }
 
@@ -291,7 +315,8 @@ arm_promote_unregioned <- function(spec, cells, polys, union_cells, union_polys)
   message(sprintf("arm %s: %s ha%s a whole-slide export but no region files — ",
                   spec$arm, paste(orphans, collapse = ", "),
                   if (length(orphans) == 1) "s" else "ve"),
-          "promoting the union polygon to ANNOTATION_1 so they keep a per-region row")
+          "promoting the whole-slide tier to ANNOTATION_1 (with the union polygon ",
+          "where one exists) so they keep a per-region row")
 
   extra_cells <- union_cells |>
     dplyr::filter(patient_id %in% orphans) |>
@@ -412,7 +437,8 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
 
     # -- whole-slide patient: no polygon by the arm's own convention, so every cell
     # -- counts and there is no area to divide by. NA densities, as the flag modes.
-    if (!any(cp$has_annotation)) {
+    # -- A csv-only patient (arms.R) never takes this branch: its flag decides below.
+    if (!any(cp$has_annotation) && !arm_flag_patient(pid)) {
       return(region_ratios_area(cp, 0, um_per_px) |>
                dplyr::mutate(patient_id = pid, annotation = "whole_slide",
                              source = "whole_slide", .before = 1))
@@ -643,7 +669,7 @@ arm_cells_in_annotation <- function(spec, cells, um_per_px = 0.325) {
     # "annotated" and correctly falls through to the flag below — which is again what
     # arm_metrics() does.
     unannotated <- !("has_annotation" %in% names(cp)) || !any(cp$has_annotation %in% TRUE)
-    if (unannotated && identical(spec$bare_region_is, "whole_slide"))
+    if (unannotated && identical(spec$bare_region_is, "whole_slide") && !arm_flag_patient(pid))
       return(dplyr::mutate(cp, in_annotation = TRUE,
                            .in_annotation_source = "whole_slide"))
 

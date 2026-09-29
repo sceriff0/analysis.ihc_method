@@ -125,3 +125,18 @@ test_that("arm_tier_status reports which tiers are actually on disk", {
   expect_false(any(st$exists))
   expect_true(all(is.na(st$dir[st$tier %in% c("union_csv", "union_poly")])))
 })
+
+# =============================================================================
+# csv-only patients: membership from the export's own flag
+# =============================================================================
+test_that("the csv-only patients are recognised under every spelling slide_key() would give them", {
+  expect_true(all(arm_flag_patient(c("15370", "36766_2"))))
+  # The same normalisation as norm_slide_id(): digits only, so a directory named
+  # "36766_2", a clinical "36766-2" and a bare "367662" are one patient.
+  expect_true(arm_flag_patient("36766-2"))
+  expect_true(arm_flag_patient("367662"))
+  expect_true(arm_flag_patient("EPM - 15370"))
+  # And nobody else — 24086 keeps massimo2's whole-slide convention.
+  expect_false(any(arm_flag_patient(c("046", "24086", "36766", "1537"))))
+  expect_length(arm_flag_patient(character(0)), 0)
+})

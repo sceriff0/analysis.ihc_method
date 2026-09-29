@@ -10,7 +10,7 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `cell_tables.R` | the **single-cell export schema** — one vocabulary over three upstream formats |
 | `validation_helpers.R` | the derived quantities (region ratios, composition, marker/lineage fractions, invasive margin, agreement stats) |
 | `mirage_cells.R` | the mirage cell source — `phenotypes.csv` + `morphology.csv` joined per patient |
-| `arms.R` | the **arm registry** — which files belong to which arm, and how a filename names its region |
+| `arms.R` | the **arm registry** — which files belong to which arm, how a filename names its region, and `FLAG_MEMBERSHIP_PATIENTS`, the csv-only patients cut by FlowPath's own in/out flag |
 | `arm_cells.R` | the **arm cell source** — one reader for all three arms: region tier, whole-slide tier, metrics, provenance |
 | `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob each clinical page turns |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |

@@ -107,7 +107,8 @@ neo_ids   <- unique(slide_key(neoplastic$SAMPLE))
 ihc_ids   <- unique(slide_key(ihc_data$patient_id))
 have_poly <- unique(mem$per_annotation$patient_id[mem$per_annotation$source == "sf"])
 missing   <- setdiff(neo_ids, ihc_ids)                        # no cell csv at all
-whole     <- setdiff(intersect(neo_ids, ihc_ids), have_poly)  # cells but no polygon
+flagged   <- ihc_ids[arm_flag_patient(ihc_ids)]                # csv-only (arms.R)
+whole     <- setdiff(intersect(neo_ids, ihc_ids), c(have_poly, flagged))  # cells but no polygon
 
 cat("patients loaded:", length(ihc_ids),
     "[", paste(sort(ihc_ids), collapse = ", "), "]\n")
@@ -121,6 +122,9 @@ if (length(whole))
 if (length(missing))
   cat("pathologist patients with NO cell csv (absent from every IHC metric):",
       paste(sort(missing), collapse = ", "), "\n")
+if (length(flagged))
+  cat("csv-only patients (in/out from FlowPath's own flag; no polygon, no pathologist",
+      "score, so absent from every concordance):", paste(sort(flagged), collapse = ", "), "\n")
 ```
 
 ```{r region-reconciliation}
@@ -133,6 +137,7 @@ if (length(missing))
 .exported <- mem$per_annotation |> select(patient_id, annotation, source, n_inside)
 .recon <- full_join(.scored, .exported, by = c("patient_id", "annotation")) |>
   mutate(status = case_when(
+    is.na(path_pct) & arm_flag_patient(patient_id) ~ "exported, unscored by design (csv-only)",
     is.na(path_pct) ~ "exported, NOT scored",
     is.na(source)   ~ "scored, NOT exported",
     TRUE            ~ "matched")) |>
@@ -142,7 +147,8 @@ knitr::kable(.recon, caption = paste(
   "Pathologist-scored regions vs regions the export produced. Only `matched` rows",
   "reach the concordance below."))
 
-.bad <- filter(.recon, status != "matched")
+# A csv-only patient has no score to reconcile; that is its known state, not a mismatch.
+.bad <- filter(.recon, !status %in% c("matched", "exported, unscored by design (csv-only)"))
 if (nrow(.bad))
   cat("\n> **", nrow(.bad), " region(s) do not line up** and are excluded from every",
       " correlation on this page. Reconcile `neoplastic_", ARM, "` in",
@@ -175,7 +181,7 @@ IMMUNE_HEADING   <- "whole-slide IHC immune readout vs clinical table"
 IMMUNE_PROSE     <- "These use every imaged cell of every patient (`ihc_data`, the de-duplicated union of the region files, no annotation boundary)."
 MEMBERSHIP_NOTES <- c(
   "Membership is **sf point-in-polygon**, and each region's cells are scored against **that region's own polygon** — the export pairs them, so no cell is tested against a region it was not exported for. Centroids are mapped to the geojson pixel frame by `/0.325`.",
-  "A patient with **no annotation directory** is entirely inside: the export layout's stated convention, marked `whole_slide` in the `source` column. That is the one case with no `area_mm2`, hence no densities.")
+  "A patient with **no annotation directory** is entirely inside: the export layout's stated convention, marked `whole_slide` in the `source` column. A **csv-only** patient (`FLAG_MEMBERSHIP_PATIENTS` in `code/arms.R`) is instead cut by FlowPath's own in/out flag, marked `flag`. Neither has an `area_mm2`, hence no densities.")
 ```
 
 Cell labels:
