@@ -1,0 +1,173 @@
+---
+title: "Data loaded — what is on disk, what was read, and for whom"
+author: "sceriff0"
+date: "2026-09-29"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(purrr)
+  library(here)
+})
+source(here("code", "plot_theme.R"))
+# A DIAGNOSTICS PAGE SHOWS ITS WARNINGS. Every analysis page hides them, which is
+# right for a figure and wrong for the one page whose job is to say why a patient
+# did not load: the reader's "dropping the bare file" or "has no cells" lines
+# are the answer, so they print here.
+knitr::opts_chunk$set(echo = FALSE, message = TRUE, warning = TRUE,
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
+                      dev = c("png", "pdf"))
+
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
+source(here("code", "validation_helpers.R"))
+source(here("code", "membership.R"))
+source(here("code", "pdf_export.R"))
+
+SLUG <- "data_loaded"
+```
+
+This page answers one question for every arm: **which patients are in, from
+which files, under which membership rule** — before any figure is drawn. Read it
+after adding a patient, moving a tree, or symlinking the share. Nothing here is
+an analysis; every table is a listing of what the readers in `code/arms.R`,
+`code/arm_cells.R` and `code/load_data.R` actually found.
+
+Root searched: `` `r here("data")` ``.
+
+```{r flag-patients, results="asis"}
+cat("**csv-only patients** (`FLAG_MEMBERSHIP_PATIENTS` in `code/arms.R`): ",
+    paste0("`", FLAG_MEMBERSHIP_PATIENTS, "`", collapse = ", "),
+    ". No polygon in any arm and no pathologist score; membership comes from the ",
+    "export's own `Out_of_annotation` flag, and their one region is `ANNOTATION_1`.\n",
+    sep = "")
+```
+
+# Per arm
+
+For each arm, three tables:
+
+1. **Tier directories** — the directories the registry expects and whether each
+   exists. A missing region tier means the arm loads nothing.
+2. **Files found** — every csv and geojson under those directories with the
+   patient and region the parser read off its name. A file in the wrong place
+   shows up here with a wrong `patient_id` (for instance the tier directory's own
+   name), which is the commonest reason a new patient "is not there".
+3. **Cells read** — one row per (patient, region) actually loaded, with the cell
+   count and the membership rule (`sf` polygon, `flag` from the export,
+   `whole_slide` by the arm's convention), followed by the union rows.
+
+```{r per-arm, results="asis"}
+.kable <- function(x, caption) {
+  if (nrow(x) == 0) { cat("\n_(none)_\n\n"); return(invisible()) }
+  print(knitr::kable(x, caption = caption)); cat("\n")
+}
+
+.files_found <- function(spec) {
+  tiers <- list(region_csv = "csv", region_csv_fallback = "csv", union_csv = "csv",
+                region_poly = "geojson", union_poly = "geojson")
+  purrr::imap_dfr(tiers, function(ext, tier) {
+    if (is.null(spec[[tier]])) return(tibble::tibble())
+    f <- suppressWarnings(.arm_tier_files(spec[[tier]], ext, tier))
+    if (nrow(f) == 0) return(tibble::tibble())
+    # Captured BEFORE the mutate: inside it, `tier` is the column being built.
+    tier_dir  <- spec[[tier]]$dir
+    tier_name <- tier
+    f |>
+      mutate(tier        = tier_name,
+             file        = sub(paste0("^", spec$root_path, "/?"), "", path),
+             patient_key = slide_key(patient_id),
+             csv_only    = arm_flag_patient(patient_id),
+             # The parser keys a nested file on its DIRECTORY; a file dropped
+             # straight into the tier directory is keyed on that directory's name.
+             note = case_when(
+               patient_id == tier_dir ~ "!! not inside a patient folder",
+               is.na(annotation) & !is.na(spec$bare_region_is) & !csv_only ~
+                 paste0("bare file -> ", spec$bare_region_is),
+               is.na(annotation) & csv_only ~ "bare file -> ANNOTATION_1 (flag)",
+               is.na(annotation) & tier_name %in% c("union_csv", "union_poly") ~ "union tier",
+               is.na(annotation) ~ "!! bare file, arm has no rule: dropped",
+               TRUE ~ "")) |>
+      select(tier, file, patient_id, patient_key, annotation, csv_only, note)
+  })
+}
+
+arm_summaries <- list()
+for (arm in ARM_MODES) {
+  spec <- arm_spec(arm)
+  cat("\n## ", arm, " — ", spec$label, "\n\n", sep = "")
+  cat("Root: `", spec$root_path, "`\n\n", sep = "")
+
+  st <- arm_tier_status(spec) |> filter(!is.na(dir)) |> select(tier, dir, exists)
+  .kable(st, paste0(arm, ": tier directories the registry expects"))
+
+  ff <- .files_found(spec)
+  .kable(ff, paste0(arm, ": every file found, with the patient and region parsed from its name"))
+
+  mem <- suppressMessages(membership_data(arm, ihc_for(arm), neoplastic_for(arm)))
+  inv <- mem$inventory
+  if (nrow(inv)) inv <- inv |> mutate(csv_only = arm_flag_patient(patient_id)) |>
+    select(patient_id, annotation, classification, n_cells, has_annotation, membership, csv_only)
+  .kable(inv, paste0(arm, ": cells read, per (patient, region), and the membership rule"))
+
+  per <- mem$per_annotation
+  if (nrow(per)) per <- per |> select(patient_id, annotation, source, n_inside, any_of("area_mm2"))
+  .kable(per, paste0(arm, ": per-region metrics rows (source = how membership was decided)"))
+
+  un <- mem$union
+  if (nrow(un)) un <- un |> select(patient_id, annotation, source, n_inside)
+  .kable(un, paste0(arm, ": union rows, one per patient"))
+
+  arm_summaries[[arm]] <- if (nrow(mem$cells))
+    tibble::tibble(patient_id = unique(mem$cells$patient_id), arm = arm, cells = TRUE)
+  else tibble::tibble(patient_id = character(), arm = character(), cells = logical())
+}
+```
+
+# Across sources
+
+One row per patient seen anywhere: which arms hold its cells, which pathologist
+tables score it, whether the clinical sheet has a row for it, and whether a
+bulk-RNA sample maps to it through the CRF crosswalk. A csv-only patient is
+expected to read `TRUE` for cells and `FALSE` for both pathologist columns.
+
+```{r across-sources}
+cells_wide <- bind_rows(arm_summaries) |>
+  mutate(arm = paste0("cells_", arm)) |>
+  pivot_wider(names_from = arm, values_from = cells, values_fill = FALSE)
+
+neo_m1 <- unique(slide_key(neoplastic_for("massimo1")$SAMPLE))
+neo_m2 <- unique(slide_key(neoplastic_for("massimo2")$SAMPLE))
+clin_ids <- unique(slide_key(clinical_data$`ID PATIENT`))
+rna_ids  <- unique(unname(crf_to_slide_map(clinical_data)[norm_id(counts_data$Sample)]))
+rna_ids  <- rna_ids[!is.na(rna_ids)]
+
+all_ids <- sort(unique(c(cells_wide$patient_id, neo_m1, neo_m2, clin_ids, rna_ids)))
+across <- tibble::tibble(patient_id = all_ids) |>
+  left_join(cells_wide, by = "patient_id") |>
+  mutate(across(starts_with("cells_"), ~ replace_na(.x, FALSE)),
+         neoplastic_massimo1 = patient_id %in% neo_m1,
+         neoplastic_massimo2 = patient_id %in% neo_m2,
+         clinical_row        = patient_id %in% clin_ids,
+         rna_sample          = patient_id %in% rna_ids,
+         csv_only            = arm_flag_patient(patient_id))
+knitr::kable(across, caption = "Every patient id seen in any source, and where it was seen.")
+
+# The ids the clinical sheet carries that no arm has cells for, and vice versa —
+# the two lists a mis-spelled id lands in.
+no_cells <- across |> filter(!if_any(starts_with("cells_"))) |> pull(patient_id)
+no_clin  <- across |> filter(if_any(starts_with("cells_")), !clinical_row) |> pull(patient_id)
+cat("patients with a clinical/pathologist/RNA record but NO cells in any arm:",
+    if (length(no_cells)) paste(no_cells, collapse = ", ") else "none", "\n")
+cat("patients with cells but NO clinical row (check `ID PATIENT` spelling / SLIDE_ID_FIXES):",
+    if (length(no_clin)) paste(no_clin, collapse = ", ") else "none", "\n")
+```
+
+```{r export-pdfs, include=FALSE}
+export_pdf_figures(SLUG)
+```

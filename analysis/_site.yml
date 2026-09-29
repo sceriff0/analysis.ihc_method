@@ -50,6 +50,8 @@ navbar:
       href: run_resources.html
   - text: Marker QC
     href: marker_qc.html
+  - text: Data loaded
+    href: data_loaded.html
   right:
   - text: About
     menu:
