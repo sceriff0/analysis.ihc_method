@@ -322,7 +322,10 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
 # point per (patient, population), coloured by population. Only the populations BOTH
 # sides resolve are drawn — `paired` is already the inner join on (patient, lineage),
 # and the filter below re-asserts that on the frame it is handed, so a stale cache
-# with an unmapped row cannot put an unlabelled population on the panel.
+# with an unmapped row cannot put an unlabelled population on the panel. The filter
+# is `comparable_lineages`, the four T/NK populations: the cache also carries the
+# molecular page's composites (CD4T_all, Cytotoxic, T_total, ...), which overlap
+# these four and would double-plot the same cells.
 #
 # NO FIT LINE AND NO COEFFICIENT, for the reason 5(b) gives and one more: the two
 # axes use different denominators (imaging counts cells, deconvolution estimates a
@@ -354,7 +357,7 @@ paper_deconv_scatter <- function(paired, method = "quantiseq", groups = NULL,
   }
   df <- df |>
     dplyr::filter(is.finite(.data$ihc_frac), is.finite(.data$score),
-                  .data$lineage %in% LEGIBLE_LINEAGES) |>
+                  .data$lineage %in% comparable_lineages) |>
     dplyr::mutate(lineage = lineage_legible(.data$lineage))
   if (nrow(df) == 0) {
     warning("paper_deconv_scatter(): no finite pairs on a shared population for '",
@@ -415,9 +418,18 @@ paper_deconv_scatter <- function(paired, method = "quantiseq", groups = NULL,
 # `deconv_to_lineage()` resolves four lineages and returns NA for everything else,
 # so the deconvolution side of the table is exactly those four by construction.
 paper_lineage_table <- function() {
+  # `lineage` is the composition lineage; `compared_as` is where the deconvolution
+  # comparison puts the same call (deconv_comparison_lineages). They differ on
+  # purpose: CD8+ T reg is Treg in a composition panel but CD8T against RNA.
+  cmp <- lapply(strsplit(deconv_comparison_lineages$ihc_phenotypes, ";"),
+                function(x) pheno_join_key(sub("\\[.*\\]$", "", trimws(x))))
+  compared_as <- function(label) vapply(pheno_join_key(label), function(k)
+    paste(deconv_comparison_lineages$lineage[vapply(cmp, function(x) k %in% x, logical(1))],
+          collapse = ", "), character(1), USE.NAMES = FALSE)
   pheno <- phenotype_lineage_labels |>
     dplyr::transmute(side = "imaging (phenotype call)",
-                     label = phenotype_clean, lineage)
+                     label = phenotype_clean, lineage,
+                     compared_as = compared_as(phenotype_clean))
   # immunedeconv's harmonised spellings, as quanTIseq / EPIC emit them. The CD4
   # helper label carries "(non-regulatory)" — see deconv_to_lineage() for why that
   # word order once cost the CD4T facet.

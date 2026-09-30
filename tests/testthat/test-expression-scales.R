@@ -91,13 +91,15 @@ test_that("read_cibersortx_results() prefers the batch-corrected file and drops 
   expect_equal(nrow(read_cibersortx_results(tempfile())), 0)
 })
 
-test_that("LM22's cell-type names reach the four comparable lineages through deconv_to_lineage()", {
+test_that("LM22's cell-type names reach the comparable lineages through deconv_to_lineage()", {
   source(here::here("code", "validation_helpers.R"))
   lm22 <- c("T cells CD8", "T cells CD4 naive", "T cells CD4 memory resting",
             "T cells CD4 memory activated", "T cells regulatory (Tregs)",
             "NK cells resting", "NK cells activated", "T cells follicular helper",
             "T cells gamma delta", "Macrophages M2")
   got <- deconv_to_lineage(lm22)
-  expect_equal(got[1:7], c("CD8T", "CD4T", "CD4T", "CD4T", "Treg", "NK", "NK"))
-  expect_true(all(is.na(got[8:10])))
+  # Tfh are CD4+FOXP3-: the gate tree's T helper. Gamma delta and macrophages have
+  # no single leaf in the tree.
+  expect_equal(got[1:8], c("CD8T", "CD4T", "CD4T", "CD4T", "Treg", "NK", "NK", "CD4T"))
+  expect_true(all(is.na(got[9:10])))
 })

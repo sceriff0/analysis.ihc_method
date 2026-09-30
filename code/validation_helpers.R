@@ -669,24 +669,218 @@ method_label <- function(method) {
   ifelse(m %in% names(known), known[m], method)
 }
 
-# Map an immunedeconv cell_type string to one of `comparable_lineages` (or NA).
-# Pattern-based because the exact strings differ across methods.
+# =============================================================================
+# Deconvolution <-> IHC: what is compared with what
+# -----------------------------------------------------------------------------
+# A wrong mapping still knits. It just correlates two different populations and
+# reports a rho, so the mapping lives in TABLES the molecular pages print, not in
+# code a reader has to trace:
+#
+#   deconv_comparison_lineages  one row per compared population: its gate in the
+#                               phenotyping tree and the deconvolution side
+#   deconv_lineage_rules        deconvolution label -> lineage, first match wins
+#   deconv_method_output        per method: what its number is a fraction OF
+#                               (-> the IHC denominator) and whether sub-types add
+#   deconv_contributions()      which (method, cell type) feeds which lineage
+#
+# The IHC side follows the gate tree: CD45 -> CD3 -> CD8 -> GZMB / FOXP3,
+# CD8- -> CD4 -> FOXP3; CD3- -> CD56 -> GZMB; CD45- -> SMA -> PANCK -> VIMENTIN.
+# `Immune` is TWO leaves of that tree (CD3+CD8-CD4- and CD3-CD56-), which only the
+# CD3 sign tells apart; the `Label[MARKER+]` token below is how a row says so.
+#
+# Deliberate departures from the composition lineages (phenotype_lineage):
+#   * CD8+ T reg counts as CD8T, not Treg. Deconvolution Treg signatures are CD4+
+#     FOXP3+ cells (quanTIseq gates CD3+CD4+CD25+CD127-); their CD8 signatures do
+#     not exclude FOXP3.
+#   * CD4T is only compared for a method that ALSO reports Tregs. EPIC's CD4
+#     reference is "CD4 but not CD8" and ABIS outputs no Treg, so their CD4 is
+#     compared against CD4T_all (helper + CD4 Treg) instead.
+#   * Cytotoxic is CD8T + NK, not GZMB+: MCP-counter's cytotoxic signature (CD8A,
+#     EOMES, FGFBP2, GNLY, KLRC3, KLRC4, KLRD1) holds no GZMB or PRF1, so it marks
+#     cytotoxic lineages, not the GZMB+ activation state of the tree.
+#   * Endothelium is CD45-SMA-PANCK-VIM+, which the tree calls VIM+Tumor. No
+#     endothelial comparison is attempted; NonImmune (all CD45-) absorbs it.
+deconv_comparison_lineages <- tibble::tribble(
+  ~lineage,    ~ihc_gate,                                  ~ihc_phenotypes,                                                                   ~deconv_side,
+  "CD8T",      "CD3+ CD8+ (any GZMB, any FOXP3)",          "T cytotoxic; Activated T cytotoxic; CD8+ T reg",                                  "CD8 T cells; subsets summed",
+  "CD4T",      "CD3+ CD8- CD4+ FOXP3-",                    "T helper",                                                                        "non-regulatory CD4 T cells incl. follicular helper; only for a method that also reports Tregs",
+  "Treg",      "CD3+ CD8- CD4+ FOXP3+",                    "CD4+ Treg",                                                                       "regulatory T cells",
+  "CD4T_all",  "CD3+ CD8- CD4+ (any FOXP3)",               "T helper; CD4+ Treg",                                                             "CD4 of a method with no Treg output (EPIC, ABIS); CD4T + Treg for an additive method",
+  "NK",        "CD3- CD56+ (any GZMB)",                    "Natural Killer; Activated Natural Killer",                                        "NK cells; resting + activated summed (LM22 'activated' is cytokine-stimulated, not GZMB+)",
+  "Cytotoxic", "CD3+ CD8+  or  CD3- CD56+",                "T cytotoxic; Activated T cytotoxic; CD8+ T reg; Natural Killer; Activated Natural Killer", "MCP-counter cytotoxicity score; CD8T + NK for an additive method",
+  "T_total",   "CD3+ (every T leaf, plus CD3+CD8-CD4- Immune)", "T cytotoxic; Activated T cytotoxic; CD8+ T reg; T helper; CD4+ Treg; Immune[CD3+]", "MCP-counter T cell; every T-cell label summed (incl. gamma delta, MAIT, NKT) for an additive method",
+  "Stroma",    "CD45- SMA+",                               "Stroma",                                                                          "cancer-associated fibroblasts (MCP-counter, EPIC); MCP's signature is collagen/DCN/TAGLN, not ACTA2",
+  "NonImmune", "CD45-",                                    "PANCK+Tumor; VIM+Tumor; Stroma; Unknown",                                         "uncharacterized cell (+ CAF + endothelial for EPIC); additive methods only"
+)
+
+# The immune (CD45+) branch of the tree, as composition lineages: the CD45
+# denominator for methods whose fractions are of leukocytes.
+IMMUNE_LINEAGES <- c("CD8T", "CD4T", "Treg", "NK", "Immune_other")
+
+# Deconvolution label -> lineage. Case-insensitive, FIRST MATCH WINS.
 #
 # ORDER MATTERS. immunedeconv spells the helper population "T cell CD4+
-# (non-regulatory)" (quanTIseq, EPIC), and a rule that tests "regulatory" first
+# (non-regulatory)" (quanTIseq, xCell), and a rule that tests "regulatory" first
 # folds every CD4 helper cell into Treg — the CD4T facet of Fig 5(c) then
 # disappears without a warning and the Treg fraction is inflated by the larger
 # population. The negated spelling is therefore tested before the positive one.
+# Likewise the gamma delta / MAIT / NKT row sits above "cd8"/"nk" so "T cell NK"
+# is not read as an NK cell.
+deconv_lineage_rules <- tibble::tribble(
+  ~pattern,                                  ~lineage,       ~why,
+  "non-?regulatory",                         "CD4T",         "CD4 helper label; must be tested before 'regulatory'",
+  "regulatory|\\btregs?\\b",                 "Treg",         "CD4+ FOXP3+ Treg signature: the tree's CD4+ T reg",
+  "follicular helper",                       "CD4T",         "Tfh are CD3+ CD4+ FOXP3-: the tree's T helper",
+  "gamma delta|\\bmait\\b|^t cells? nk$",    NA_character_,  "gamma delta / MAIT / NKT are CD3+ but no single leaf of the tree; they join T_total only",
+  "cd8",                                     "CD8T",         "CD8 T cells, any state",
+  "cd4",                                     "CD4T",         "CD4 T cells, any state (becomes CD4T_all if the method has no Treg)",
+  "^nk\\b|\\bnk cells?\\b|natural killer",   "NK",           "NK cells, resting or activated",
+  "cytotoxicity score",                      "Cytotoxic",    "MCP-counter cytotoxic lymphocytes (CD8 + NK genes)",
+  "^t cells?$",                              "T_total",      "MCP-counter pan-T signature",
+  "fibroblast",                              "Stroma",       "CAF signature vs the tree's SMA+ Stroma"
+)
+
 deconv_to_lineage <- function(cell_type) {
-  ct <- tolower(cell_type)
-  dplyr::case_when(
-    stringr::str_detect(ct, "non-?regulatory")        ~ "CD4T",
-    stringr::str_detect(ct, "regulatory|treg")        ~ "Treg",
-    stringr::str_detect(ct, "cd8")                    ~ "CD8T",
-    stringr::str_detect(ct, "cd4")                    ~ "CD4T",
-    stringr::str_detect(ct, "^nk|nk cell|natural killer") ~ "NK",
-    TRUE                                              ~ NA_character_
-  )
+  ct  <- tolower(trimws(cell_type))
+  out <- rep(NA_character_, length(ct))
+  done <- rep(FALSE, length(ct))
+  for (i in seq_len(nrow(deconv_lineage_rules))) {
+    hit <- !done & stringr::str_detect(ct, deconv_lineage_rules$pattern[i])
+    out[hit]  <- deconv_lineage_rules$lineage[i]
+    done[hit] <- TRUE
+  }
+  out
+}
+
+# A label for PART of a lineage (a state or subset), as opposed to the whole of it.
+# xCell reports "CD4+ T-cells" and its memory/Th1/Th2 subsets side by side; only
+# the whole-lineage label is used when both are present.
+deconv_is_subset <- function(cell_type) {
+  stringr::str_detect(tolower(cell_type),
+    "naive|memory|resting|activated|central|effector|\\bth[12]\\b|follicular")
+}
+
+# Per method: what its number is a fraction of, and whether its cell types can be
+# ADDED (a sum of two fractions is a fraction; a sum of two enrichment scores is
+# not). A method missing here compares against all cells and never sums.
+deconv_method_output <- tibble::tribble(
+  ~method,         ~output,                                              ~ihc_denominator, ~additive,
+  "quantiseq",     "fraction of all cells (uncharacterized = the rest)", "all",            TRUE,
+  "epic",          "fraction of all cells (uncharacterized = the rest)", "all",            TRUE,
+  "cibersort",     "fraction of leukocytes (sums to 1 over LM22)",       "CD45",           TRUE,
+  "cibersortx",    "fraction of leukocytes (relative mode)",             "CD45",           TRUE,
+  "cibersort_abs", "absolute score (relative fraction x mixture scale)", "all",            TRUE,
+  "abis",          "absolute abundance",                                 "all",            TRUE,
+  "mcp_counter",   "per-signature score, arbitrary units",               "all",            FALSE,
+  "xcell",         "enrichment score",                                   "all",            FALSE,
+  "timer",         "score, not comparable across cell types",           "all",            FALSE,
+  "consensus_tme", "enrichment score",                                   "all",            FALSE
+)
+
+deconv_ihc_denominator <- function(method) {
+  d <- deconv_method_output$ihc_denominator[match(tolower(method), deconv_method_output$method)]
+  ifelse(is.na(d), "all", d)
+}
+
+deconv_is_additive <- function(method) {
+  a <- deconv_method_output$additive[match(tolower(method), deconv_method_output$method)]
+  !is.na(a) & a
+}
+
+# Which (method, cell_type) rows feed which comparison lineage. Long: method,
+# cell_type, lineage, route — "direct" (the label's own lineage) or "sum" (a
+# composite an additive method can build: CD4T_all, Cytotoxic, T_total,
+# NonImmune). A cell type may feed several lineages. Unmapped labels are absent.
+deconv_contributions <- function(celltypes) {
+  ct <- dplyr::distinct(celltypes, method, cell_type)
+  if (!nrow(ct))
+    return(tibble::tibble(method = character(), cell_type = character(),
+                          lineage = character(), route = character()))
+  lab <- tolower(trimws(ct$cell_type))
+  ct$base   <- deconv_to_lineage(ct$cell_type)
+  ct$subset <- deconv_is_subset(ct$cell_type)
+  ct$is_t   <- stringr::str_detect(lab, "^t cells?\\b")
+  ct$nonimm <- stringr::str_detect(lab, "uncharacterized|fibroblast|endothelial")
+
+  per_method <- function(d, m) {
+    # No Treg output -> the method's CD4 still contains Tregs.
+    if (!any(d$base %in% "Treg")) d$base[d$base %in% "CD4T"] <- "CD4T_all"
+    direct <- d[!is.na(d$base), ]
+    direct$lineage <- direct$base
+    # A whole-lineage label wins over that lineage's subsets.
+    keep <- stats::ave(!direct$subset, direct$lineage, FUN = function(w) !any(w) | w)
+    direct <- direct[as.logical(keep), ]
+    out <- list(tibble::tibble(cell_type = direct$cell_type, lineage = direct$lineage,
+                               route = rep("direct", nrow(direct))))
+    if (deconv_is_additive(m)) {
+      have <- unique(direct$lineage)
+      add <- function(L, rows) if (!L %in% have && length(rows))
+        tibble::tibble(cell_type = rows, lineage = L, route = "sum")
+      out <- c(out, list(
+        add("CD4T_all",  d$cell_type[d$base %in% c("CD4T", "Treg")]),
+        add("Cytotoxic", d$cell_type[d$base %in% c("CD8T", "NK")]),
+        add("T_total",   d$cell_type[d$is_t]),
+        add("NonImmune", d$cell_type[d$nonimm])))
+    }
+    dplyr::mutate(dplyr::bind_rows(out), method = m, .before = 1)
+  }
+  dplyr::bind_rows(lapply(split(ct, ct$method), function(d) per_method(d, d$method[1])))
+}
+
+# Per (method, patient, lineage) score: the sum of the cell types
+# deconv_contributions() assigns to that lineage. `deconv_long` needs method,
+# cell_type, patient_id, score.
+deconv_lineage_scores <- function(deconv_long) {
+  deconv_long |>
+    dplyr::inner_join(deconv_contributions(deconv_long), by = c("method", "cell_type"),
+                      relationship = "many-to-many") |>
+    dplyr::group_by(method, patient_id, lineage) |>
+    dplyr::summarise(score = sum(score), .groups = "drop")
+}
+
+# The IHC side, per patient and compared lineage, over ALL cells in `cells`:
+# n (cells in the lineage), n_all, n_cd45, frac_all = n / n_all,
+# frac_cd45 = n / n_cd45. Completed to 0 over every patient x lineage, so a
+# lineage a patient lacks reads as 0, not a missing row.
+ihc_comparison_fraction <- function(cells) {
+  pid <- slide_key(cells$patient_id)
+  phen <- cell_phenotype(cells)
+  key  <- pheno_join_key(phen)
+  cd45 <- cell_lineage(phen) %in% IMMUNE_LINEAGES
+  pats <- sort(unique(pid))
+  count <- function(keep) as.numeric(table(factor(pid[keep], levels = pats)))
+  n_all  <- count(rep(TRUE, length(pid)))
+  n_cd45 <- count(cd45)
+  pos <- list()   # marker positivity, read once per marker
+  rows <- lapply(seq_len(nrow(deconv_comparison_lineages)), function(i) {
+    tokens <- trimws(strsplit(deconv_comparison_lineages$ihc_phenotypes[i], ";")[[1]])
+    member <- rep(FALSE, length(pid))
+    for (tok in tokens) {
+      m <- regmatches(tok, regexec("^(.*)\\[(\\w+)\\+\\]$", tok))[[1]]
+      if (length(m)) {
+        if (is.null(pos[[m[3]]])) pos[[m[3]]] <<- marker_pos(cells, m[3])
+        member <- member | (key == pheno_join_key(m[2]) & pos[[m[3]]])
+      } else {
+        member <- member | key == pheno_join_key(tok)
+      }
+    }
+    n <- count(member)
+    tibble::tibble(patient_id = pats, lineage = deconv_comparison_lineages$lineage[i],
+                   n = n, n_all = n_all, n_cd45 = n_cd45,
+                   frac_all = n / n_all, frac_cd45 = ifelse(n_cd45 > 0, n / n_cd45, NA_real_))
+  })
+  dplyr::bind_rows(rows)
+}
+
+# Join per-method scores to the IHC fraction on THAT method's denominator
+# (deconv_method_output). Keeps finite pairs; adds ihc_denominator.
+deconv_pair_with_ihc <- function(scores, ihc_cmp) {
+  scores |>
+    dplyr::mutate(ihc_denominator = deconv_ihc_denominator(method)) |>
+    dplyr::inner_join(ihc_cmp, by = c("patient_id", "lineage")) |>
+    dplyr::mutate(ihc_frac = ifelse(ihc_denominator == "CD45", frac_cd45, frac_all)) |>
+    dplyr::select(method, patient_id, lineage, score, ihc_frac, ihc_denominator, n, n_all, n_cd45) |>
+    dplyr::filter(is.finite(score), is.finite(ihc_frac))
 }
 
 # =============================================================================

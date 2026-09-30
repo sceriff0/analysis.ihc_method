@@ -521,9 +521,11 @@ if (have_helpers && file.exists(paired_path)) {
 No fit line and no coefficient, for the reason above and one more: the axes use
 different denominators (imaging counts cells, deconvolution estimates a mixture
 fraction), so a regression line would invite exactly the absolute-agreement
-reading the legend disclaims. **The populations plotted are fixed by
-`deconv_to_lineage()` and there are four** — CD4T, CD8T, Treg, NK. That answers
-the legend's `[author to supply: full list of populations plotted]`.
+reading the legend disclaims. **The populations plotted are fixed to four** —
+CD4T, CD8T, Treg, NK (`comparable_lineages`), each defined by its gate in the
+phenotyping tree in `deconv_comparison_lineages` (Table 1 on the molecular
+pages). Note Treg is CD4+ Treg only; the tree's CD8+ T regs count as CD8T. That
+answers the legend's `[author to supply: full list of populations plotted]`.
 
 ---
 

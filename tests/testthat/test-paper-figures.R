@@ -200,6 +200,18 @@ test_that("the deconvolution panel keeps only populations both sides resolve", {
   expect_equal(as.character(unique(p$data$lineage)), "CD8T")
 })
 
+test_that("composite populations in the cache never reach the Fig 5(c) panel", {
+  # The molecular page now pairs CD4T_all / Cytotoxic / T_total / Stroma /
+  # NonImmune too; the manuscript panel promises exactly the four T/NK populations.
+  paired <- tidyr::expand_grid(method = "quantiseq",
+                               lineage = c("CD8T", "CD4T", "Treg", "NK", "CD4T_all",
+                                           "Cytotoxic", "T_total", "Stroma", "NonImmune"),
+                               patient_id = as.character(1:3))
+  paired$ihc_frac <- .1; paired$score <- .2
+  p <- paper_deconv_scatter(paired, "quantiseq")
+  expect_setequal(as.character(unique(p$data$lineage)), c("CD8T", "CD4T", "Treg", "NK"))
+})
+
 test_that("asking for a method that was not run warns and names what is available", {
   paired <- tibble::tibble(method = "epic", lineage = "CD8T",
                            ihc_frac = .1, score = .2, patient_id = "1")
@@ -270,6 +282,16 @@ test_that("quanTIseq's helper T cells map to CD4T, not to Treg", {
   expect_equal(deconv_to_lineage("T cell CD8+"),                  "CD8T")
   expect_equal(deconv_to_lineage("NK cell"),                      "NK")
   expect_true(is.na(deconv_to_lineage("Myeloid dendritic cell")))
+})
+
+test_that("the lineage table says where each call goes in the RNA comparison", {
+  t <- paper_lineage_table()
+  ca <- function(l) t$compared_as[t$label == l]
+  expect_equal(ca("CD8+ T reg"), "CD8T, Cytotoxic, T_total")
+  expect_equal(ca("CD8_Treg"),   "CD8T, Cytotoxic, T_total")
+  expect_equal(ca("CD4+ Treg"),  "Treg, CD4T_all, T_total")
+  expect_equal(ca("Immune"),     "T_total")          # the CD3+ Immune cells only
+  expect_equal(t$lineage[t$label == "CD8+ T reg"], "Treg")  # composition unchanged
 })
 
 test_that("the lineage table lists the real immunedeconv spellings", {

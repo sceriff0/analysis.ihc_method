@@ -643,8 +643,9 @@ if (nrow(tumor_ann_paired) > 0)
 
 The same question one level up: instead of a marker, a whole cell type. `immunedeconv`
 estimates cell-type abundance from the same bulk matrix; the IHC panel counts those
-cells directly. Restricted to the four lineages both sides can name (CD8T, CD4T, Treg,
-NK), and coloured by the same hot/cold call as part 1.
+cells directly. Compared only on populations both sides can name — each defined by
+its gate in the phenotyping tree (*Which population is compared with which*,
+below) — and coloured by the same hot/cold call as part 1.
 
 
 ### Starting data and notation
@@ -652,22 +653,22 @@ NK), and coloured by the same hot/cold call as part 1.
 Every value below is derived from two inputs, bridged by the clinical table:
 
 - `ihc_data` — FlowPath single cells deduplicated to **one copy per patient**
-  (whole slide, no annotation boundary). Each cell carries a `lineage` =
-  `phenotype_clean` collapsed via the `phenotype_lineage` table.
+  (whole slide, no annotation boundary). Each cell's `phenotype_clean` is a leaf
+  of the gate tree; `ihc_comparison_fraction()` groups the leaves into the
+  compared populations (and reads the CD3 sign for the one leaf, `Immune`, that
+  the tree reaches from two branches).
 - `expr_scales` — the bulk RNA on its three scales (part 1, *The three
   expression scales*); the deconvolution reads TPM when it exists, else the
   DESeq2-normalised scale.
 - `crf2slide` and `clin` — the id bridge and the hot/cold call, both built once in
   **Shared keys** above and only read here.
 
-Comparison is anchored to the four comparable lineages CD8T, CD4T, Treg, NK
-(`comparable_lineages`) — the only IHC phenotype lineages with a clean
-deconvolution counterpart. `deconv_to_lineage()` maps each method's cell-type
-string to one of these (case-insensitive pattern match: `regulatory|treg` ->
-Treg, `cd8` -> CD8T, `cd4` -> CD4T, `^nk|nk cell|natural killer` -> NK),
-everything else to `NA`. All correlations are Spearman correlation via
-`paired_spearman` (rank-based; `NA` when fewer than 3 shared patients or either
-vector is constant).
+The mapping between the two sides is three tables in `code/validation_helpers.R`
+— which populations are compared, which deconvolution label feeds which, and
+what each method's number is a fraction of — printed in full in *Which
+population is compared with which* below, before any correlation is computed.
+All correlations are Spearman correlation via `paired_spearman` (rank-based;
+`NA` when fewer than 3 shared patients or either vector is constant).
 
 ### Bulk-RNA expression matrix
 
@@ -732,8 +733,9 @@ space:
 ```
 crf_id     = norm_id(sample)
 patient_id = crf2slide[crf_id]              (slide space)
-lineage    = deconv_to_lineage(cell_type)
 ```
+
+The lineage is attached later, from the mapping tables, not here.
 
 Rows with no slide crosswalk (`patient_id` is `NA`) are dropped.
 
@@ -776,8 +778,7 @@ if (requireNamespace("immunedeconv", quietly = TRUE)) {
   if (length(ok_data)) {
     deconv_long <- bind_rows(ok_data) |>
       mutate(crf_id     = norm_id(sample),
-             patient_id = unname(crf2slide[crf_id]),   # crf id -> slide id
-             lineage    = deconv_to_lineage(cell_type))
+             patient_id = unname(crf2slide[crf_id]))   # crf id -> slide id
     n_unmapped  <- dplyr::n_distinct(deconv_long$crf_id[is.na(deconv_long$patient_id)])
     deconv_long <- deconv_long |> filter(!is.na(patient_id))
   } else {
@@ -810,11 +811,10 @@ per sample, unquoted) and, on the next knit, reads what
 `code/cibersortx_fractions.sh` left under `data/cibersortx/output/`: the
 B-mode-corrected `*_Adjusted.txt` when present, else `*_Results.txt`, with the
 per-sample `P-value` / `Correlation` / `RMSE` columns dropped. Rows go through
-the same `norm_id` -> `crf2slide` -> `deconv_to_lineage` pipeline as every other
-method (LM22's three `T cells CD4 *` subsets sum into CD4T, the two `NK cells *`
-into NK, `regulatory (Tregs)` into Treg; follicular helper and gamma delta map to
-nothing) and are appended to `deconv_long` as method `cibersortx`, with a row in
-the status table. No output yet: the status row says so and nothing else changes.
+the same `norm_id` -> `crf2slide` pipeline as every other method and are
+appended to `deconv_long` as method `cibersortx`, with a row in the status
+table; how its LM22 labels map is in the tables below. No output yet: the status
+row says so and nothing else changes.
 
 ```{r deconv-cibersortx}
 cbx_in  <- here("data", "cibersortx", "input", "mixture.txt")
@@ -824,8 +824,7 @@ cbx <- read_cibersortx_results(cbx_out)
 if (nrow(cbx)) {
   cbx <- cbx |>
     mutate(crf_id     = norm_id(sample),
-           patient_id = unname(crf2slide[crf_id]),
-           lineage    = deconv_to_lineage(cell_type)) |>
+           patient_id = unname(crf2slide[crf_id])) |>
     filter(!is.na(patient_id))
   deconv_long   <- bind_rows(deconv_long, select(cbx, -source_file))
   deconv_status <- bind_rows(deconv_status, tibble::tibble(
@@ -850,94 +849,210 @@ if (!is.null(deconv_status))
                     "method is absent downstream; the `detail` is its error message."))
 ```
 
+### Which population is compared with which
+
+Neither side's labels mean the same thing, so this section writes the
+correspondence out in full, as three tables from `code/validation_helpers.R`,
+before anything is correlated. Everything below the tables uses them and only
+them.
+
+The IHC side is the phenotyping gate tree. Every cell is gated in this order:
+
+```
+CD45+ ─ CD3+ ─ CD8+ ─ GZMB+ ....................... Activated T cytotoxic
+      │      │      └ GZMB- ─ FOXP3+ .............. CD8+ T reg
+      │      │               └ FOXP3- .............. T cytotoxic
+      │      └ CD8- ─ CD4+ ─ FOXP3+ ............... CD4+ Treg
+      │             │      └ FOXP3- ............... T helper
+      │             └ CD4- ........................ Immune   (CD3+ CD8- CD4-)
+      └ CD3- ─ CD56+ ─ GZMB+ ...................... Activated Natural Killer
+             │       └ GZMB- ...................... Natural Killer
+             └ CD56- .............................. Immune   (CD3- CD56-)
+CD45- ─ SMA+ ...................................... Stroma
+      └ SMA- ─ PANCK+ ............................. PANCK+ Tumor
+             └ PANCK- ─ VIMENTIN+ ................. VIM+ Tumor
+                      └ VIMENTIN- ................. Unknown
+```
+
+Two properties of the tree drive the table below. `Immune` is reached from two
+branches, so a population that needs the CD3+ one reads the cell's CD3 sign
+(written `Immune[CD3+]`). And FOXP3 is tested under CD8 as well as under CD4, so
+the tree has CD8+ T regs, which no deconvolution Treg signature models.
+
+**Table 1 — compared populations.** One row per population: its gate in the
+tree, the tree leaves it sums, and what the deconvolution side contributes.
+
+```{r deconv-comparison-lineages}
+knitr::kable(deconv_comparison_lineages,
+  col.names = c("population", "IHC gate", "IHC leaves summed", "deconvolution side"),
+  caption = "Each compared population: its gate in the phenotyping tree, and what estimates it on the deconvolution side.")
+```
+
+Choices made in this table, each checked against the method papers:
+
+- **CD8+ T reg is counted as CD8T, not Treg.** quanTIseq's Treg signature is
+  CD4+ (validated on CD3+CD4+CD25+CD127− cells) and CIBERSORT's Treg is a CD4
+  population; neither side's CD8 signature excludes FOXP3.
+- **CD4T is only compared for methods that also report Tregs.** EPIC's CD4
+  reference is "CD4 but not CD8", Tregs included, and ABIS outputs no Treg, so
+  their CD4 is compared against **CD4T_all** (T helper + CD4+ Treg).
+- **Cytotoxic is CD8T + NK, not the GZMB+ leaves.** MCP-counter's cytotoxic
+  signature (CD8A, EOMES, FGFBP2, GNLY, KLRC3, KLRC4, KLRD1) contains neither GZMB
+  nor PRF1: it marks cytotoxic lineages, not the activation state the tree gates.
+  For the same reason LM22's "NK cells activated" (cytokine-stimulated in vitro)
+  is not matched to the tree's GZMB+ Activated NK; the two NK states are summed.
+- **T_total** (every CD3+ cell) is the comparison least sensitive to the
+  CD4/CD8/FOXP3 gates and gives MCP-counter's `T cell` score a counterpart. It
+  also takes the T cells the tree cannot place in a subset (gamma delta, mostly
+  CD4−CD8−, which land in `Immune[CD3+]`; MAIT; NKT).
+- **Stroma** is SMA+, while MCP-counter's fibroblast signature is collagen / DCN
+  / TAGLN without ACTA2 — a partial match. Endothelium (CD45−SMA−PANCK−VIM+)
+  lands in **VIM+ Tumor**, so no endothelial comparison is attempted; it is
+  inside **NonImmune**.
+
+**Table 2 — deconvolution label → population.** Case-insensitive patterns,
+tested top to bottom; the first match wins. The order is load-bearing:
+`non-regulatory` must be tested before `regulatory`, and gamma delta / MAIT /
+NKT before `cd8` and `nk`.
+
+```{r deconv-lineage-rules}
+knitr::kable(dplyr::mutate(deconv_lineage_rules,
+                           lineage = tidyr::replace_na(lineage, "(none — T_total only)")),
+  col.names = c("pattern (regex)", "population", "why"),
+  caption = "How a deconvolution cell-type label is assigned to a population. First matching row wins.")
+```
+
+**Table 3 — what each method's number means.** This fixes two things. The IHC
+denominator: CIBERSORT in relative mode (and so CIBERSORTx, run without
+`--absolute` by `code/cibersortx_fractions.sh`) reports fractions of
+*leukocytes*, so it is compared against the IHC fraction of **CD45+** cells;
+quanTIseq and EPIC report fractions of *all* cells and are compared against
+the fraction of all cells. And whether sub-types may be added: fractions add,
+enrichment scores (xCell, MCP-counter) do not, so a composite (`CD4T_all`,
+`Cytotoxic`, `T_total`, `NonImmune`) is built by summing only for an additive
+method.
+
+```{r deconv-method-output}
+knitr::kable(dplyr::mutate(deconv_method_output, method = method_label(method)),
+  col.names = c("method", "what its value is", "IHC denominator", "sub-types may be summed"),
+  caption = "Per method: the IHC denominator it is compared against, and whether its cell types can be summed into a composite population.")
+```
+
+The resolution rules, applied per method by `deconv_contributions()`:
+
+```
+direct(method, population) = the method's labels Table 2 assigns to that population
+    - a whole-population label (e.g. xCell 'T cell CD4+ (non-regulatory)') wins over
+      that population's subsets ('... memory', '... Th1'), so nothing is counted twice
+    - a method with no Treg label: its CD4 label is assigned to CD4T_all, not CD4T
+composite, additive methods only, when the method has no direct label for it:
+    CD4T_all  = CD4T + Treg labels
+    Cytotoxic = CD8T + NK labels
+    T_total   = every label beginning 'T cell(s)'
+    NonImmune = 'uncharacterized cell' + fibroblast + endothelial labels
+score(method, patient, population) = sum of that method's contributing labels' scores
+```
+
 ### Every cell type each method returned, and where it went
 
-`deconv_to_lineage()` is a pattern match on the label, not a per-method table,
-so the only way to audit it is to print what each method actually emitted next
-to the lineage it was assigned. One row per (method, cell type); `(unmapped)`
-means the label matched no rule and the cell type is dropped before the
-comparison. Read down each method for a label that was pulled into a lineage it
-does not belong to, or one that should have mapped and did not. The same table
-is written to `output/deconv_celltype_map.csv`.
+The tables above are rules; this is what they did to the labels each method
+actually emitted. One row per (method, cell type), with every population it
+feeds and whether it feeds it directly or as part of a sum. `(unmapped)` means
+the label feeds nothing and is dropped — read down a method for a label that
+landed somewhere it should not, or one that should have mapped and did not.
+The same table is written to `output/deconv_celltype_map.csv`.
 
 ```{r deconv-celltype-map}
+deconv_contrib <- NULL
 if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
+  deconv_contrib <- deconv_contributions(deconv_long)
   celltype_map <- deconv_long |>
-    distinct(method, cell_type, lineage) |>
-    mutate(lineage = tidyr::replace_na(lineage, "(unmapped)"),
-           lineage = factor(lineage, levels = c(comparable_lineages, "(unmapped)"))) |>
-    arrange(method, lineage, cell_type)
+    distinct(method, cell_type) |>
+    left_join(
+      deconv_contrib |>
+        mutate(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage)) |>
+        arrange(lineage) |>
+        group_by(method, cell_type) |>
+        summarise(direct = paste(lineage[route == "direct"], collapse = ", "),
+                  in_sum = paste(lineage[route == "sum"],    collapse = ", "),
+                  .groups = "drop"),
+      by = c("method", "cell_type")) |>
+    mutate(direct = ifelse(is.na(direct) & is.na(in_sum), "(unmapped)",
+                           dplyr::coalesce(direct, "")),
+           in_sum = dplyr::coalesce(in_sum, ""),
+           method = method_label(method)) |>
+    arrange(method, direct == "(unmapped)", direct, cell_type)
   dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
   readr::write_csv(celltype_map, here("output", "deconv_celltype_map.csv"))
   cat("cell types:", nrow(celltype_map), "across", dplyr::n_distinct(celltype_map$method),
-      "methods;", sum(celltype_map$lineage != "(unmapped)"), "mapped to a lineage\n")
+      "methods;", sum(celltype_map$direct != "(unmapped)"), "feed at least one population\n")
   knitr::kable(celltype_map,
-               caption = "Every deconvolution cell type, by method, and the lineage deconv_to_lineage() assigned it.")
+               col.names = c("method", "cell type", "population (direct)", "also summed into"),
+               caption = "Every deconvolution cell type, by method, and the populations it feeds.")
 } else {
   cat("_No deconvolution rows yet, so nothing to map._\n")
 }
 ```
 
-### IHC lineage fractions (reference)
+### IHC population fractions (reference)
 
-`ihc_lineage_fraction(ihc_data)` counts cells per patient and lineage and
-normalises by the patient's total cell count (over **all** lineages, `NA`
-included), giving the whole-slide fraction:
+`ihc_comparison_fraction(ihc_data)` counts, per patient, the cells in each
+population of Table 1, and divides by two denominators:
 
 ```
-ihc_frac(patient, lineage) = (cells of patient with that lineage) / (all cells of patient)
-where: the denominator is ALL cells of the patient (every lineage, NA included),
-       before restricting to the four comparable lineages.
+n(patient, population) = cells of the patient on any of the population's IHC leaves
+                         (for Immune[CD3+]: an Immune cell whose CD3 sign is positive)
+frac_all  = n / (all cells of the patient)
+frac_cd45 = n / (CD45+ cells of the patient = every cell on the CD45+ branch:
+                 the T and NK leaves, and Immune from both branches)
+ihc_frac  = frac_cd45 for a method Table 3 marks CD45, else frac_all
 ```
 
-Restricted to the four comparable lineages, then **completed to 0** across the
-full patient-by-lineage grid: a lineage a patient simply lacks reads as 0
-(present), not a missing row — otherwise the `inner_join` below would silently
-drop that patient from that lineage's panel.
+Every population is **completed to 0** across the patient grid: a population a
+patient simply lacks reads as 0, not a missing row, which the `inner_join` below
+would otherwise turn into a patient silently missing from that panel. The CD3
+sign is read with `marker_pos()`; if the export never gated CD3, `Immune[CD3+]`
+is empty and T_total is the sum of the T leaves alone (the line below reports
+how many `Immune` cells were CD3+).
 
 ```{r deconv-ihc-lineages, eval = have_arm}
-lin_raw <- ihc_lineage_fraction(ihc_data) |>
+ihc_cmp <- ihc_comparison_fraction(ihc_data)
+
+# The four-population view (fraction of all cells) that the cross-source agreement
+# below and the clinical pages share.
+ihc_lin <- ihc_cmp |>
   filter(lineage %in% comparable_lineages) |>
-  select(patient_id, lineage, ihc_frac = frac)
+  select(patient_id, lineage, ihc_frac = frac_all)
 
-# Complete the patient x lineage grid: a lineage a patient simply lacks must read
-# as 0 (present), not a missing row. Otherwise the inner_join below silently drops
-# that patient from that lineage's panel — the "plot never shows all patients" bug.
-ihc_lin <- expand.grid(patient_id = unique(slide_key(ihc_data$patient_id)),
-                       lineage    = comparable_lineages,
-                       stringsAsFactors = FALSE) |>
-  left_join(lin_raw, by = c("patient_id", "lineage")) |>
-  mutate(ihc_frac = ifelse(is.na(ihc_frac), 0, ihc_frac))
-
-cat("IHC patients with lineage fractions:", dplyr::n_distinct(ihc_lin$patient_id), "\n")
+immune_cd3 <- sum(pheno_join_key(cell_phenotype(ihc_data)) == "immune" &
+                    marker_pos(ihc_data, "CD3"))
+cat("IHC patients:", dplyr::n_distinct(ihc_cmp$patient_id),
+    "| CD3 gated:", !is.na(marker_sign_col(ihc_data, "CD3")),
+    "| Immune cells that are CD3+ (counted in T_total):", immune_cd3, "\n")
+knitr::kable(
+  ihc_cmp |>
+    group_by(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage)) |>
+    summarise(cells = sum(n), median_frac_all = median(frac_all),
+              median_frac_cd45 = median(frac_cd45, na.rm = TRUE), .groups = "drop"),
+  digits = 4,
+  caption = "IHC side, per population: total cells over the cohort, and the median per-patient fraction on each denominator.")
 ```
 
-### Method vs IHC — per-lineage concordance
+### Method vs IHC — per-population concordance
 
-Per method, patient and lineage, the score sums a method's sub-types mapping to
-the same lineage (e.g. two NK sub-types):
-
-```
-score(method, patient, lineage) = sum of that method's sub-type scores mapping to the lineage
-where: the sub-types are the method's rows for that patient whose
-       deconv_to_lineage(cell_type) equals the lineage.
-```
-
-This is inner-joined to `ihc_frac(patient, lineage)` on patient and lineage,
-keeping finite pairs.
+Per method, patient and population the score is `score(method, patient,
+population)` from the resolution rules above (`deconv_lineage_scores()`). It is
+inner-joined on patient and population to `ihc_frac` on **that method's**
+denominator (`deconv_pair_with_ihc()`), keeping finite pairs. A method is paired
+only on the populations it can estimate, so its panel count varies (MCP-counter
+has no Treg; CIBERSORTx has no NonImmune).
 
 ```{r deconv-concordance, eval = have_arm}
 deconv_paired <- NULL
 if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
-  deconv_lin <- deconv_long |>
-    filter(!is.na(lineage)) |>
-    group_by(method, patient_id, lineage) |>
-    summarise(score = sum(score), .groups = "drop")
-
-  deconv_paired <- deconv_lin |>
-    inner_join(ihc_lin, by = c("patient_id", "lineage")) |>
-    filter(is.finite(score), is.finite(ihc_frac))
-  cat("deconv_paired (method x lineage x patient) rows:", nrow(deconv_paired), "\n")
+  deconv_paired <- deconv_lineage_scores(deconv_long) |>
+    deconv_pair_with_ihc(ihc_cmp)
+  cat("deconv_paired (method x population x patient) rows:", nrow(deconv_paired), "\n")
 }
 ```
 
@@ -948,8 +1063,12 @@ across lineages:
 ```
 concordance(method, lineage) = Spearman correlation between score and ihc_frac across patients
 method ranking(method)       = average of those Spearman values across lineages (na.rm)
-where: n_lineages = the number of lineages with a finite Spearman value.
+where: n_lineages = the number of populations with a finite Spearman value.
 ```
+
+A method is averaged over the populations it can estimate, and those overlap
+(CD8T sits inside Cytotoxic and T_total), so the mean is a summary to read with
+`n_lineages` beside it, not a like-for-like score across methods.
 
 ```{r deconv-concordance-table, eval = have_arm}
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
@@ -957,9 +1076,10 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
     group_by(method, lineage) |>
     group_modify(~ paired_spearman(.x$score, .x$ihc_frac)) |>
     ungroup() |>
-    arrange(lineage, desc(rho))
+    arrange(factor(lineage, levels = deconv_comparison_lineages$lineage), desc(rho)) |>
+    mutate(ihc_denominator = deconv_ihc_denominator(method), .after = lineage)
   knitr::kable(deconv_summary, digits = 3,
-               caption = "Spearman IHC vs deconvolution, per method and lineage")
+               caption = "Spearman IHC vs deconvolution, per method and population; ihc_denominator is what the IHC fraction was divided by (Table 3).")
 
   # Which method agrees best overall (mean rho across lineages).
   method_rank <- deconv_summary |>
@@ -973,14 +1093,15 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
 ```
 
 Scatter of `ihc_frac` (x) vs `score` (y), **one figure per method**, panels by
-lineage, in the ranking's order so the best-agreeing method comes first. Within a
-figure the four panels share both axes: x is the IHC fraction on 0..1 and y is that
+population, in the ranking's order so the best-agreeing method comes first. Within a
+figure the panels share both axes: x is the IHC fraction on 0..1 (of all cells, or of
+CD45+ cells for a method Table 3 marks CD45 — the axis title says which) and y is that
 method's score, so the spread across lineages reads on one scale. Between figures
 y is free by construction, because deconvolution scores are not on a common scale
 from one method to the next. Each strip carries that lineage's Spearman rho from
 the table above, so the picture and the number sit together.
 
-```{r deconv-concordance-plot, eval = have_arm, fig.height=3.4}
+```{r deconv-concordance-plot, eval = have_arm, fig.height=5.6}
 if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
@@ -989,7 +1110,7 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   df <- deconv_paired |>
     left_join(clin, by = "patient_id") |>
     mutate(immuno_phe = hotcold_order(immuno_phe),
-           lineage    = factor(lineage, levels = comparable_lineages))
+           lineage    = factor(lineage, levels = deconv_comparison_lineages$lineage))
 
   plot_deconv_method <- function(m) {
     d   <- filter(df, method == m)
@@ -1003,7 +1124,7 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
       geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
       # Shared x AND y within the method: the same IHC value lands in the same place
       # in every panel, and the lineages' scores are compared on the method's own scale.
-      facet_wrap(~ lineage, nrow = 1,
+      facet_wrap(~ lineage, ncol = 4,
                  labeller = as_labeller(function(x) ifelse(x %in% names(lab), lab[x], x))) +
       scale_colour_manual(values = hotcold_cols(levels(d$immuno_phe)),
                           na.value = "grey70", name = "Immuno-phenotype") +
@@ -1015,7 +1136,9 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
            subtitle = with_n(paste("points coloured by the clinical immuno-phenotype;",
                                    "the fit is over all patients; axes shared across the panels"),
                              d$patient_id, "patients"),
-           x = "IHC fraction of all cells (unitless, 0-1)",
+           x = if (identical(deconv_ihc_denominator(m), "CD45"))
+                 "IHC fraction of CD45+ cells (unitless, 0-1)"
+               else "IHC fraction of all cells (unitless, 0-1)",
            y = paste(method_label(m), "score (unitless)"))
   }
   for (m in method_rank$method) print(plot_deconv_method(m))
@@ -1032,10 +1155,10 @@ patient and lineage: the per-lineage deconvolution score for a method, or
 agr <- NULL
 if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
   # per (method, patient, lineage) score, summing a method's split sub-types.
-  deconv_lin <- deconv_long |>
-    filter(!is.na(lineage)) |>
-    group_by(method, patient_id, lineage) |>
-    summarise(score = sum(score), .groups = "drop")
+  # Kept to the four T/NK populations on the all-cell denominator, as before: one
+  # IHC value per (patient, population) is needed for IHC to be one "source".
+  deconv_lin <- deconv_lineage_scores(deconv_long) |>
+    filter(lineage %in% comparable_lineages)
 
   agree_src <- bind_rows(
     deconv_lin |> transmute(source = method, patient_id, lineage, value = score),
@@ -1119,10 +1242,20 @@ if (!is.null(agr) && nrow(agr) > 0) {
   slope against IHC is not meaningful, so every statistic here is Spearman.
   Absolute-fraction methods (quanTIseq, EPIC, CIBERSORT abs., ABIS) are the fair
   apples-to-apples comparison but are still compared by rank for uniformity.
-- Only the four comparable lineages CD8T, CD4T, Treg, NK are compared: the IHC
-  panel has no macrophage or B-cell phenotype, so `deconv_to_lineage` returns `NA`
-  for those and they are dropped (part 1 above does a marker-level CD163/CD14
-  check instead).
+- Only the populations in Table 1 are compared. B cells, plasma cells,
+  monocytes / macrophages, dendritic cells and granulocytes all end in the tree's
+  CD3−CD56− `Immune` leaf, so no single IHC population matches any of them and
+  they feed nothing (part 1 above does a marker-level CD163/CD14 check instead).
+- The per-method concordance uses each method's own denominator (Table 3); the
+  cross-source agreement matrix needs one IHC value per patient and population,
+  so it stays on the four T/NK populations over all cells. For CIBERSORTx that
+  matrix is therefore the looser comparison of the two.
+- The mapping choices in Table 1 were checked against the method papers
+  (Newman 2015, Finotello 2019, Racle 2017, Monaco 2019) and the MCP-counter and
+  immunedeconv sources, main text and methods only; the supplements holding the
+  LM22 and quanTIseq signature sources were not read. That ABIS's `T cell CD4+
+  memory` absorbs Tregs is inferred (ABIS dropped Tregs as too rare to
+  deconvolve and merged memory subsets), not stated.
 - Cross-patient Spearman needs at least 3 shared patients (and non-constant
   vectors); sparser method-lineage or source pairs return `NA` rather than a
   spurious correlation, and mean_rho averages over the finite lineages only.
