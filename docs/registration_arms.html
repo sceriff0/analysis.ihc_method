@@ -404,12 +404,21 @@ div.tocify {
       <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
     </li>
     <li>
+      <a href="benchmark_anhir.html">Registration accuracy — ANHIR challenge</a>
+    </li>
+    <li>
       <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+    <li>
+      <a href="run_resources.html">Run resources — what one run of the study samples cost</a>
     </li>
   </ul>
 </li>
 <li>
   <a href="marker_qc.html">Marker QC</a>
+</li>
+<li>
+  <a href="data_loaded.html">Data loaded</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -476,7 +485,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-31
+<strong>Last updated:</strong> 2026-09-30
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +616,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree65fe237cde01f70eba87f592a740fdcbad82cc3atargetblank65fe237a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/65fe237cde01f70eba87f592a740fdcbad82cc3a" target="_blank">65fe237</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree65fe237cde01f70eba87f592a740fdcbad82cc3atargetblank65fe237a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +634,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/65fe237cde01f70eba87f592a740fdcbad82cc3a" target="_blank">65fe237</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -643,11 +652,18 @@ Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/
+    Ignored:    output/additional_file_2_registration_arms.csv
+    Ignored:    output/additional_file_4_lineage_mapping.csv
+    Ignored:    output/deconv_celltype_map.csv
     Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
     Ignored:    output/summary_patient.csv
     Ignored:    output/summary_region.csv
     Ignored:    renv/library/
     Ignored:    renv/staging/
+
+Unstaged changes:
+    Modified:   .gitignore
 
 </code></pre>
 <p>
@@ -693,6 +709,76 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/registration_arms.html" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/484856c3b7ac14bf95e2494decb6819b90a01161/analysis/registration_arms.Rmd" target="_blank">484856c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-27
+</td>
+<td>
+:sparkles: Opt-in placeholder mode for benchmark figures whose runs have
+not arrived
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/b217f8bd97a77605432b6fd21c7db4d5430556d1/analysis/registration_arms.Rmd" target="_blank">b217f8b</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-20
+</td>
+<td>
+:sparkles: Fig 4b/c: one point per channel pair in the main, split by
+patient and by pair in the suppl
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/registration_arms.html" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:wrench: rebuilt site
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -1334,9 +1420,11 @@ ranking.</caption>
 <h3>final residual um by arm</h3>
 <p><strong>The arm ranking.</strong> Matched-nucleus centroid residual
 (median per slide) at each arm’s final transform, in microns. Physical
-units and no resolution floor, so this is the number to quote. One point
-per slide: with a handful of slides the points are the evidence, not the
-box.</p>
+units and no resolution floor, so this is the number to quote.
+<strong>One point per channel pair</strong> — one QC record, a moving
+slide scored against its patient’s reference — pooled over every pair
+and every patient. This is the main-text panel; the same points split by
+patient and by pair are in the supplementary section below.</p>
 <p><img src="figure/registration_arms.Rmd/figures-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-1">
@@ -1360,6 +1448,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-1.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-1.png" target="_blank">3ad97a4</a>
@@ -1415,7 +1514,8 @@ sceriff0
 over the matched pairs. It is bounded above by segmentation agreement
 rather than by registration, so read the ORDER, not the absolute level.
 Agreement with the residual figure is corroboration; disagreement is a
-reason to distrust both.</p>
+reason to distrust both. Same unit: one point per channel pair, pooled
+over pairs and patients.</p>
 <p><img src="figure/registration_arms.Rmd/figures-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-2">
@@ -1439,6 +1539,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-2.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-2.png" target="_blank">3ad97a4</a>
@@ -1488,12 +1599,16 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="stage-ladder-within-arm" class="section level3">
-<h3>stage ladder within arm</h3>
-<p><strong>What each stage bought, within an arm.</strong> One line per
-moving slide, log y. Read DOWN a panel — inside one arm
-<code>rigid</code> has a fixed meaning. Do not read <code>rigid</code>
-ACROSS panels.</p>
+<div id="final-valis-error-by-arm" class="section level3">
+<h3>final valis error by arm</h3>
+<p><strong>The third main-text panel: VALIS grading itself</strong>, at
+each arm’s final transform. It owes nothing to the segmentation, so it
+is the independent check on the two panels above. VALIS arms only — the
+other backends write no <code>registered/summary/*.csv</code>. One point
+per channel pair, but <strong>not the same pairs</strong>: VALIS reports
+a slide against the neighbour it was aligned toward
+(<code>from → to</code>), while the overlap QC scores every moving slide
+against the reference.</p>
 <p><img src="figure/registration_arms.Rmd/figures-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-3">
@@ -1517,6 +1632,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-3.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-3.png" target="_blank">3ad97a4</a>
@@ -1566,13 +1692,12 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="pair-fraction-by-arm" class="section level3">
-<h3>pair fraction by arm</h3>
-<p><strong>Is the ranking trustworthy?</strong> Fraction of nuclei
-paired at the rigid anchor. mirage’s own rule: below ~0.5 the later
-stages are scored on a biased subset of cells that happened to land
-close. An arm that wins on residual while pairing thinly has not
-won.</p>
+<div id="stage-ladder-within-arm" class="section level3">
+<h3>stage ladder within arm</h3>
+<p><strong>What each stage bought, within an arm.</strong> One line per
+moving slide, log y. Read DOWN a panel — inside one arm
+<code>rigid</code> has a fixed meaning. Do not read <code>rigid</code>
+ACROSS panels.</p>
 <p><img src="figure/registration_arms.Rmd/figures-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-4">
@@ -1596,6 +1721,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-4.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-4.png" target="_blank">3ad97a4</a>
@@ -1645,13 +1781,13 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="knob-effects" class="section level3">
-<h3>knob effects</h3>
-<p><strong>Which knob moved the result.</strong> Final-transform
-residual by micro-registration depth, split by accuracy preset. The
-presets use different feature matchers (BRISK/RANSAC vs
-SuperPoint/SuperGlue), so a preset difference is a matcher
-difference.</p>
+<div id="pair-fraction-by-arm" class="section level3">
+<h3>pair fraction by arm</h3>
+<p><strong>Is the ranking trustworthy?</strong> Fraction of nuclei
+paired at the rigid anchor. mirage’s own rule: below ~0.5 the later
+stages are scored on a biased subset of cells that happened to land
+close. An arm that wins on residual while pairing thinly has not
+won.</p>
 <p><img src="figure/registration_arms.Rmd/figures-5.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-5">
@@ -1675,6 +1811,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-5.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-5.png" target="_blank">3ad97a4</a>
@@ -1724,17 +1871,13 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="delta-vs-rigid-anchor" class="section level3">
-<h3>delta vs rigid anchor</h3>
-<p><strong>Did a stage make it worse?</strong> Residual minus the rigid
-stage’s. Above zero means that stage degraded the alignment. mirage
-catches-and-continues a failed micro-registration, so this regression is
-silent by design — this is where it surfaces. The y axis is
-<strong>symmetric-log</strong>: linear within ±0.1 µm of zero (below the
-pixel size) and logarithmic in both tails, so an improvement and a
-regression of the same size sit the same distance from the zero line. A
-plain log axis would have dropped every negative value, i.e. every slide
-the stage improved.</p>
+<div id="knob-effects" class="section level3">
+<h3>knob effects</h3>
+<p><strong>Which knob moved the result.</strong> Final-transform
+residual by micro-registration depth, split by accuracy preset. The
+presets use different feature matchers (BRISK/RANSAC vs
+SuperPoint/SuperGlue), so a preset difference is a matcher
+difference.</p>
 <p><img src="figure/registration_arms.Rmd/figures-6.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-6">
@@ -1758,6 +1901,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-6.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-6.png" target="_blank">3ad97a4</a>
@@ -1807,24 +1961,17 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="valis-intrinsic-by-arm" class="section level3">
-<h3>valis intrinsic by arm</h3>
-<p><strong>VALIS grading itself</strong>, one panel per arm, medians
-printed. Independent of every segmentation-overlap metric above — VALIS
-scoring its own feature correspondences — so agreement with the ranking
-figures is corroboration rather than restatement. <strong>Three stages
-from two columns:</strong> VALIS’s <code>error_df</code> is
-<code>filename</code>, <code>rigid_D</code>, <code>non_rigid_D</code>;
-micro-registration has no column of its own because it <em>updates the
-non-rigid field</em>, so the micro value lives in the difference between
-the pre-micro and final summaries rather than in a column. <strong>A
-missing <code>micro</code> box is the finding</strong> — that arm wrote
-no pre-micro summary, so <code>reg_micro_reg &lt; 2</code> and
-micro-registration never ran. A duplicated <code>non_rigid</code> box
-would instead read as ‘micro bought nothing’. Read DOWN a panel: the
-stage meanings differ across depths, which is why this facets rather
-than sharing one axis. See <a href="registration_run_qc.html">run QC</a>
-for the full column-and-file to stage mapping.</p>
+<div id="delta-vs-rigid-anchor" class="section level3">
+<h3>delta vs rigid anchor</h3>
+<p><strong>Did a stage make it worse?</strong> Residual minus the rigid
+stage’s. Above zero means that stage degraded the alignment. mirage
+catches-and-continues a failed micro-registration, so this regression is
+silent by design — this is where it surfaces. The y axis is
+<strong>symmetric-log</strong>: linear within ±0.1 µm of zero (below the
+pixel size) and logarithmic in both tails, so an improvement and a
+regression of the same size sit the same distance from the zero line. A
+plain log axis would have dropped every negative value, i.e. every slide
+the stage improved.</p>
 <p><img src="figure/registration_arms.Rmd/figures-7.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-7">
@@ -1848,6 +1995,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-7.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-7.png" target="_blank">3ad97a4</a>
@@ -1897,12 +2055,24 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="stare-intrinsic-tre-px" class="section level3">
-<h3>stare intrinsic tre px</h3>
-<p><strong>STARE grading itself</strong>, before and after mesh
-refinement. In <strong>pixels</strong> — this is deliberately a separate
-figure from the VALIS rTRE above, because the two are in different units
-and a shared axis would invite a comparison that is not one.</p>
+<div id="valis-intrinsic-by-arm" class="section level3">
+<h3>valis intrinsic by arm</h3>
+<p><strong>VALIS grading itself</strong>, one panel per arm, medians
+printed. Independent of every segmentation-overlap metric above — VALIS
+scoring its own feature correspondences — so agreement with the ranking
+figures is corroboration rather than restatement. <strong>Three stages
+from two columns:</strong> VALIS’s <code>error_df</code> is
+<code>filename</code>, <code>rigid_D</code>, <code>non_rigid_D</code>;
+micro-registration has no column of its own because it <em>updates the
+non-rigid field</em>, so the micro value lives in the difference between
+the pre-micro and final summaries rather than in a column. <strong>A
+missing <code>micro</code> box is the finding</strong> — that arm wrote
+no pre-micro summary, so <code>reg_micro_reg &lt; 2</code> and
+micro-registration never ran. A duplicated <code>non_rigid</code> box
+would instead read as ‘micro bought nothing’. Read DOWN a panel: the
+stage meanings differ across depths, which is why this facets rather
+than sharing one axis. See <a href="registration_run_qc.html">run QC</a>
+for the full column-and-file to stage mapping.</p>
 <p><img src="figure/registration_arms.Rmd/figures-8.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-8">
@@ -1926,6 +2096,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-8.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/figure/registration_arms.Rmd/figures-8.png" target="_blank">3ad97a4</a>
@@ -1968,6 +2149,321 @@ sceriff0
 </td>
 <td>
 2026-08-12
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="stare-intrinsic-tre-px" class="section level3">
+<h3>stare intrinsic tre px</h3>
+<p><strong>STARE grading itself</strong>, before and after mesh
+refinement. In <strong>pixels</strong> — this is deliberately a separate
+figure from the VALIS rTRE above, because the two are in different units
+and a shared axis would invite a comparison that is not one.</p>
+<p><img src="figure/registration_arms.Rmd/figures-9.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-9">
+Past versions of figures-9.png
+</button>
+</p>
+<div id="fig-figures-9" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-9.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div id="supplementary-the-main-panels-split" class="section level2">
+<h2>Supplementary: the main panels, split</h2>
+<p>The three main-text panels (residual, Dice, VALIS’s own error) pool
+<strong>every channel pair of every patient</strong> into one box per
+arm. That answers <em>which arm</em> and hides <em>why an arm is
+wide</em>. There are two possible reasons, and each split isolates
+one:</p>
+<ul>
+<li><strong>by patient</strong> — each box is one patient, pooled across
+its channel pairs. A wide arm that is tight within every patient is a
+<em>between-patient</em> effect: tissue, section quality,
+acquisition.</li>
+<li><strong>by channel pair</strong> — each box is one pair, pooled
+across patients. A pair that sits high in every patient is a
+<em>pair</em> effect: two rounds that share little structure to register
+on.</li>
+</ul>
+<p>These are the <strong>same points as the main panels,
+regrouped</strong> — nothing is re-summarised — and one panel per arm,
+because the split is a question asked <em>within</em> a configuration. A
+pair label is patient-free (<code>reference vs moving</code>, with the
+<code>&lt;patient&gt;_</code> prefix dropped), which is what lets one
+box collect the same pair from every patient.</p>
+<div id="residual-um-by-patient" class="section level3">
+<h3>residual um by patient</h3>
+<p><img src="figure/registration_arms.Rmd/figures-supp-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-supp-1">
+Past versions of figures-supp-1.png
+</button>
+</p>
+<div id="fig-figures-supp-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-1.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="residual-um-by-channel-pair" class="section level3">
+<h3>residual um by channel pair</h3>
+<p><img src="figure/registration_arms.Rmd/figures-supp-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-supp-2">
+Past versions of figures-supp-2.png
+</button>
+</p>
+<div id="fig-figures-supp-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-2.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="dice-by-patient" class="section level3">
+<h3>dice by patient</h3>
+<p><img src="figure/registration_arms.Rmd/figures-supp-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-supp-3">
+Past versions of figures-supp-3.png
+</button>
+</p>
+<div id="fig-figures-supp-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-3.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="dice-by-channel-pair" class="section level3">
+<h3>dice by channel pair</h3>
+<p><img src="figure/registration_arms.Rmd/figures-supp-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-supp-4">
+Past versions of figures-supp-4.png
+</button>
+</p>
+<div id="fig-figures-supp-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-4.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="valis-error-by-patient" class="section level3">
+<h3>valis error by patient</h3>
+<p><img src="figure/registration_arms.Rmd/figures-supp-5.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-supp-5">
+Past versions of figures-supp-5.png
+</button>
+</p>
+<div id="fig-figures-supp-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-5.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div id="valis-error-by-channel-pair" class="section level3">
+<h3>valis error by channel pair</h3>
+<p><img src="figure/registration_arms.Rmd/figures-supp-6.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-supp-6">
+Past versions of figures-supp-6.png
+</button>
+</p>
+<div id="fig-figures-supp-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-6.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
 </td>
 </tr>
 </tbody>
@@ -2052,20 +2548,25 @@ other attached packages:
 [13] workflowr_1.7.2
 
 loaded via a namespace (and not attached):
- [1] sass_0.4.10        generics_0.1.4     renv_1.2.3         stringi_1.8.7     
- [5] hms_1.1.4          digest_0.6.39      magrittr_2.0.5     evaluate_1.0.5    
- [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      rprojroot_2.1.1   
-[13] processx_3.9.0     whisker_0.4.1      ps_1.9.3           promises_1.5.0    
-[17] httr_1.4.7         jquerylib_0.1.4    cli_3.6.6          crayon_1.5.3      
-[21] rlang_1.2.0        bit64_4.8.4        withr_3.0.3        cachem_1.1.0      
-[25] yaml_2.3.12        otel_0.2.0         parallel_4.3.2     tools_4.3.2       
-[29] tzdb_0.5.0         httpuv_1.6.12      vctrs_0.7.3        R6_2.6.1          
-[33] lifecycle_1.0.5    git2r_0.33.0       bit_4.6.0          vroom_1.7.1       
-[37] pkgconfig_2.0.3    callr_3.7.6        pillar_1.11.1      bslib_0.9.0       
-[41] later_1.4.8        gtable_0.3.6       glue_1.8.1         Rcpp_1.1.1-1.1    
-[45] xfun_0.58          tidyselect_1.2.1   rstudioapi_0.15.0  knitr_1.51        
-[49] farver_2.1.2       htmltools_0.5.9    labeling_0.4.3     rmarkdown_2.31    
-[53] compiler_4.3.2     getPass_0.2-4      S7_0.2.2          </code></pre>
+ [1] sass_0.4.10         generics_0.1.4      renv_1.2.3         
+ [4] stringi_1.8.7       hms_1.1.4           digest_0.6.39      
+ [7] magrittr_2.0.5      RColorBrewer_1.1-3  evaluate_1.0.5     
+[10] grid_4.3.2          fastmap_1.2.0       rprojroot_2.1.1    
+[13] processx_3.9.0      whisker_0.4.1       ps_1.9.3           
+[16] promises_1.5.0      BiocManager_1.30.27 httr_1.4.7         
+[19] jquerylib_0.1.4     cli_3.6.6           crayon_1.5.3       
+[22] rlang_1.3.0         bit64_4.8.6         withr_3.0.3        
+[25] cachem_1.1.0        yaml_2.3.12         otel_0.2.0         
+[28] parallel_4.3.2      tools_4.3.2         tzdb_0.5.0         
+[31] httpuv_1.6.12       vctrs_0.7.3         R6_2.6.1           
+[34] lifecycle_1.0.5     git2r_0.33.0        bit_4.6.0          
+[37] vroom_1.7.1         pkgconfig_2.0.3     callr_3.7.6        
+[40] pillar_1.11.1       bslib_0.9.0         later_1.4.8        
+[43] gtable_0.3.6        glue_1.8.1          Rcpp_1.1.1-1.1     
+[46] xfun_0.58           tidyselect_1.2.1    rstudioapi_0.15.0  
+[49] knitr_1.51          farver_2.1.2        htmltools_0.5.9    
+[52] labeling_0.4.3      rmarkdown_2.31      compiler_4.3.2     
+[55] S7_0.2.2            getPass_0.2-4      </code></pre>
 </div>
 </div>
 

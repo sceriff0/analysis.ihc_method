@@ -326,12 +326,21 @@ $(document).ready(function () {
       <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
     </li>
     <li>
+      <a href="benchmark_anhir.html">Registration accuracy — ANHIR challenge</a>
+    </li>
+    <li>
       <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+    <li>
+      <a href="run_resources.html">Run resources — what one run of the study samples cost</a>
     </li>
   </ul>
 </li>
 <li>
   <a href="marker_qc.html">Marker QC</a>
+</li>
+<li>
+  <a href="data_loaded.html">Data loaded</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -395,7 +404,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-31
+<strong>Last updated:</strong> 2026-09-30
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -442,15 +451,15 @@ results.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree51c34be70bcb4fbccb42b4461841920b0d85bb75targetblank51c34bea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/51c34be70bcb4fbccb42b4461841920b0d85bb75" target="_blank">51c34be</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree51c34be70bcb4fbccb42b4461841920b0d85bb75targetblank51c34bea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -460,7 +469,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/51c34be70bcb4fbccb42b4461841920b0d85bb75" target="_blank">51c34be</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -478,7 +487,11 @@ Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/
+    Ignored:    output/additional_file_2_registration_arms.csv
+    Ignored:    output/additional_file_4_lineage_mapping.csv
+    Ignored:    output/deconv_celltype_map.csv
     Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
     Ignored:    output/summary_patient.csv
     Ignored:    output/summary_region.csv
     Ignored:    renv/library/
@@ -533,7 +546,58 @@ Message
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/license.html" target="_blank">ef13bd0</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/589ae012a71151f76462dca60dda305150b74f0e/docs/license.html" target="_blank">589ae01</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/license.html" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/license.html" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:wrench: rebuilt site
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/license.html" target="_blank">ef13bd0</a>
 </td>
 <td>
 sceriff0
@@ -550,7 +614,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/license.html" target="_blank">f1342a0</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/license.html" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -567,7 +631,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/794c4ea3f6a9037ddbabbace24129eb1cc808a1f/docs/license.html" target="_blank">794c4ea</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/794c4ea3f6a9037ddbabbace24129eb1cc808a1f/docs/license.html" target="_blank">794c4ea</a>
 </td>
 <td>
 sceriff0
@@ -584,7 +648,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/license.html" target="_blank">3ad97a4</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/license.html" target="_blank">3ad97a4</a>
 </td>
 <td>
 sceriff0
@@ -601,7 +665,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/8e6abe3ae8ce19f897d165e6919dba77fd623e5b/docs/license.html" target="_blank">8e6abe3</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/8e6abe3ae8ce19f897d165e6919dba77fd623e5b/docs/license.html" target="_blank">8e6abe3</a>
 </td>
 <td>
 sceriff0
@@ -618,7 +682,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/license.html" target="_blank">c5d0eaa</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/license.html" target="_blank">c5d0eaa</a>
 </td>
 <td>
 sceriff0
@@ -635,7 +699,7 @@ Revert ":wrench: built the site"
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/license.html" target="_blank">70924d7</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/license.html" target="_blank">70924d7</a>
 </td>
 <td>
 sceriff0
@@ -652,7 +716,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/711533970658794d8e51566ac4c7e45404fa1148/docs/license.html" target="_blank">7115339</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/711533970658794d8e51566ac4c7e45404fa1148/docs/license.html" target="_blank">7115339</a>
 </td>
 <td>
 sceriff0
@@ -669,7 +733,7 @@ sceriff0
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/b70ccb229bffe7249bbffea62b5a7a8fe419eb50/analysis/license.Rmd" target="_blank">b70ccb2</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/b70ccb229bffe7249bbffea62b5a7a8fe419eb50/analysis/license.Rmd" target="_blank">b70ccb2</a>
 </td>
 <td>
 sceriff0

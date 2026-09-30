@@ -404,12 +404,21 @@ div.tocify {
       <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
     </li>
     <li>
+      <a href="benchmark_anhir.html">Registration accuracy — ANHIR challenge</a>
+    </li>
+    <li>
       <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+    <li>
+      <a href="run_resources.html">Run resources — what one run of the study samples cost</a>
     </li>
   </ul>
 </li>
 <li>
   <a href="marker_qc.html">Marker QC</a>
+</li>
+<li>
+  <a href="data_loaded.html">Data loaded</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -476,7 +485,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-31
+<strong>Last updated:</strong> 2026-09-30
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +616,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree51c34be70bcb4fbccb42b4461841920b0d85bb75targetblank51c34bea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/51c34be70bcb4fbccb42b4461841920b0d85bb75" target="_blank">51c34be</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree51c34be70bcb4fbccb42b4461841920b0d85bb75targetblank51c34bea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +634,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/51c34be70bcb4fbccb42b4461841920b0d85bb75" target="_blank">51c34be</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -643,7 +652,11 @@ Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/
+    Ignored:    output/additional_file_2_registration_arms.csv
+    Ignored:    output/additional_file_4_lineage_mapping.csv
+    Ignored:    output/deconv_celltype_map.csv
     Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
     Ignored:    output/summary_patient.csv
     Ignored:    output/summary_region.csv
     Ignored:    renv/library/
@@ -693,6 +706,57 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/589ae012a71151f76462dca60dda305150b74f0e/docs/molecular_massimo1.html" target="_blank">589ae01</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/molecular_massimo1.html" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/molecular_massimo1.html" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:wrench: rebuilt site
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -897,7 +961,7 @@ clin &lt;- clinical_data |&gt;
 cat(&quot;clinical rows:&quot;, nrow(clin),
     &quot;| with a numeric HOT score:&quot;, sum(is.finite(clin$hot_score)),
     &quot;| with an immuno-phenotype:&quot;, sum(!is.na(clin$immuno_phe)), &quot;\n&quot;)</code></pre>
-<pre><code>clinical rows: 6 | with a numeric HOT score: 6 | with an immuno-phenotype: 6 </code></pre>
+<pre><code>clinical rows: 9 | with a numeric HOT score: 8 | with an immuno-phenotype: 8 </code></pre>
 </div>
 <div id="part-1-bulk-rna-expression-vs-ihc-marker-positivity"
 class="section level2">
@@ -936,6 +1000,155 @@ genes of a marker = marker_gene_map[&lt;marker&gt;]: a comma-separated gene list
   multi-gene markers are averaged</code></pre>
 <p>Paired associations are Spearman correlations via
 <code>paired_spearman</code>.</p>
+</div>
+<div id="the-three-expression-scales" class="section level3">
+<h3>The three expression scales</h3>
+<p><code>counts_data</code> is the size-factor-normalised scale and
+every figure on this page reads it. The same <code>dds</code> also
+yields the raw counts and, when gene lengths are on hand, TPM
+(<code>code/expression_scales.R</code>, exposed by
+<code>load_data.R</code> as <code>expr_scales</code>):</p>
+<pre><code>raw(g, s)        = counts(dds)[g, s]                       what the aligner counted
+normalized(g, s) = raw(g, s) / sizeFactor(s)               library depth removed
+tpm(g, s)        = 1e6 * (raw(g, s) / length_kb(g)) / sum over genes of the same
+                                                           depth AND length removed</code></pre>
+<p>TPM exists only if lengths were found (tximport’s
+<code>avgTxLength</code>, <code>basepairs</code>,
+<code>rowRanges</code>, or <code>data/gene_lengths.tsv</code>); it is
+never computed from a guessed length. The table names the source, and
+the distribution plot shows what each step did to the samples.</p>
+<pre class="r"><code>scales_here &lt;- c(&quot;raw&quot;, &quot;normalized&quot;, &quot;tpm&quot;)[
+  !vapply(expr_scales[c(&quot;raw&quot;, &quot;normalized&quot;, &quot;tpm&quot;)], is.null, logical(1))]
+cat(&quot;scales available:&quot;, paste(scales_here, collapse = &quot;, &quot;),
+    &quot;| gene-length source:&quot;, expr_scales$length_source, &quot;\n&quot;)</code></pre>
+<pre><code>scales available: raw, normalized | gene-length source: none </code></pre>
+<pre class="r"><code>sf &lt;- tryCatch(DESeq2::sizeFactors(dds)[expr_scales$samples], error = function(e) NA)
+knitr::kable(
+  tibble::tibble(sample       = expr_scales$samples,
+                 patient_id   = unname(crf2slide[norm_id(expr_scales$samples)]),
+                 library_size = unname(expr_scales$library_size),
+                 size_factor  = round(unname(sf), 3)),
+  caption = &quot;Bulk-RNA samples: library size (sum of raw counts) and DESeq2 size factor.&quot;)</code></pre>
+<table>
+<caption>Bulk-RNA samples: library size (sum of raw counts) and DESeq2
+size factor.</caption>
+<thead>
+<tr class="header">
+<th align="left">sample</th>
+<th align="left">patient_id</th>
+<th align="right">library_size</th>
+<th align="right">size_factor</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">A.001.004</td>
+<td align="left">366722</td>
+<td align="right">9856524</td>
+<td align="right">2.133</td>
+</tr>
+<tr class="even">
+<td align="left">A.001.024</td>
+<td align="left">10338</td>
+<td align="right">3916362</td>
+<td align="right">0.669</td>
+</tr>
+<tr class="odd">
+<td align="left">A.010.011</td>
+<td align="left">15370</td>
+<td align="right">13014237</td>
+<td align="right">2.520</td>
+</tr>
+<tr class="even">
+<td align="left">A.011.003</td>
+<td align="left">5456</td>
+<td align="right">17909000</td>
+<td align="right">3.926</td>
+</tr>
+<tr class="odd">
+<td align="left">C.001.041</td>
+<td align="left">046</td>
+<td align="right">7365023</td>
+<td align="right">1.691</td>
+</tr>
+<tr class="even">
+<td align="left">C.001.044</td>
+<td align="left">052</td>
+<td align="right">7900780</td>
+<td align="right">1.803</td>
+</tr>
+<tr class="odd">
+<td align="left">DeLOS112</td>
+<td align="left">15897</td>
+<td align="right">9709112</td>
+<td align="right">2.112</td>
+</tr>
+<tr class="even">
+<td align="left">DeLOS177</td>
+<td align="left">24086</td>
+<td align="right">7790397</td>
+<td align="right">1.746</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>scale_df &lt;- scale_long(expr_scales) |&gt; filter(value &gt; 0)
+ggplot(scale_df, aes(sample, log10(value))) +
+  geom_boxplot(outlier.size = 0.3, linewidth = 0.3) +
+  facet_wrap(~ scale, ncol = 1, scales = &quot;free_y&quot;) +
+  scale_x_discrete(labels = label_n(scale_df$sample)) +
+  labs(title = &quot;Per-sample expression distribution on each scale&quot;,
+       subtitle = with_n(NULL, expr_scales$samples, &quot;samples&quot;),
+       x = &quot;RNA sample (CRF id); n = expressed genes&quot;, y = &quot;log10(value), zeros dropped&quot;) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))</code></pre>
+<p><img src="figure/molecular_massimo1.Rmd/rna-scales-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-scales-plot-1">
+Past versions of rna-scales-plot-1.png
+</button>
+</p>
+<div id="fig-rna-scales-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/589ae012a71151f76462dca60dda305150b74f0e/docs/figure/molecular_massimo1.Rmd/rna-scales-plot-1.png" target="_blank">589ae01</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/molecular_massimo1.Rmd/rna-scales-plot-1.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="per-patient-bulk-expression-of-each-markers-genes"
 class="section level3">
@@ -1008,7 +1221,7 @@ where:
 
 cat(&quot;IHC patients:&quot;, dplyr::n_distinct(ihc_marker_frac$patient_id),
     &quot;| RNA patients:&quot;, dplyr::n_distinct(marker_expr$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>IHC patients: 6 | RNA patients: 6 </code></pre>
+<pre><code>IHC patients: 8 | RNA patients: 8 </code></pre>
 </div>
 <div id="marker-by-marker-concordance" class="section level3">
 <h3>Marker-by-marker concordance</h3>
@@ -1027,7 +1240,7 @@ descending correlation.</p>
 
 cat(&quot;shared patients (RNA + IHC):&quot;,
     dplyr::n_distinct(rna_paired$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>shared patients (RNA + IHC): 6 </code></pre>
+<pre><code>shared patients (RNA + IHC): 8 </code></pre>
 <pre class="r"><code>rna_summary &lt;- rna_paired |&gt;
   group_by(marker) |&gt;
   group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |&gt;
@@ -1049,118 +1262,250 @@ expression</caption>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">FOXP3</td>
-<td align="right">6</td>
-<td align="right">0.829</td>
+<td align="left">L1CAM</td>
+<td align="right">8</td>
+<td align="right">0.714</td>
 <td align="right">0.058</td>
 </tr>
 <tr class="even">
-<td align="left">CD4</td>
-<td align="right">6</td>
-<td align="right">0.771</td>
-<td align="right">0.103</td>
+<td align="left">FOXP3</td>
+<td align="right">8</td>
+<td align="right">0.690</td>
+<td align="right">0.069</td>
 </tr>
 <tr class="odd">
 <td align="left">CD8</td>
-<td align="right">6</td>
-<td align="right">0.771</td>
-<td align="right">0.103</td>
+<td align="right">8</td>
+<td align="right">0.667</td>
+<td align="right">0.083</td>
 </tr>
 <tr class="even">
-<td align="left">L1CAM</td>
-<td align="right">6</td>
-<td align="right">0.714</td>
-<td align="right">0.136</td>
-</tr>
-<tr class="odd">
-<td align="left">SMA</td>
-<td align="right">6</td>
-<td align="right">0.657</td>
-<td align="right">0.175</td>
-</tr>
-<tr class="even">
-<td align="left">CD45</td>
-<td align="right">6</td>
-<td align="right">0.600</td>
-<td align="right">0.242</td>
-</tr>
-<tr class="odd">
-<td align="left">VIMENTIN</td>
-<td align="right">6</td>
-<td align="right">0.600</td>
-<td align="right">0.242</td>
-</tr>
-<tr class="even">
-<td align="left">CD3</td>
-<td align="right">6</td>
-<td align="right">0.543</td>
-<td align="right">0.297</td>
+<td align="left">CD4</td>
+<td align="right">8</td>
+<td align="right">0.571</td>
+<td align="right">0.151</td>
 </tr>
 <tr class="odd">
 <td align="left">CD163</td>
-<td align="right">6</td>
-<td align="right">0.486</td>
-<td align="right">0.356</td>
+<td align="right">8</td>
+<td align="right">0.476</td>
+<td align="right">0.243</td>
 </tr>
 <tr class="even">
 <td align="left">PDL1</td>
-<td align="right">6</td>
-<td align="right">0.486</td>
-<td align="right">0.356</td>
+<td align="right">8</td>
+<td align="right">0.476</td>
+<td align="right">0.243</td>
 </tr>
 <tr class="odd">
-<td align="left">PD1</td>
-<td align="right">6</td>
-<td align="right">0.395</td>
-<td align="right">0.439</td>
-</tr>
-<tr class="even">
-<td align="left">CD14</td>
-<td align="right">6</td>
-<td align="right">0.314</td>
-<td align="right">0.564</td>
-</tr>
-<tr class="odd">
-<td align="left">PANCK</td>
-<td align="right">6</td>
-<td align="right">0.200</td>
-<td align="right">0.714</td>
-</tr>
-<tr class="even">
 <td align="left">CD56</td>
-<td align="right">6</td>
-<td align="right">-0.029</td>
-<td align="right">1.000</td>
+<td align="right">8</td>
+<td align="right">0.452</td>
+<td align="right">0.267</td>
+</tr>
+<tr class="even">
+<td align="left">CD45</td>
+<td align="right">8</td>
+<td align="right">0.429</td>
+<td align="right">0.299</td>
 </tr>
 <tr class="odd">
-<td align="left">FSP1</td>
-<td align="right">6</td>
-<td align="right">-0.029</td>
-<td align="right">1.000</td>
+<td align="left">CD3</td>
+<td align="right">8</td>
+<td align="right">0.405</td>
+<td align="right">0.327</td>
+</tr>
+<tr class="even">
+<td align="left">VIMENTIN</td>
+<td align="right">8</td>
+<td align="right">0.381</td>
+<td align="right">0.360</td>
+</tr>
+<tr class="odd">
+<td align="left">CD14</td>
+<td align="right">8</td>
+<td align="right">0.333</td>
+<td align="right">0.428</td>
+</tr>
+<tr class="even">
+<td align="left">PD1</td>
+<td align="right">8</td>
+<td align="right">0.293</td>
+<td align="right">0.482</td>
+</tr>
+<tr class="odd">
+<td align="left">SMA</td>
+<td align="right">8</td>
+<td align="right">0.048</td>
+<td align="right">0.935</td>
 </tr>
 <tr class="even">
 <td align="left">CD74</td>
-<td align="right">6</td>
-<td align="right">-0.200</td>
-<td align="right">0.714</td>
+<td align="right">8</td>
+<td align="right">-0.048</td>
+<td align="right">0.935</td>
 </tr>
 <tr class="odd">
-<td align="left">ARID1A</td>
-<td align="right">6</td>
-<td align="right">-0.371</td>
-<td align="right">0.497</td>
+<td align="left">PANCK</td>
+<td align="right">8</td>
+<td align="right">-0.095</td>
+<td align="right">0.840</td>
 </tr>
 <tr class="even">
-<td align="left">P53</td>
-<td align="right">6</td>
-<td align="right">-0.371</td>
-<td align="right">0.497</td>
+<td align="left">ARID1A</td>
+<td align="right">8</td>
+<td align="right">-0.119</td>
+<td align="right">0.793</td>
 </tr>
 <tr class="odd">
 <td align="left">GZMB</td>
-<td align="right">6</td>
-<td align="right">-0.464</td>
-<td align="right">0.354</td>
+<td align="right">8</td>
+<td align="right">-0.299</td>
+<td align="right">0.471</td>
+</tr>
+<tr class="even">
+<td align="left">FSP1</td>
+<td align="right">8</td>
+<td align="right">-0.310</td>
+<td align="right">0.462</td>
+</tr>
+<tr class="odd">
+<td align="left">P53</td>
+<td align="right">8</td>
+<td align="right">-0.595</td>
+<td align="right">0.132</td>
+</tr>
+</tbody>
+</table>
+<p>The same statistic under each scale, side by side. Spearman is
+rank-based, so <code>raw</code> and <code>normalized</code> differ only
+where the size factors reorder patients, and <code>tpm</code> only where
+gene length does; a marker whose rho moves a lot between columns is one
+whose ranking is being decided by the normalisation, not the
+biology.</p>
+<pre class="r"><code>rho_by_scale &lt;- scale_long(expr_scales) |&gt;
+  inner_join(marker_genes, by = &quot;gene&quot;, relationship = &quot;many-to-many&quot;) |&gt;
+  mutate(crf_id = norm_id(sample)) |&gt;
+  group_by(scale, marker, crf_id) |&gt;
+  summarise(rna_expr = mean(value), .groups = &quot;drop&quot;) |&gt;
+  mutate(patient_id = unname(crf2slide[crf_id])) |&gt;
+  filter(!is.na(patient_id)) |&gt;
+  inner_join(ihc_marker_frac, by = c(&quot;marker&quot;, &quot;patient_id&quot;)) |&gt;
+  filter(is.finite(rna_expr), is.finite(ihc_posfrac)) |&gt;
+  group_by(scale, marker) |&gt;
+  group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |&gt;
+  ungroup() |&gt;
+  select(scale, marker, rho) |&gt;
+  pivot_wider(names_from = scale, values_from = rho)
+
+knitr::kable(select(rna_summary, marker) |&gt; left_join(rho_by_scale, by = &quot;marker&quot;),
+             digits = 3,
+             caption = &quot;Spearman rho per marker under each expression scale (same order as above).&quot;)</code></pre>
+<table>
+<caption>Spearman rho per marker under each expression scale (same order
+as above).</caption>
+<thead>
+<tr class="header">
+<th align="left">marker</th>
+<th align="right">raw</th>
+<th align="right">normalized</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">L1CAM</td>
+<td align="right">0.667</td>
+<td align="right">0.714</td>
+</tr>
+<tr class="even">
+<td align="left">FOXP3</td>
+<td align="right">0.762</td>
+<td align="right">0.690</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8</td>
+<td align="right">0.762</td>
+<td align="right">0.667</td>
+</tr>
+<tr class="even">
+<td align="left">CD4</td>
+<td align="right">0.539</td>
+<td align="right">0.571</td>
+</tr>
+<tr class="odd">
+<td align="left">CD163</td>
+<td align="right">0.476</td>
+<td align="right">0.476</td>
+</tr>
+<tr class="even">
+<td align="left">PDL1</td>
+<td align="right">0.381</td>
+<td align="right">0.476</td>
+</tr>
+<tr class="odd">
+<td align="left">CD56</td>
+<td align="right">0.434</td>
+<td align="right">0.452</td>
+</tr>
+<tr class="even">
+<td align="left">CD45</td>
+<td align="right">0.429</td>
+<td align="right">0.429</td>
+</tr>
+<tr class="odd">
+<td align="left">CD3</td>
+<td align="right">0.476</td>
+<td align="right">0.405</td>
+</tr>
+<tr class="even">
+<td align="left">VIMENTIN</td>
+<td align="right">0.452</td>
+<td align="right">0.381</td>
+</tr>
+<tr class="odd">
+<td align="left">CD14</td>
+<td align="right">0.539</td>
+<td align="right">0.333</td>
+</tr>
+<tr class="even">
+<td align="left">PD1</td>
+<td align="right">0.293</td>
+<td align="right">0.293</td>
+</tr>
+<tr class="odd">
+<td align="left">SMA</td>
+<td align="right">-0.143</td>
+<td align="right">0.048</td>
+</tr>
+<tr class="even">
+<td align="left">CD74</td>
+<td align="right">0.119</td>
+<td align="right">-0.048</td>
+</tr>
+<tr class="odd">
+<td align="left">PANCK</td>
+<td align="right">-0.214</td>
+<td align="right">-0.095</td>
+</tr>
+<tr class="even">
+<td align="left">ARID1A</td>
+<td align="right">0.167</td>
+<td align="right">-0.119</td>
+</tr>
+<tr class="odd">
+<td align="left">GZMB</td>
+<td align="right">-0.323</td>
+<td align="right">-0.299</td>
+</tr>
+<tr class="even">
+<td align="left">FSP1</td>
+<td align="right">0.429</td>
+<td align="right">-0.310</td>
+</tr>
+<tr class="odd">
+<td align="left">P53</td>
+<td align="right">-0.405</td>
+<td align="right">-0.595</td>
 </tr>
 </tbody>
 </table>
@@ -1365,118 +1710,118 @@ if (nrow(paired_z) &gt; 0) {
 </thead>
 <tbody>
 <tr class="odd">
+<td align="left">L1CAM</td>
+<td align="right">8</td>
+<td align="right">0.429</td>
+<td align="right">0.299</td>
+</tr>
+<tr class="even">
 <td align="left">PANCK</td>
-<td align="right">6</td>
-<td align="right">0.829</td>
-<td align="right">0.058</td>
+<td align="right">8</td>
+<td align="right">0.238</td>
+<td align="right">0.582</td>
+</tr>
+<tr class="odd">
+<td align="left">VIMENTIN</td>
+<td align="right">8</td>
+<td align="right">0.167</td>
+<td align="right">0.703</td>
 </tr>
 <tr class="even">
 <td align="left">FSP1</td>
-<td align="right">6</td>
-<td align="right">0.600</td>
-<td align="right">0.242</td>
+<td align="right">8</td>
+<td align="right">0.095</td>
+<td align="right">0.840</td>
 </tr>
 <tr class="odd">
-<td align="left">L1CAM</td>
-<td align="right">6</td>
-<td align="right">0.600</td>
-<td align="right">0.242</td>
-</tr>
-<tr class="even">
-<td align="left">VIMENTIN</td>
-<td align="right">6</td>
-<td align="right">0.486</td>
-<td align="right">0.356</td>
-</tr>
-<tr class="odd">
-<td align="left">ARID1A</td>
-<td align="right">6</td>
-<td align="right">0.029</td>
-<td align="right">1.000</td>
-</tr>
-<tr class="even">
 <td align="left">CD8</td>
-<td align="right">6</td>
-<td align="right">-0.029</td>
-<td align="right">1.000</td>
+<td align="right">8</td>
+<td align="right">-0.024</td>
+<td align="right">0.977</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">CD14</td>
-<td align="right">6</td>
-<td align="right">-0.143</td>
-<td align="right">0.803</td>
+<td align="right">8</td>
+<td align="right">-0.167</td>
+<td align="right">0.703</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">CD45</td>
-<td align="right">6</td>
-<td align="right">-0.143</td>
-<td align="right">0.803</td>
-</tr>
-<tr class="odd">
-<td align="left">CD4</td>
-<td align="right">6</td>
-<td align="right">-0.200</td>
-<td align="right">0.714</td>
-</tr>
-<tr class="even">
-<td align="left">SMA</td>
-<td align="right">6</td>
-<td align="right">-0.257</td>
-<td align="right">0.658</td>
-</tr>
-<tr class="odd">
-<td align="left">CD56</td>
-<td align="right">6</td>
-<td align="right">-0.314</td>
-<td align="right">0.564</td>
+<td align="right">8</td>
+<td align="right">-0.167</td>
+<td align="right">0.703</td>
 </tr>
 <tr class="even">
 <td align="left">CD163</td>
-<td align="right">6</td>
-<td align="right">-0.429</td>
-<td align="right">0.419</td>
+<td align="right">8</td>
+<td align="right">-0.190</td>
+<td align="right">0.665</td>
 </tr>
 <tr class="odd">
+<td align="left">CD56</td>
+<td align="right">8</td>
+<td align="right">-0.190</td>
+<td align="right">0.665</td>
+</tr>
+<tr class="even">
+<td align="left">CD4</td>
+<td align="right">8</td>
+<td align="right">-0.238</td>
+<td align="right">0.582</td>
+</tr>
+<tr class="odd">
+<td align="left">ARID1A</td>
+<td align="right">8</td>
+<td align="right">-0.381</td>
+<td align="right">0.360</td>
+</tr>
+<tr class="even">
 <td align="left">CD3</td>
-<td align="right">6</td>
-<td align="right">-0.429</td>
-<td align="right">0.419</td>
-</tr>
-<tr class="even">
-<td align="left">GZMB</td>
-<td align="right">6</td>
-<td align="right">-0.638</td>
-<td align="right">0.173</td>
+<td align="right">8</td>
+<td align="right">-0.381</td>
+<td align="right">0.360</td>
 </tr>
 <tr class="odd">
-<td align="left">FOXP3</td>
-<td align="right">6</td>
-<td align="right">-0.657</td>
-<td align="right">0.175</td>
+<td align="left">GZMB</td>
+<td align="right">8</td>
+<td align="right">-0.467</td>
+<td align="right">0.243</td>
 </tr>
 <tr class="even">
-<td align="left">P53</td>
-<td align="right">6</td>
-<td align="right">-0.657</td>
-<td align="right">0.175</td>
+<td align="left">FOXP3</td>
+<td align="right">8</td>
+<td align="right">-0.476</td>
+<td align="right">0.243</td>
+</tr>
+<tr class="odd">
+<td align="left">SMA</td>
+<td align="right">8</td>
+<td align="right">-0.476</td>
+<td align="right">0.243</td>
+</tr>
+<tr class="even">
+<td align="left">PDL1</td>
+<td align="right">8</td>
+<td align="right">-0.619</td>
+<td align="right">0.115</td>
 </tr>
 <tr class="odd">
 <td align="left">PD1</td>
-<td align="right">6</td>
-<td align="right">-0.698</td>
-<td align="right">0.123</td>
+<td align="right">8</td>
+<td align="right">-0.659</td>
+<td align="right">0.076</td>
 </tr>
 <tr class="even">
-<td align="left">CD74</td>
-<td align="right">6</td>
-<td align="right">-0.771</td>
-<td align="right">0.103</td>
+<td align="left">P53</td>
+<td align="right">8</td>
+<td align="right">-0.667</td>
+<td align="right">0.083</td>
 </tr>
 <tr class="odd">
-<td align="left">PDL1</td>
-<td align="right">6</td>
-<td align="right">-0.771</td>
-<td align="right">0.103</td>
+<td align="left">CD74</td>
+<td align="right">8</td>
+<td align="right">-0.690</td>
+<td align="right">0.069</td>
 </tr>
 </tbody>
 </table>
@@ -1656,6 +2001,15 @@ an unannotated patient.</caption>
 <td align="right">32.6</td>
 </tr>
 <tr class="even">
+<td align="left">15370</td>
+<td align="left">flag</td>
+<td align="right">79603</td>
+<td align="right">9308</td>
+<td align="right">20289</td>
+<td align="right">6186</td>
+<td align="right">11.7</td>
+</tr>
+<tr class="odd">
 <td align="left">15897</td>
 <td align="left">sf</td>
 <td align="right">202652</td>
@@ -1664,7 +2018,7 @@ an unannotated patient.</caption>
 <td align="right">39884</td>
 <td align="right">27.9</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">24086</td>
 <td align="left">sf</td>
 <td align="right">283631</td>
@@ -1672,6 +2026,15 @@ an unannotated patient.</caption>
 <td align="right">193311</td>
 <td align="right">48054</td>
 <td align="right">25.0</td>
+</tr>
+<tr class="odd">
+<td align="left">366722</td>
+<td align="left">flag</td>
+<td align="right">241921</td>
+<td align="right">52803</td>
+<td align="right">80513</td>
+<td align="right">27407</td>
+<td align="right">21.8</td>
 </tr>
 <tr class="even">
 <td align="left">5456</td>
@@ -1763,213 +2126,213 @@ restrictions move is read across its row.</caption>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">FOXP3</td>
-<td align="right">0.829</td>
-<td align="right">0.886</td>
-<td align="right">1.000</td>
-<td align="right">0.657</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="left">L1CAM</td>
+<td align="right">0.714</td>
+<td align="right">0.429</td>
+<td align="right">0.833</td>
+<td align="right">0.500</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
-<td align="left">CD4</td>
-<td align="right">0.771</td>
-<td align="right">0.771</td>
-<td align="right">0.486</td>
-<td align="right">0.486</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="left">FOXP3</td>
+<td align="right">0.690</td>
+<td align="right">0.881</td>
+<td align="right">0.952</td>
+<td align="right">0.738</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
 <td align="left">CD8</td>
-<td align="right">0.771</td>
-<td align="right">0.943</td>
-<td align="right">0.829</td>
-<td align="right">0.943</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="right">0.667</td>
+<td align="right">0.929</td>
+<td align="right">0.905</td>
+<td align="right">0.905</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
-<td align="left">L1CAM</td>
-<td align="right">0.714</td>
-<td align="right">0.371</td>
-<td align="right">0.771</td>
-<td align="right">0.371</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="odd">
-<td align="left">SMA</td>
-<td align="right">0.657</td>
-<td align="right">0.886</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="even">
-<td align="left">CD45</td>
-<td align="right">0.600</td>
-<td align="right">0.714</td>
-<td align="right">NA</td>
-<td align="right">NA</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="odd">
-<td align="left">VIMENTIN</td>
-<td align="right">0.600</td>
-<td align="right">0.486</td>
-<td align="right">0.829</td>
-<td align="right">0.771</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="even">
-<td align="left">CD3</td>
-<td align="right">0.543</td>
-<td align="right">0.886</td>
-<td align="right">0.257</td>
-<td align="right">0.257</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="left">CD4</td>
+<td align="right">0.571</td>
+<td align="right">0.571</td>
+<td align="right">0.262</td>
+<td align="right">0.214</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
 <td align="left">CD163</td>
-<td align="right">0.486</td>
-<td align="right">1.000</td>
-<td align="right">0.371</td>
-<td align="right">0.829</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="right">0.476</td>
+<td align="right">0.905</td>
+<td align="right">0.429</td>
+<td align="right">0.738</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
 <td align="left">PDL1</td>
-<td align="right">0.486</td>
-<td align="right">0.657</td>
-<td align="right">0.543</td>
-<td align="right">0.429</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="right">0.476</td>
+<td align="right">0.619</td>
+<td align="right">0.571</td>
+<td align="right">0.524</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
-<td align="left">PD1</td>
-<td align="right">0.395</td>
-<td align="right">0.152</td>
-<td align="right">-0.030</td>
-<td align="right">0.091</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="even">
-<td align="left">CD14</td>
-<td align="right">0.314</td>
-<td align="right">0.314</td>
-<td align="right">0.829</td>
-<td align="right">0.543</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="odd">
-<td align="left">PANCK</td>
-<td align="right">0.200</td>
-<td align="right">0.257</td>
-<td align="right">0.257</td>
-<td align="right">0.143</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-</tr>
-<tr class="even">
 <td align="left">CD56</td>
-<td align="right">-0.029</td>
-<td align="right">-0.029</td>
-<td align="right">-0.314</td>
-<td align="right">0.257</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="right">0.452</td>
+<td align="right">0.452</td>
+<td align="right">0.286</td>
+<td align="right">0.571</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">CD45</td>
+<td align="right">0.429</td>
+<td align="right">0.738</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
-<td align="left">FSP1</td>
-<td align="right">-0.029</td>
-<td align="right">-0.029</td>
-<td align="right">-0.029</td>
-<td align="right">0.600</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="left">CD3</td>
+<td align="right">0.405</td>
+<td align="right">0.762</td>
+<td align="right">0.143</td>
+<td align="right">0.405</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">VIMENTIN</td>
+<td align="right">0.381</td>
+<td align="right">0.524</td>
+<td align="right">0.857</td>
+<td align="right">0.833</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="odd">
+<td align="left">CD14</td>
+<td align="right">0.333</td>
+<td align="right">0.452</td>
+<td align="right">0.643</td>
+<td align="right">0.524</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">PD1</td>
+<td align="right">0.293</td>
+<td align="right">0.073</td>
+<td align="right">-0.122</td>
+<td align="right">0.098</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="odd">
+<td align="left">SMA</td>
+<td align="right">0.048</td>
+<td align="right">0.738</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
 <td align="left">CD74</td>
-<td align="right">-0.200</td>
-<td align="right">-0.086</td>
-<td align="right">0.600</td>
-<td align="right">0.371</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="right">-0.048</td>
+<td align="right">0.214</td>
+<td align="right">0.405</td>
+<td align="right">0.381</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
-<td align="left">ARID1A</td>
-<td align="right">-0.371</td>
-<td align="right">-0.143</td>
-<td align="right">-0.714</td>
-<td align="right">-0.086</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="left">PANCK</td>
+<td align="right">-0.095</td>
+<td align="right">0.190</td>
+<td align="right">0.286</td>
+<td align="right">0.143</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="even">
-<td align="left">P53</td>
-<td align="right">-0.371</td>
-<td align="right">-0.771</td>
-<td align="right">-0.600</td>
-<td align="right">-0.943</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="left">ARID1A</td>
+<td align="right">-0.119</td>
+<td align="right">0.095</td>
+<td align="right">-0.310</td>
+<td align="right">0.310</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
 <td align="left">GZMB</td>
-<td align="right">-0.464</td>
-<td align="right">-0.116</td>
-<td align="right">0.377</td>
-<td align="right">0.145</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
-<td align="right">6</td>
+<td align="right">-0.299</td>
+<td align="right">0.012</td>
+<td align="right">0.311</td>
+<td align="right">0.168</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="even">
+<td align="left">FSP1</td>
+<td align="right">-0.310</td>
+<td align="right">0.095</td>
+<td align="right">0.024</td>
+<td align="right">0.238</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+</tr>
+<tr class="odd">
+<td align="left">P53</td>
+<td align="right">-0.595</td>
+<td align="right">-0.357</td>
+<td align="right">-0.143</td>
+<td align="right">-0.381</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">8</td>
 </tr>
 </tbody>
 </table>
@@ -2008,6 +2371,43 @@ which is itself the result. The dashed line is <code>rho = 0</code>.</p>
          y = NULL)
 }</code></pre>
 <p><img src="figure/molecular_massimo1.Rmd/rna-denominator-ladder-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-denominator-ladder-1">
+Past versions of rna-denominator-ladder-1.png
+</button>
+</p>
+<div id="fig-rna-denominator-ladder-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/figure/molecular_massimo1.Rmd/rna-denominator-ladder-1.png" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>The scatter for <code>tumor_annotation</code> — the denominator that
 matches the sequenced material most closely — drawn exactly as the
 whole-slide figures above, so the two are read side by side:</p>
@@ -2016,10 +2416,84 @@ if (nrow(tumor_ann_paired) &gt; 0)
   plot_rna_concordance(tumor_ann_paired, clin, rna_primary_markers,
                        &quot;Tumour cells inside the annotation: marker+ fraction vs bulk-RNA expression&quot;)</code></pre>
 <p><img src="figure/molecular_massimo1.Rmd/rna-denominator-scatter-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-denominator-scatter-1">
+Past versions of rna-denominator-scatter-1.png
+</button>
+</p>
+<div id="fig-rna-denominator-scatter-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/figure/molecular_massimo1.Rmd/rna-denominator-scatter-1.png" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <pre class="r"><code>if (nrow(tumor_ann_paired) &gt; 0)
   plot_rna_concordance(tumor_ann_paired, clin, setdiff(ihc_markers, rna_primary_markers),
                        &quot;Tumour cells inside the annotation: remaining markers&quot;)</code></pre>
 <p><img src="figure/molecular_massimo1.Rmd/rna-denominator-scatter-rest-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-rna-denominator-scatter-rest-1">
+Past versions of rna-denominator-scatter-rest-1.png
+</button>
+</p>
+<div id="fig-rna-denominator-scatter-rest-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/figure/molecular_massimo1.Rmd/rna-denominator-scatter-rest-1.png" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="notes" class="section level3">
@@ -2078,9 +2552,9 @@ table:</p>
 boundary). Each cell carries a <code>lineage</code> =
 <code>phenotype_clean</code> collapsed via the
 <code>phenotype_lineage</code> table.</li>
-<li><code>counts_data</code> — DESeq2-normalized bulk RNA, one row per
-sample, one column per gene, keyed by <code>Sample</code> (a CRF
-id).</li>
+<li><code>expr_scales</code> — the bulk RNA on its three scales (part 1,
+<em>The three expression scales</em>); the deconvolution reads TPM when
+it exists, else the DESeq2-normalised scale.</li>
 <li><code>crf2slide</code> and <code>clin</code> — the id bridge and the
 hot/cold call, both built once in <strong>Shared keys</strong> above and
 only read here.</li>
@@ -2099,23 +2573,27 @@ constant).</p>
 </div>
 <div id="bulk-rna-expression-matrix" class="section level3">
 <h3>Bulk-RNA expression matrix</h3>
-<p><code>expr_mat</code> is <code>counts_data</code> (sample by gene)
-transposed to gene by sample, cast double, with gene symbols as row
-names:</p>
-<pre><code>expr_mat[gene, sample] = counts_data[sample, gene]   (transpose)</code></pre>
-<pre class="r"><code>expr_mat &lt;- counts_data |&gt;
-  column_to_rownames(&quot;Sample&quot;) |&gt;
-  as.matrix() |&gt;
-  t()
-
+<p><code>expr_mat</code> is gene by sample, cast double, gene symbols as
+row names, on the TPM scale when gene lengths were found and on the
+DESeq2-normalised scale otherwise. <code>EXPR_SCALE</code> records
+which; set it by hand to force one. This is the one place the scale is
+not cosmetic: quanTIseq, EPIC and CIBERSORT were fit on TPM, and the
+length correction changes a long gene’s share of a sample. MCP-counter
+and xCell rank genes within a sample and are indifferent to it.</p>
+<pre class="r"><code>EXPR_SCALE &lt;- if (!is.null(expr_scales$tpm)) &quot;tpm&quot; else &quot;normalized&quot;
+expr_mat   &lt;- expr_scales[[EXPR_SCALE]]
 storage.mode(expr_mat) &lt;- &quot;double&quot;
-cat(&quot;expression matrix:&quot;, nrow(expr_mat), &quot;genes x&quot;, ncol(expr_mat), &quot;samples\n&quot;)</code></pre>
-<pre><code>expression matrix: 29744 genes x 6 samples</code></pre>
+cat(&quot;expression matrix:&quot;, nrow(expr_mat), &quot;genes x&quot;, ncol(expr_mat), &quot;samples&quot;,
+    &quot;| scale:&quot;, EXPR_SCALE, &quot;| gene lengths from:&quot;, expr_scales$length_source, &quot;\n&quot;)</code></pre>
+<pre><code>expression matrix: 29744 genes x 8 samples | scale: normalized | gene lengths from: none </code></pre>
 <blockquote>
-<p>Caveat: quanTIseq/EPIC are designed for TPM. DESeq2-normalized counts
-are used here as a pragmatic proxy; absolute fractions are therefore
-approximate, but the <em>cross-patient ranking</em> (what the Spearman
-validation uses) is robust to this.</p>
+<p>When <code>EXPR_SCALE</code> is <code>normalized</code>, no gene
+lengths were found: absolute fractions from the TPM-trained methods are
+then approximate, though the <em>cross-patient ranking</em> (what the
+Spearman validation uses) is robust to this. To switch to TPM, write
+<code>data/gene_lengths.tsv</code> (columns <code>gene</code>,
+<code>length</code> in bp, from the GTF the counts were made against)
+beside <code>counts.RData</code> and re-knit; nothing else changes.</p>
 </blockquote>
 </div>
 <div id="method-configuration" class="section level3">
@@ -2133,9 +2611,6 @@ skipped.</li>
 <code>CIBERSORT.R</code> + <code>LM22.txt</code>, paths from env vars
 <code>CIBERSORT_BINARY</code> / <code>CIBERSORT_MAT</code>. Run iff both
 are set and the files exist.</li>
-<li>BayesPrism — needs an scRNA-seq reference at
-<code>data/sc_reference.rds</code> via <code>omnideconv</code>. Run iff
-present.</li>
 </ul>
 <pre class="r"><code># First-generation methods that run on the bulk matrix with no extra artifacts.
 methods_free &lt;- c(&quot;quantiseq&quot;, &quot;epic&quot;, &quot;mcp_counter&quot;, &quot;xcell&quot;, &quot;abis&quot;)
@@ -2150,11 +2625,7 @@ methods_indication &lt;- if (!is.null(INDICATIONS)) c(&quot;timer&quot;, &quot;c
 # and LM22.txt, and point these at them (env vars keep the paths out of the repo).
 # Absent -&gt; CIBERSORT and CIBERSORT (abs.) are skipped.
 CIBERSORT_BINARY &lt;- Sys.getenv(&quot;CIBERSORT_BINARY&quot;, unset = NA)  # path to CIBERSORT.R
-CIBERSORT_MAT    &lt;- Sys.getenv(&quot;CIBERSORT_MAT&quot;,    unset = NA)  # path to LM22.txt
-
-# BayesPrism (second-generation) needs a cell-type-annotated scRNA-seq reference,
-# read from here() below. Absent -&gt; BayesPrism is skipped.
-SC_REFERENCE &lt;- here(&quot;data&quot;, &quot;sc_reference.rds&quot;)</code></pre>
+CIBERSORT_MAT    &lt;- Sys.getenv(&quot;CIBERSORT_MAT&quot;,    unset = NA)  # path to LM22.txt</code></pre>
 </div>
 <div id="run-deconvolution-methods" class="section level3">
 <h3>Run deconvolution methods</h3>
@@ -2218,61 +2689,452 @@ if (requireNamespace(&quot;immunedeconv&quot;, quietly = TRUE)) {
       &quot;| deconvolution rows:&quot;, if (is.null(deconv_long)) 0L else nrow(deconv_long),
       &quot;|&quot;, n_unmapped, &quot;RNA sample(s) had no slide crosswalk\n&quot;)
 } else {
-  message(&quot;immunedeconv not installed — install it to run this report.&quot;)
+  # cat(), not message(): message=FALSE on this page swallows a message, and the
+  # rendered report then shows a chunk with no output — which is exactly how the
+  # deconvolution section (and Figure 5c downstream) went missing without anyone
+  # noticing. A visible line names the fix.
+  cat(&quot;**immunedeconv not installed — deconvolution skipped, and&quot;,
+      &quot;`output/paired_deconv.rds` not written (Figure 5c depends on it).**&quot;,
+      &quot;Install it with `remotes::install_github(\&quot;omnideconv/immunedeconv\&quot;)`&quot;,
+      &quot;and re-knit.\n&quot;)
 }</code></pre>
+<pre><code>methods: 3 ok of 5 attempted [ abis, mcp_counter, quantiseq ] | deconvolution rows: 312 | 0 RNA sample(s) had no slide crosswalk</code></pre>
 </div>
-<div id="bayesprism-single-cell-reference-scaffolded"
-class="section level3">
-<h3>BayesPrism (single-cell reference; scaffolded)</h3>
-<p><code>immunedeconv::deconvolute()</code> covers only bulk-signature
-methods. BayesPrism is a second-generation method (fractions from a
-cell-type-annotated scRNA-seq reference, via <code>omnideconv</code>);
-this project ships no reference, so the block is a ready-to-run scaffold
-that activates only when <code>data/sc_reference.rds</code> is present
-(an <code>.rds</code> list: <code>counts</code> = gene by cell,
-<code>labels</code> = per-cell type, <code>batch</code> = per-cell
-sample id) and skips cleanly otherwise. Its output is mapped to
-(patient_id, lineage) by the same <code>norm_id</code> -&gt;
-<code>crf2slide</code> / <code>deconv_to_lineage</code> pipeline as the
-other methods, then row-bound into <code>deconv_long</code>. Verify the
-<code>omnideconv</code> argument names against your installed version
-before trusting the numbers.</p>
-<pre class="r"><code>bayes_long &lt;- NULL
-if (file.exists(SC_REFERENCE) &amp;&amp; requireNamespace(&quot;omnideconv&quot;, quietly = TRUE)) {
-  ref &lt;- readRDS(SC_REFERENCE)
-  bayes_long &lt;- tryCatch({
-    # build_model(): learn the reference; deconvolute(): apply it to the bulk matrix.
-    model &lt;- omnideconv::build_model(
-      single_cell_object    = ref$counts,
-      cell_type_annotations = ref$labels,
-      batch_ids             = ref$batch,
-      method                = &quot;bayesprism&quot;,
-      bulk_gene_expression  = expr_mat)
-    frac &lt;- omnideconv::deconvolute(
-      bulk_gene_expression  = expr_mat,
-      model                 = model,
-      single_cell_object    = ref$counts,
-      cell_type_annotations = ref$labels,
-      batch_ids             = ref$batch,
-      method                = &quot;bayesprism&quot;)
-    as.data.frame(frac) |&gt;
-      tibble::rownames_to_column(&quot;sample&quot;) |&gt;            # omnideconv returns sample x cell_type
-      pivot_longer(-sample, names_to = &quot;cell_type&quot;, values_to = &quot;score&quot;) |&gt;
-      mutate(method = &quot;bayesprism&quot;)
-  }, error = function(e) { message(&quot;BayesPrism failed: &quot;, conditionMessage(e)); NULL })
-} else {
-  message(&quot;BayesPrism skipped — needs data/sc_reference.rds + the omnideconv package.&quot;)
-}
-
-if (!is.null(bayes_long) &amp;&amp; !is.null(deconv_long)) {
-  bayes_long &lt;- bayes_long |&gt;
+<div id="cibersortx-container-run-outside-r" class="section level3">
+<h3>CIBERSORTx (container; run outside R)</h3>
+<p>CIBERSORTx is CIBERSORT’s successor and ships only as a Docker /
+Singularity image, so <code>immunedeconv</code> cannot call it. The page
+hands it the SAME <code>expr_mat</code> (written to
+<code>data/cibersortx/input/mixture.txt</code>, <code>GeneSymbol</code>
+first, one column per sample, unquoted) and, on the next knit, reads
+what <code>code/cibersortx_fractions.sh</code> left under
+<code>data/cibersortx/output/</code>: the B-mode-corrected
+<code>*_Adjusted.txt</code> when present, else
+<code>*_Results.txt</code>, with the per-sample <code>P-value</code> /
+<code>Correlation</code> / <code>RMSE</code> columns dropped. Rows go
+through the same <code>norm_id</code> -&gt; <code>crf2slide</code> -&gt;
+<code>deconv_to_lineage</code> pipeline as every other method (LM22’s
+three <code>T cells CD4 *</code> subsets sum into CD4T, the two
+<code>NK cells *</code> into NK, <code>regulatory (Tregs)</code> into
+Treg; follicular helper and gamma delta map to nothing) and are appended
+to <code>deconv_long</code> as method <code>cibersortx</code>, with a
+row in the status table. No output yet: the status row says so and
+nothing else changes.</p>
+<pre class="r"><code>cbx_in  &lt;- here(&quot;data&quot;, &quot;cibersortx&quot;, &quot;input&quot;, &quot;mixture.txt&quot;)
+cbx_out &lt;- here(&quot;data&quot;, &quot;cibersortx&quot;, &quot;output&quot;)
+write_cibersortx_mixture(expr_mat, cbx_in)
+cbx &lt;- read_cibersortx_results(cbx_out)
+if (nrow(cbx)) {
+  cbx &lt;- cbx |&gt;
     mutate(crf_id     = norm_id(sample),
            patient_id = unname(crf2slide[crf_id]),
            lineage    = deconv_to_lineage(cell_type)) |&gt;
     filter(!is.na(patient_id))
-  deconv_long &lt;- bind_rows(deconv_long, bayes_long)
-  cat(&quot;BayesPrism added:&quot;, nrow(bayes_long), &quot;rows\n&quot;)
+  deconv_long   &lt;- bind_rows(deconv_long, select(cbx, -source_file))
+  deconv_status &lt;- bind_rows(deconv_status, tibble::tibble(
+    method = &quot;cibersortx&quot;, status = &quot;ok&quot;,
+    detail = sprintf(&quot;%d cell types from %s&quot;, dplyr::n_distinct(cbx$cell_type),
+                     cbx$source_file[1])))
+  cat(&quot;cibersortx:&quot;, nrow(cbx), &quot;rows read from&quot;, cbx$source_file[1], &quot;\n&quot;)
+} else {
+  deconv_status &lt;- bind_rows(deconv_status, tibble::tibble(
+    method = &quot;cibersortx&quot;, status = &quot;not run&quot;,
+    detail = paste(&quot;no *_Results.txt under data/cibersortx/output/; the mixture is&quot;,
+                   &quot;at data/cibersortx/input/mixture.txt — run&quot;,
+                   &quot;code/cibersortx_fractions.sh and re-knit&quot;)))
+  cat(&quot;cibersortx: no output yet; mixture exported to&quot;, cbx_in, &quot;\n&quot;)
 }</code></pre>
+<pre><code>cibersortx: 132 rows read from CIBERSORTx_Adjusted.txt </code></pre>
+<table>
+<caption>Deconvolution method run status. A FAILED row is why that
+method is absent downstream; the <code>detail</code> is its error
+message.</caption>
+<thead>
+<tr class="header">
+<th align="left">method</th>
+<th align="left">status</th>
+<th align="left">detail</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">ok</td>
+<td align="left">11 cell types</td>
+</tr>
+<tr class="even">
+<td align="left">epic</td>
+<td align="left">FAILED</td>
+<td align="left">no item called “package:EPIC” on the search list</td>
+</tr>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="left">ok</td>
+<td align="left">11 cell types</td>
+</tr>
+<tr class="even">
+<td align="left">xcell</td>
+<td align="left">FAILED</td>
+<td align="left">object ‘xCell.data’ not found</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">ok</td>
+<td align="left">17 cell types</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">ok</td>
+<td align="left">22 cell types from CIBERSORTx_Adjusted.txt</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="every-cell-type-each-method-returned-and-where-it-went"
+class="section level3">
+<h3>Every cell type each method returned, and where it went</h3>
+<p><code>deconv_to_lineage()</code> is a pattern match on the label, not
+a per-method table, so the only way to audit it is to print what each
+method actually emitted next to the lineage it was assigned. One row per
+(method, cell type); <code>(unmapped)</code> means the label matched no
+rule and the cell type is dropped before the comparison. Read down each
+method for a label that was pulled into a lineage it does not belong to,
+or one that should have mapped and did not. The same table is written to
+<code>output/deconv_celltype_map.csv</code>.</p>
+<pre class="r"><code>if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
+  celltype_map &lt;- deconv_long |&gt;
+    distinct(method, cell_type, lineage) |&gt;
+    mutate(lineage = tidyr::replace_na(lineage, &quot;(unmapped)&quot;),
+           lineage = factor(lineage, levels = c(comparable_lineages, &quot;(unmapped)&quot;))) |&gt;
+    arrange(method, lineage, cell_type)
+  dir.create(here(&quot;output&quot;), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(celltype_map, here(&quot;output&quot;, &quot;deconv_celltype_map.csv&quot;))
+  cat(&quot;cell types:&quot;, nrow(celltype_map), &quot;across&quot;, dplyr::n_distinct(celltype_map$method),
+      &quot;methods;&quot;, sum(celltype_map$lineage != &quot;(unmapped)&quot;), &quot;mapped to a lineage\n&quot;)
+  knitr::kable(celltype_map,
+               caption = &quot;Every deconvolution cell type, by method, and the lineage deconv_to_lineage() assigned it.&quot;)
+} else {
+  cat(&quot;_No deconvolution rows yet, so nothing to map._\n&quot;)
+}</code></pre>
+<pre><code>cell types: 61 across 4 methods; 18 mapped to a lineage</code></pre>
+<table>
+<caption>Every deconvolution cell type, by method, and the lineage
+deconv_to_lineage() assigned it.</caption>
+<thead>
+<tr class="header">
+<th align="left">method</th>
+<th align="left">cell_type</th>
+<th align="left">lineage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">T cell CD8+ memory</td>
+<td align="left">CD8T</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">T cell CD8+ naive</td>
+<td align="left">CD8T</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">T cell CD4+ memory</td>
+<td align="left">CD4T</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">T cell CD4+ naive</td>
+<td align="left">CD4T</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">NK cell</td>
+<td align="left">NK</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">B cell memory</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">B cell naive</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">B cell plasma immature</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">Basophil</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">Monocyte conventional</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">Monocyte non-conventional</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">Myeloid dendritic cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">Neutrophil</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">Plasmacytoid dendritic cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">T cell MAIT</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="left">T cell gamma delta VD2</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="left">T cell gamma delta non-VD2</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">T cells CD8</td>
+<td align="left">CD8T</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">T cells CD4 memory activated</td>
+<td align="left">CD4T</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">T cells CD4 memory resting</td>
+<td align="left">CD4T</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">T cells CD4 naive</td>
+<td align="left">CD4T</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">T cells regulatory (Tregs)</td>
+<td align="left">Treg</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">NK cells activated</td>
+<td align="left">NK</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">NK cells resting</td>
+<td align="left">NK</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">B cells memory</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">B cells naive</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">Dendritic cells activated</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">Dendritic cells resting</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">Eosinophils</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">Macrophages M0</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">Macrophages M1</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">Macrophages M2</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">Mast cells activated</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">Mast cells resting</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">Monocytes</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">Neutrophils</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">Plasma cells</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">cibersortx</td>
+<td align="left">T cells follicular helper</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="left">T cells gamma delta</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">mcp_counter</td>
+<td align="left">T cell CD8+</td>
+<td align="left">CD8T</td>
+</tr>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="left">NK cell</td>
+<td align="left">NK</td>
+</tr>
+<tr class="even">
+<td align="left">mcp_counter</td>
+<td align="left">B cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="left">Cancer associated fibroblast</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">mcp_counter</td>
+<td align="left">Endothelial cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="left">Macrophage/Monocyte</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">mcp_counter</td>
+<td align="left">Monocyte</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="left">Myeloid dendritic cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">mcp_counter</td>
+<td align="left">Neutrophil</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="left">T cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">mcp_counter</td>
+<td align="left">cytotoxicity score</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">T cell CD8+</td>
+<td align="left">CD8T</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="left">T cell CD4+ (non-regulatory)</td>
+<td align="left">CD4T</td>
+</tr>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">T cell regulatory (Tregs)</td>
+<td align="left">Treg</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="left">NK cell</td>
+<td align="left">NK</td>
+</tr>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">B cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="left">Macrophage M1</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">Macrophage M2</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="left">Monocyte</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">Myeloid dendritic cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="left">Neutrophil</td>
+<td align="left">(unmapped)</td>
+</tr>
+<tr class="odd">
+<td align="left">quantiseq</td>
+<td align="left">uncharacterized cell</td>
+<td align="left">(unmapped)</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="ihc-lineage-fractions-reference" class="section level3">
 <h3>IHC lineage fractions (reference)</h3>
@@ -2302,7 +3164,7 @@ ihc_lin &lt;- expand.grid(patient_id = unique(slide_key(ihc_data$patient_id)),
   mutate(ihc_frac = ifelse(is.na(ihc_frac), 0, ihc_frac))
 
 cat(&quot;IHC patients with lineage fractions:&quot;, dplyr::n_distinct(ihc_lin$patient_id), &quot;\n&quot;)</code></pre>
-<pre><code>IHC patients with lineage fractions: 6 </code></pre>
+<pre><code>IHC patients with lineage fractions: 8 </code></pre>
 </div>
 <div id="method-vs-ihc-per-lineage-concordance" class="section level3">
 <h3>Method vs IHC — per-lineage concordance</h3>
@@ -2325,6 +3187,7 @@ if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
     filter(is.finite(score), is.finite(ihc_frac))
   cat(&quot;deconv_paired (method x lineage x patient) rows:&quot;, nrow(deconv_paired), &quot;\n&quot;)
 }</code></pre>
+<pre><code>deconv_paired (method x lineage x patient) rows: 96 </code></pre>
 <p>Per method and lineage, concordance is the cross-patient Spearman
 correlation between the method’s score and the IHC fraction; method
 ranking averages those across lineages:</p>
@@ -2349,42 +3212,238 @@ where: n_lineages = the number of lineages with a finite Spearman value.</code><
   knitr::kable(method_rank, digits = 3,
                caption = &quot;Method ranking by mean Spearman across lineages&quot;)
 }</code></pre>
+<table>
+<caption>Method ranking by mean Spearman across lineages</caption>
+<thead>
+<tr class="header">
+<th align="left">method</th>
+<th align="right">mean_rho</th>
+<th align="right">n_lineages</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="right">0.524</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">abis</td>
+<td align="right">0.278</td>
+<td align="right">3</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="right">0.122</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="right">-0.037</td>
+<td align="right">4</td>
+</tr>
+</tbody>
+</table>
 <p>Scatter of <code>ihc_frac</code> (x) vs <code>score</code> (y),
-faceted method by lineage. The x axis is shared across the whole grid
-(one unit, IHC fraction of all cells); the y axis is shared along each
-method’s row and free BETWEEN methods, because deconvolution scores are
-not on a common scale from one method to the next.</p>
+<strong>one figure per method</strong>, panels by lineage, in the
+ranking’s order so the best-agreeing method comes first. Within a figure
+the four panels share both axes: x is the IHC fraction on 0..1 and y is
+that method’s score, so the spread across lineages reads on one scale.
+Between figures y is free by construction, because deconvolution scores
+are not on a common scale from one method to the next. Each strip
+carries that lineage’s Spearman rho from the table above, so the picture
+and the number sit together.</p>
 <pre class="r"><code>if (!is.null(deconv_paired) &amp;&amp; nrow(deconv_paired) &gt; 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
-  # cloud rather than as a middling overall rho.
+  # cloud rather than as a middling overall rho. left_join: a patient with no
+  # immuno-phenotype stays in the plot (grey) rather than shrinking the fit.
   df &lt;- deconv_paired |&gt;
     left_join(clin, by = &quot;patient_id&quot;) |&gt;
-    mutate(immuno_phe = hotcold_order(immuno_phe))
-  ggplot(df, aes(ihc_frac, score)) +
-    geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
-    geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-    facet_grid(method ~ lineage, scales = &quot;free_y&quot;) +
-    scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
-                        na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
-    # `free_y`, NOT `free`, and in facet_grid that distinction is the whole design.
-    # x is `ihc_frac`: one unit, the same meaning in all twenty panels, so a free x
-    # gave every panel its own slice of 0..1 and the same IHC value landed at a
-    # different place in every row — the one axis that WAS comparable was the one
-    # being rescaled. facet_grid&#39;s `free_y` frees y by ROW, which is exactly the
-    # split the data has: the methods&#39; scores are on genuinely incomparable scales,
-    # so a y shared between methods would be a lie, while a y shared across lineages
-    # within one method is the comparison a reader actually wants.
-    #
-    # theme_paper_panels() stays: twenty small panels edge to edge still read as one
-    # continuous field, and the y axis still changes from row to row, so the hairline
-    # border and the wider gutter are still saying something true.
-    theme_paper_panels() +
-    labs(title = &quot;IHC lineage fraction vs bulk-RNA deconvolution score&quot;,
-         subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients; x is shared across the grid, y is shared within a method row&quot;,
-         x = &quot;IHC fraction of all cells (unitless, 0-1)&quot;,
-         y = &quot;Deconvolution score (unitless)&quot;)
+    mutate(immuno_phe = hotcold_order(immuno_phe),
+           lineage    = factor(lineage, levels = comparable_lineages))
+
+  plot_deconv_method &lt;- function(m) {
+    d   &lt;- filter(df, method == m)
+    rho &lt;- filter(deconv_summary, method == m)
+    lab &lt;- stats::setNames(
+      sprintf(&quot;%s (rho = %s)&quot;, rho$lineage,
+              ifelse(is.finite(rho$rho), formatC(rho$rho, format = &quot;f&quot;, digits = 2), &quot;NA&quot;)),
+      as.character(rho$lineage))
+    ggplot(d, aes(ihc_frac, score)) +
+      geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
+      geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
+      # Shared x AND y within the method: the same IHC value lands in the same place
+      # in every panel, and the lineages&#39; scores are compared on the method&#39;s own scale.
+      facet_wrap(~ lineage, nrow = 1,
+                 labeller = as_labeller(function(x) ifelse(x %in% names(lab), lab[x], x))) +
+      scale_colour_manual(values = hotcold_cols(levels(d$immuno_phe)),
+                          na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
+      # Three x ticks and a wider gutter: with four panels in a row, the default
+      # 0.00 / 1.00 labels of neighbouring panels ran into each other.
+      scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1)) +
+      theme(panel.spacing.x = unit(1.2, &quot;lines&quot;)) +
+      labs(title = paste0(method_label(m), &quot;: IHC lineage fraction vs deconvolution score&quot;),
+           subtitle = with_n(paste(&quot;points coloured by the clinical immuno-phenotype;&quot;,
+                                   &quot;the fit is over all patients; axes shared across the panels&quot;),
+                             d$patient_id, &quot;patients&quot;),
+           x = &quot;IHC fraction of all cells (unitless, 0-1)&quot;,
+           y = paste(method_label(m), &quot;score (unitless)&quot;))
+  }
+  for (m in method_rank$method) print(plot_deconv_method(m))
 }</code></pre>
+<p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-1">
+Past versions of deconv-concordance-plot-1.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-1.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-2">
+Past versions of deconv-concordance-plot-2.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-2" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-2.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-3">
+Past versions of deconv-concordance-plot-3.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-3" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-3.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-4">
+Past versions of deconv-concordance-plot-4.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-4" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-4.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="cross-method-agreement-methods-vs-each-other-and-vs-ihc"
 class="section level3">
@@ -2441,6 +3500,55 @@ matter.</p>
     theme_paper_tile() +
     theme(axis.text.x = element_text(angle = 40, hjust = 1))
 }</code></pre>
+<p><img src="figure/molecular_massimo1.Rmd/deconv-agreement-heatmap-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-agreement-heatmap-1">
+Past versions of deconv-agreement-heatmap-1.png
+</button>
+</p>
+<div id="fig-deconv-agreement-heatmap-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/589ae012a71151f76462dca60dda305150b74f0e/docs/figure/molecular_massimo1.Rmd/deconv-agreement-heatmap-1.png" target="_blank">589ae01</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/molecular_massimo1.Rmd/deconv-agreement-heatmap-1.png" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>Per source:</p>
 <pre><code>mean_rho_vs_others(a) = average of mean_rho(a, b) over all other sources b
 rho_vs_IHC(a)         = mean_rho(a, IHC)</code></pre>
@@ -2461,6 +3569,45 @@ and IHC diverge.</p>
     knitr::kable(digits = 3,
       caption = &quot;Per-source agreement with the other sources vs with IHC alone. A high vs-others but low vs-IHC source (or the reverse) flags where methods and IHC diverge.&quot;)
 }</code></pre>
+<table>
+<caption>Per-source agreement with the other sources vs with IHC alone.
+A high vs-others but low vs-IHC source (or the reverse) flags where
+methods and IHC diverge.</caption>
+<thead>
+<tr class="header">
+<th align="left">source</th>
+<th align="right">mean_rho_vs_others</th>
+<th align="right">rho_vs_IHC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">mcp_counter</td>
+<td align="right">0.487</td>
+<td align="right">0.524</td>
+</tr>
+<tr class="even">
+<td align="left">IHC</td>
+<td align="right">0.222</td>
+<td align="right">NA</td>
+</tr>
+<tr class="odd">
+<td align="left">cibersortx</td>
+<td align="right">0.217</td>
+<td align="right">0.122</td>
+</tr>
+<tr class="even">
+<td align="left">quantiseq</td>
+<td align="right">0.198</td>
+<td align="right">-0.037</td>
+</tr>
+<tr class="odd">
+<td align="left">abis</td>
+<td align="right">0.186</td>
+<td align="right">0.278</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="notes-1" class="section level3">
 <h3>Notes</h3>
@@ -2481,10 +3628,14 @@ non-constant vectors); sparser method-lineage or source pairs return
 averages over the finite lineages only. With this cohort’s size the
 agreement matrix is descriptive — read it for <em>pattern</em>, not
 significance.</li>
-<li>The CIBERSORT and BayesPrism blocks are scaffolds — verify
-<code>set_cibersort_*()</code> and
-<code>omnideconv::build_model()/deconvolute()</code> argument names
-against your installed versions before trusting their output.</li>
+<li>The CIBERSORT block has not been exercised on a licensed
+<code>CIBERSORT.R</code> yet — check the status table’s row for it the
+first time it runs.</li>
+<li>The deconvolution input scale is <code>EXPR_SCALE</code> (TPM when
+gene lengths exist, else DESeq2-normalised); part 1’s per-scale rho
+table shows how much the marker-level ranking depends on that choice.
+CIBERSORTx is read back from <code>data/cibersortx/output/</code> and is
+only as current as the last container run.</li>
 </ul>
 </div>
 </div>
@@ -3378,32 +4529,75 @@ other attached packages:
 [23] dplyr_1.2.1                 workflowr_1.7.2            
 
 loaded via a namespace (and not attached):
- [1] tidyselect_1.2.1        farver_2.1.2            S7_0.2.2               
- [4] bitops_1.1-0            fastmap_1.2.0           RCurl_1.98-1.20        
- [7] promises_1.5.0          digest_0.6.39           lifecycle_1.0.5        
-[10] processx_3.9.0          magrittr_2.0.5          compiler_4.3.2         
-[13] rlang_1.2.0             sass_0.4.10             tools_4.3.2            
-[16] yaml_2.3.12             knitr_1.51              labeling_0.4.3         
-[19] S4Arrays_1.2.1          classInt_0.4-11         DelayedArray_0.28.0    
-[22] RColorBrewer_1.1-3      BiocParallel_1.36.0     abind_1.4-8            
-[25] KernSmooth_2.23-27      withr_3.0.3             grid_4.3.2             
-[28] git2r_0.33.0            e1071_1.7-17            scales_1.4.0           
-[31] cli_3.6.6               rmarkdown_2.31          crayon_1.5.3           
-[34] generics_0.1.4          otel_0.2.0              rstudioapi_0.15.0      
-[37] httr_1.4.7              tzdb_0.5.0              DBI_1.3.0              
-[40] cachem_1.1.0            proxy_0.4-29            zlibbioc_1.48.2        
-[43] parallel_4.3.2          cellranger_1.1.0        XVector_0.42.0         
-[46] vctrs_0.7.3             Matrix_1.6-5            jsonlite_2.0.0         
-[49] callr_3.7.6             hms_1.1.4               locfit_1.5-9.12        
-[52] jquerylib_0.1.4         units_1.0-1             glue_1.8.1             
-[55] codetools_0.2-20        ps_1.9.3                stringi_1.8.7          
-[58] gtable_0.3.6            later_1.4.8             pillar_1.11.1          
-[61] htmltools_0.5.9         GenomeInfoDbData_1.2.11 R6_2.6.1               
-[64] rprojroot_2.1.1         evaluate_1.0.5          lattice_0.23-1         
-[67] renv_1.2.3              httpuv_1.6.12           bslib_0.9.0            
-[70] class_7.3-24            Rcpp_1.1.1-1.1          SparseArray_1.2.4      
-[73] whisker_0.4.1           xfun_0.58               getPass_0.2-4          
-[76] pkgconfig_2.0.3        </code></pre>
+  [1] splines_4.3.2               later_1.4.8                
+  [3] bitops_1.1-0                filelock_1.0.3             
+  [5] cellranger_1.1.0            preprocessCore_1.62.1      
+  [7] graph_1.78.0                XML_3.99-0.24              
+  [9] lifecycle_1.0.5             edgeR_3.42.4               
+ [11] rprojroot_2.1.1             vroom_1.7.1                
+ [13] processx_3.9.0              lattice_0.23-1             
+ [15] MASS_7.3-60.0.1             magrittr_2.0.5             
+ [17] limma_3.56.2                sass_0.4.10                
+ [19] rmarkdown_2.31              jquerylib_0.1.4            
+ [21] yaml_2.3.12                 httpuv_1.6.12              
+ [23] otel_0.2.0                  DBI_1.3.0                  
+ [25] RColorBrewer_1.1-3          abind_1.4-8                
+ [27] zlibbioc_1.48.2             quadprog_1.5-8             
+ [29] RCurl_1.98-1.20             pracma_2.4.6               
+ [31] rappdirs_0.3.3              git2r_0.33.0               
+ [33] sva_3.50.0                  GenomeInfoDbData_1.2.11    
+ [35] data.tree_1.2.0             irlba_2.3.7                
+ [37] genefilter_1.82.1           GSVA_1.48.3                
+ [39] units_1.0-1                 xCell_1.1.0                
+ [41] annotate_1.78.0             MCPcounter_1.2.0           
+ [43] DelayedMatrixStats_1.22.6   codetools_0.2-20           
+ [45] DelayedArray_0.28.0         xml2_1.6.0                 
+ [47] tidyselect_1.2.1            farver_2.1.2               
+ [49] ScaledMatrix_1.8.1          EPIC_1.1.7                 
+ [51] BiocFileCache_2.8.0         jsonlite_2.0.0             
+ [53] e1071_1.7-17                survival_3.8-11            
+ [55] quantiseqr_1.8.0            tools_4.3.2                
+ [57] progress_1.2.3              Rcpp_1.1.1-1.1             
+ [59] glue_1.8.1                  SparseArray_1.2.4          
+ [61] xfun_0.58                   mgcv_1.9-1                 
+ [63] HDF5Array_1.28.1            withr_3.0.3                
+ [65] ComICS_1.0.4                BiocManager_1.30.27        
+ [67] fastmap_1.2.0               rhdf5filters_1.12.1        
+ [69] rsvd_1.0.5                  callr_3.7.6                
+ [71] digest_0.6.39               R6_2.6.1                   
+ [73] lpSolve_5.6.23              biomaRt_2.56.1             
+ [75] mMCPcounter_1.1.0           RSQLite_3.53.3             
+ [77] generics_0.1.4              renv_1.2.3                 
+ [79] class_7.3-24                prettyunits_1.2.0          
+ [81] httr_1.4.7                  S4Arrays_1.2.1             
+ [83] whisker_0.4.1               pkgconfig_2.0.3            
+ [85] gtable_0.3.6                blob_1.3.0                 
+ [87] S7_0.2.2                    SingleCellExperiment_1.22.0
+ [89] XVector_0.42.0              htmltools_0.5.9            
+ [91] GSEABase_1.62.0             scales_1.4.0               
+ [93] png_0.1-9                   knitr_1.51                 
+ [95] rstudioapi_0.15.0           tzdb_0.5.0                 
+ [97] nlme_3.1-171                curl_7.1.0                 
+ [99] proxy_0.4-29                cachem_1.1.0               
+[101] rhdf5_2.44.0                testit_1.1                 
+[103] immunedeconv_2.1.4          KernSmooth_2.23-27         
+[105] parallel_4.3.2              AnnotationDbi_1.62.2       
+[107] pillar_1.11.1               grid_4.3.2                 
+[109] vctrs_0.7.3                 promises_1.5.0             
+[111] BiocSingular_1.16.0         dbplyr_2.6.0               
+[113] beachmat_2.16.0             xtable_1.8-8               
+[115] evaluate_1.0.5              cli_3.6.6                  
+[117] locfit_1.5-9.12             compiler_4.3.2             
+[119] rlang_1.3.0                 crayon_1.5.3               
+[121] labeling_0.4.3              classInt_0.4-11            
+[123] ps_1.9.3                    getPass_0.2-4              
+[125] stringi_1.8.7               BiocParallel_1.36.0        
+[127] Biostrings_2.68.1           limSolve_2.0.3             
+[129] Matrix_1.6-5                hms_1.1.4                  
+[131] sparseMatrixStats_1.12.2    bit64_4.8.6                
+[133] Rhdf5lib_1.22.1             KEGGREST_1.40.1            
+[135] memoise_2.0.1               bslib_0.9.0                
+[137] bit_4.6.0                  </code></pre>
 </div>
 </div>
 </div>

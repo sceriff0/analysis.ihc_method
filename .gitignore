@@ -1,3 +1,4 @@
+*.sif
 .Rproj.user
 .Rhistory
 .RData
@@ -30,3 +31,7 @@ output/*
 
 # Linked git worktrees for isolated agent work
 .worktrees/
+*.sif
+
+# SLURM job logs (may print credentials)
+slurm-*.out

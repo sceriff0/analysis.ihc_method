@@ -404,12 +404,21 @@ div.tocify {
       <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
     </li>
     <li>
+      <a href="benchmark_anhir.html">Registration accuracy — ANHIR challenge</a>
+    </li>
+    <li>
       <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+    <li>
+      <a href="run_resources.html">Run resources — what one run of the study samples cost</a>
     </li>
   </ul>
 </li>
 <li>
   <a href="marker_qc.html">Marker QC</a>
+</li>
+<li>
+  <a href="data_loaded.html">Data loaded</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -476,7 +485,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-08-31
+<strong>Last updated:</strong> 2026-09-30
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -607,15 +616,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree51c34be70bcb4fbccb42b4461841920b0d85bb75targetblank51c34bea">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/51c34be70bcb4fbccb42b4461841920b0d85bb75" target="_blank">51c34be</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0ihcmethodtree18502c3b75ca86a10aa6e480adefcccd4327e9b8targetblank18502c3a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree51c34be70bcb4fbccb42b4461841920b0d85bb75targetblank51c34bea"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -625,7 +634,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/ihc_method/tree/18502c3b75ca86a10aa6e480adefcccd4327e9b8" target="_blank">18502c3</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/51c34be70bcb4fbccb42b4461841920b0d85bb75" target="_blank">51c34be</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -643,7 +652,11 @@ Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/
+    Ignored:    output/additional_file_2_registration_arms.csv
+    Ignored:    output/additional_file_4_lineage_mapping.csv
+    Ignored:    output/deconv_celltype_map.csv
     Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
     Ignored:    output/summary_patient.csv
     Ignored:    output/summary_region.csv
     Ignored:    renv/library/
@@ -699,7 +712,76 @@ Message
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/benchmark_registration.html" target="_blank">ef13bd0</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/589ae012a71151f76462dca60dda305150b74f0e/docs/benchmark_registration.html" target="_blank">589ae01</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/benchmark_registration.html" target="_blank">3c2d0ad</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/484856c3b7ac14bf95e2494decb6819b90a01161/analysis/benchmark_registration.Rmd" target="_blank">484856c</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
+2026-09-27
+</td>
+<td>
+:sparkles: Opt-in placeholder mode for benchmark figures whose runs have
+not arrived
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ca05f70aed1a68c1f0cfcfac8f264c685597f24d/docs/benchmark_registration.html" target="_blank">ca05f70</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-07
+</td>
+<td>
+:wrench: rebuilt site
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/ef13bd0b96ecac8ef2beebf6dfa27f8eefe1b11a/docs/benchmark_registration.html" target="_blank">ef13bd0</a>
 </td>
 <td>
 sceriff0
@@ -716,7 +798,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/benchmark_registration.html" target="_blank">f1342a0</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/f1342a0183e7eff1414eb8faff2fed3f6743b216/docs/benchmark_registration.html" target="_blank">f1342a0</a>
 </td>
 <td>
 sceriff0
@@ -733,7 +815,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/794c4ea3f6a9037ddbabbace24129eb1cc808a1f/docs/benchmark_registration.html" target="_blank">794c4ea</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/794c4ea3f6a9037ddbabbace24129eb1cc808a1f/docs/benchmark_registration.html" target="_blank">794c4ea</a>
 </td>
 <td>
 sceriff0
@@ -750,7 +832,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/benchmark_registration.html" target="_blank">3ad97a4</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3ad97a4d9460f4ef505cdea81da516f49cc93e8a/docs/benchmark_registration.html" target="_blank">3ad97a4</a>
 </td>
 <td>
 sceriff0
@@ -767,7 +849,7 @@ sceriff0
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/2e3059204f9a9ff2c9322226b52f610e8fbfdaa2/analysis/benchmark_registration.Rmd" target="_blank">2e30592</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/2e3059204f9a9ff2c9322226b52f610e8fbfdaa2/analysis/benchmark_registration.Rmd" target="_blank">2e30592</a>
 </td>
 <td>
 bolt3x
@@ -785,7 +867,7 @@ metapackage
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/5409bafd2fa7da501051a1393d1178070d4d10d1/analysis/benchmark_registration.Rmd" target="_blank">5409baf</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/5409bafd2fa7da501051a1393d1178070d4d10d1/analysis/benchmark_registration.Rmd" target="_blank">5409baf</a>
 </td>
 <td>
 bolt3x
@@ -803,7 +885,7 @@ scales
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/469205b4ee4631194f8e81ef84bffb544e4a7ded/analysis/benchmark_registration.Rmd" target="_blank">469205b</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/469205b4ee4631194f8e81ef84bffb544e4a7ded/analysis/benchmark_registration.Rmd" target="_blank">469205b</a>
 </td>
 <td>
 bolt3x
@@ -821,7 +903,7 @@ helpers
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/8e6abe3ae8ce19f897d165e6919dba77fd623e5b/docs/benchmark_registration.html" target="_blank">8e6abe3</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/8e6abe3ae8ce19f897d165e6919dba77fd623e5b/docs/benchmark_registration.html" target="_blank">8e6abe3</a>
 </td>
 <td>
 sceriff0
@@ -838,7 +920,7 @@ sceriff0
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/benchmark_registration.html" target="_blank">c5d0eaa</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/c5d0eaacbe7a20e9e627473b75c0818b22d2a749/docs/benchmark_registration.html" target="_blank">c5d0eaa</a>
 </td>
 <td>
 sceriff0
@@ -855,7 +937,7 @@ Revert ":wrench: built the site"
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/ihc_method/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/benchmark_registration.html" target="_blank">70924d7</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/70924d7450cfc267b9b5ae71029a9dbab100298e/docs/benchmark_registration.html" target="_blank">70924d7</a>
 </td>
 <td>
 sceriff0
@@ -872,7 +954,7 @@ sceriff0
 Rmd
 </td>
 <td>
-<a href="https://github.com/sceriff0/ihc_method/blob/360ee92ef062086ca8b268e9275f7139c7b8c3b8/analysis/benchmark_registration.Rmd" target="_blank">360ee92</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/360ee92ef062086ca8b268e9275f7139c7b8c3b8/analysis/benchmark_registration.Rmd" target="_blank">360ee92</a>
 </td>
 <td>
 bolt3x
@@ -1005,19 +1087,24 @@ other attached packages:
  [9] dplyr_1.2.1     workflowr_1.7.2
 
 loaded via a namespace (and not attached):
- [1] sass_0.4.10        generics_0.1.4     renv_1.2.3         stringi_1.8.7     
- [5] hms_1.1.4          digest_0.6.39      magrittr_2.0.5     evaluate_1.0.5    
- [9] grid_4.3.2         RColorBrewer_1.1-3 fastmap_1.2.0      rprojroot_2.1.1   
-[13] jsonlite_2.0.0     processx_3.9.0     whisker_0.4.1      ps_1.9.3          
-[17] promises_1.5.0     httr_1.4.7         scales_1.4.0       jquerylib_0.1.4   
-[21] cli_3.6.6          rlang_1.2.0        withr_3.0.3        cachem_1.1.0      
-[25] yaml_2.3.12        otel_0.2.0         tools_4.3.2        tzdb_0.5.0        
-[29] httpuv_1.6.12      vctrs_0.7.3        R6_2.6.1           lifecycle_1.0.5   
-[33] git2r_0.33.0       fs_2.1.0           pkgconfig_2.0.3    callr_3.7.6       
-[37] pillar_1.11.1      bslib_0.9.0        later_1.4.8        gtable_0.3.6      
-[41] glue_1.8.1         Rcpp_1.1.1-1.1     xfun_0.58          tidyselect_1.2.1  
-[45] rstudioapi_0.15.0  knitr_1.51         farver_2.1.2       htmltools_0.5.9   
-[49] rmarkdown_2.31     compiler_4.3.2     getPass_0.2-4      S7_0.2.2          </code></pre>
+ [1] sass_0.4.10         generics_0.1.4      renv_1.2.3         
+ [4] stringi_1.8.7       hms_1.1.4           digest_0.6.39      
+ [7] magrittr_2.0.5      RColorBrewer_1.1-3  evaluate_1.0.5     
+[10] grid_4.3.2          fastmap_1.2.0       rprojroot_2.1.1    
+[13] jsonlite_2.0.0      processx_3.9.0      whisker_0.4.1      
+[16] ps_1.9.3            promises_1.5.0      BiocManager_1.30.27
+[19] httr_1.4.7          scales_1.4.0        jquerylib_0.1.4    
+[22] cli_3.6.6           rlang_1.3.0         withr_3.0.3        
+[25] cachem_1.1.0        yaml_2.3.12         otel_0.2.0         
+[28] tools_4.3.2         tzdb_0.5.0          httpuv_1.6.12      
+[31] vctrs_0.7.3         R6_2.6.1            lifecycle_1.0.5    
+[34] git2r_0.33.0        fs_2.1.0            pkgconfig_2.0.3    
+[37] callr_3.7.6         pillar_1.11.1       bslib_0.9.0        
+[40] later_1.4.8         gtable_0.3.6        glue_1.8.1         
+[43] Rcpp_1.1.1-1.1      xfun_0.58           tidyselect_1.2.1   
+[46] rstudioapi_0.15.0   knitr_1.51          farver_2.1.2       
+[49] htmltools_0.5.9     rmarkdown_2.31      compiler_4.3.2     
+[52] S7_0.2.2            getPass_0.2-4      </code></pre>
 </div>
 </div>
 
