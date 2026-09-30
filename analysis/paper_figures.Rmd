@@ -573,7 +573,7 @@ if (have_helpers) {
     dplyr::mutate(tier = dplyr::case_when(
       lineage %in% comparable_lineages ~ "Tier 2 — mappable lineage",
       lineage == "Immune_other"        ~ "Tier 3 — non-T/NK immune",
-      lineage == "(unmapped)"          ~ "Tier 3 — non-T/NK immune (no imaging lineage)",
+      lineage == "(unmapped)"          ~ "not compared (no single imaging population)",
       TRUE                             ~ "not compared"))
   dir.create(here("output"), showWarnings = FALSE, recursive = TRUE)
   readr::write_csv(lt, here("output", "additional_file_4_lineage_mapping.csv"))

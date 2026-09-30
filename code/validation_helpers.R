@@ -686,7 +686,14 @@ method_label <- function(method) {
 # The IHC side follows the gate tree: CD45 -> CD3 -> CD8 -> GZMB / FOXP3,
 # CD8- -> CD4 -> FOXP3; CD3- -> CD56 -> GZMB; CD45- -> SMA -> PANCK -> VIMENTIN.
 # `Immune` is TWO leaves of that tree (CD3+CD8-CD4- and CD3-CD56-), which only the
-# CD3 sign tells apart; the `Label[MARKER+]` token below is how a row says so.
+# CD3 sign tells apart; the `Label[MARKER+]` / `Label[MARKER-]` token below is how a
+# row says which. `[MARKER-]` means "not positive", so with CD3 never gated every
+# Immune cell is Immune_other and none joins T_total — the two stay a partition.
+#
+# `level` places each population in the tree: macro (CD45+ / CD45-), intermediate
+# (T, NK, other immune, CD4 incl. Treg, stroma), leaf (CD8T / CD4T / Treg), and
+# cross-cutting for Cytotoxic, which straddles the CD3 split. Row order is that
+# order, and every table and figure on the molecular pages follows it.
 #
 # Deliberate departures from the composition lineages (phenotype_lineage):
 #   * CD8+ T reg counts as CD8T, not Treg. Deconvolution Treg signatures are CD4+
@@ -700,17 +707,26 @@ method_label <- function(method) {
 #     cytotoxic lineages, not the GZMB+ activation state of the tree.
 #   * Endothelium is CD45-SMA-PANCK-VIM+, which the tree calls VIM+Tumor. No
 #     endothelial comparison is attempted; NonImmune (all CD45-) absorbs it.
+#   * Immune_other is every CD45+ cell the panel cannot subtype (CD3- CD56-): B,
+#     myeloid, dendritic, mast and granulocytes all land there, as does mirage's
+#     Myeloid / Macrophage_M2. The deconvolution side can only match it as a SUM.
+#   * Plasma cells are left out of Immune_other and Immune_total: they are often
+#     CD45-dim or negative on tissue, so the tree may call them anything but immune.
+#   * MAIT cells are mostly CD8+ and so sit in the tree's CD8T leaf, while their
+#     deconvolution label joins only T_total. The mismatch is small and kept.
 deconv_comparison_lineages <- tibble::tribble(
-  ~lineage,    ~ihc_gate,                                  ~ihc_phenotypes,                                                                   ~deconv_side,
-  "CD8T",      "CD3+ CD8+ (any GZMB, any FOXP3)",          "T cytotoxic; Activated T cytotoxic; CD8+ T reg",                                  "CD8 T cells; subsets summed",
-  "CD4T",      "CD3+ CD8- CD4+ FOXP3-",                    "T helper",                                                                        "non-regulatory CD4 T cells incl. follicular helper; only for a method that also reports Tregs",
-  "Treg",      "CD3+ CD8- CD4+ FOXP3+",                    "CD4+ Treg",                                                                       "regulatory T cells",
-  "CD4T_all",  "CD3+ CD8- CD4+ (any FOXP3)",               "T helper; CD4+ Treg",                                                             "CD4 of a method with no Treg output (EPIC, ABIS); CD4T + Treg for an additive method",
-  "NK",        "CD3- CD56+ (any GZMB)",                    "Natural Killer; Activated Natural Killer",                                        "NK cells; resting + activated summed (LM22 'activated' is cytokine-stimulated, not GZMB+)",
-  "Cytotoxic", "CD3+ CD8+  or  CD3- CD56+",                "T cytotoxic; Activated T cytotoxic; CD8+ T reg; Natural Killer; Activated Natural Killer", "MCP-counter cytotoxicity score; CD8T + NK for an additive method",
-  "T_total",   "CD3+ (every T leaf, plus CD3+CD8-CD4- Immune)", "T cytotoxic; Activated T cytotoxic; CD8+ T reg; T helper; CD4+ Treg; Immune[CD3+]", "MCP-counter T cell; every T-cell label summed (incl. gamma delta, MAIT, NKT) for an additive method",
-  "Stroma",    "CD45- SMA+",                               "Stroma",                                                                          "cancer-associated fibroblasts (MCP-counter, EPIC); MCP's signature is collagen/DCN/TAGLN, not ACTA2",
-  "NonImmune", "CD45-",                                    "PANCK+Tumor; VIM+Tumor; Stroma; Unknown",                                         "uncharacterized cell (+ CAF + endothelial for EPIC); additive methods only"
+  ~lineage,       ~level,          ~ihc_gate,                                  ~ihc_phenotypes,                                                                   ~deconv_side,
+  "Immune_total", "macro",         "CD45+",                                    "T cytotoxic; Activated T cytotoxic; CD8+ T reg; T helper; CD4+ Treg; Natural Killer; Activated Natural Killer; Immune; Myeloid; Macrophage_M2", "every immune label summed, plasma cells excluded; only for an additive method on the all-cells denominator (a leukocyte-fraction method sums to 1)",
+  "NonImmune",    "macro",         "CD45-",                                    "PANCK+Tumor; VIM+Tumor; Stroma; Unknown",                                         "uncharacterized cell (+ CAF + endothelial for EPIC); additive methods only",
+  "T_total",      "intermediate",  "CD3+ (every T leaf, plus CD3+CD8-CD4- Immune)", "T cytotoxic; Activated T cytotoxic; CD8+ T reg; T helper; CD4+ Treg; Immune[CD3+]", "MCP-counter T cell; every T-cell label summed (incl. gamma delta, MAIT, NKT) for an additive method",
+  "NK",           "intermediate",  "CD3- CD56+ (any GZMB)",                    "Natural Killer; Activated Natural Killer",                                        "NK cells; resting + activated summed (LM22 'activated' is cytokine-stimulated, not GZMB+)",
+  "Immune_other", "intermediate",  "CD45+ CD3- CD56-",                         "Immune[CD3-]; Myeloid; Macrophage_M2",                                            "B, monocyte, macrophage, dendritic, mast and granulocyte labels summed, plasma cells excluded; additive methods only",
+  "CD4T_all",     "intermediate",  "CD3+ CD8- CD4+ (any FOXP3)",               "T helper; CD4+ Treg",                                                             "CD4 of a method with no Treg output (EPIC, ABIS); CD4T + Treg for an additive method",
+  "Stroma",       "intermediate",  "CD45- SMA+",                               "Stroma",                                                                          "cancer-associated fibroblasts (MCP-counter, EPIC); MCP's signature is collagen/DCN/TAGLN, not ACTA2",
+  "CD8T",         "leaf",          "CD3+ CD8+ (any GZMB, any FOXP3)",          "T cytotoxic; Activated T cytotoxic; CD8+ T reg",                                  "CD8 T cells; subsets summed",
+  "CD4T",         "leaf",          "CD3+ CD8- CD4+ FOXP3-",                    "T helper",                                                                        "non-regulatory CD4 T cells incl. follicular helper; only for a method that also reports Tregs",
+  "Treg",         "leaf",          "CD3+ CD8- CD4+ FOXP3+",                    "CD4+ Treg",                                                                       "regulatory T cells",
+  "Cytotoxic",    "cross-cutting", "CD3+ CD8+  or  CD3- CD56+",                "T cytotoxic; Activated T cytotoxic; CD8+ T reg; Natural Killer; Activated Natural Killer", "MCP-counter cytotoxicity score; CD8T + NK for an additive method"
 )
 
 # The immune (CD45+) branch of the tree, as composition lineages: the CD45
@@ -725,19 +741,24 @@ IMMUNE_LINEAGES <- c("CD8T", "CD4T", "Treg", "NK", "Immune_other")
 # disappears without a warning and the Treg fraction is inflated by the larger
 # population. The negated spelling is therefore tested before the positive one.
 # Likewise the gamma delta / MAIT / NKT row sits above "cd8"/"nk" so "T cell NK"
-# is not read as an NK cell.
+# is not read as an NK cell, and "plasma" sits above the B-cell pattern so ABIS's
+# "B cell plasma immature" is not counted as a B cell. "\\bplasma\\b" does not
+# match "plasmacytoid", which is a dendritic cell.
 deconv_lineage_rules <- tibble::tribble(
   ~pattern,                                  ~lineage,       ~why,
   "non-?regulatory",                         "CD4T",         "CD4 helper label; must be tested before 'regulatory'",
   "regulatory|\\btregs?\\b",                 "Treg",         "CD4+ FOXP3+ Treg signature: the tree's CD4+ T reg",
   "follicular helper",                       "CD4T",         "Tfh are CD3+ CD4+ FOXP3-: the tree's T helper",
   "gamma delta|\\bmait\\b|^t cells? nk$",    NA_character_,  "gamma delta / MAIT / NKT are CD3+ but no single leaf of the tree; they join T_total only",
+  "\\bplasma\\b",                            NA_character_,  "plasma cells are CD45-dim on tissue; kept out of Immune_other (tested before 'b cell')",
   "cd8",                                     "CD8T",         "CD8 T cells, any state",
   "cd4",                                     "CD4T",         "CD4 T cells, any state (becomes CD4T_all if the method has no Treg)",
   "^nk\\b|\\bnk cells?\\b|natural killer",   "NK",           "NK cells, resting or activated",
   "cytotoxicity score",                      "Cytotoxic",    "MCP-counter cytotoxic lymphocytes (CD8 + NK genes)",
   "^t cells?$",                              "T_total",      "MCP-counter pan-T signature",
-  "fibroblast",                              "Stroma",       "CAF signature vs the tree's SMA+ Stroma"
+  "fibroblast",                              "Stroma",       "CAF signature vs the tree's SMA+ Stroma",
+  "\\bb[ -]cells?\\b|monocyte|macrophage|dendritic|\\bmast\\b|eosinophil|neutrophil|basophil",
+                                             "Immune_other", "CD45+ CD3- CD56- in the tree: no B or myeloid marker, so only their sum is compared"
 )
 
 deconv_to_lineage <- function(cell_type) {
@@ -790,7 +811,10 @@ deconv_is_additive <- function(method) {
 # Which (method, cell_type) rows feed which comparison lineage. Long: method,
 # cell_type, lineage, route — "direct" (the label's own lineage) or "sum" (a
 # composite an additive method can build: CD4T_all, Cytotoxic, T_total,
-# NonImmune). A cell type may feed several lineages. Unmapped labels are absent.
+# Immune_other, Immune_total, NonImmune). A cell type may feed several lineages.
+# Unmapped labels are absent. Immune_other is SUM-ONLY even when a rule names it:
+# it is five-plus cell types, so a non-additive method (MCP-counter's B cell,
+# Monocyte, ...) has no single label that stands for it.
 deconv_contributions <- function(celltypes) {
   ct <- dplyr::distinct(celltypes, method, cell_type)
   if (!nrow(ct))
@@ -801,11 +825,12 @@ deconv_contributions <- function(celltypes) {
   ct$subset <- deconv_is_subset(ct$cell_type)
   ct$is_t   <- stringr::str_detect(lab, "^t cells?\\b")
   ct$nonimm <- stringr::str_detect(lab, "uncharacterized|fibroblast|endothelial")
+  ct$plasma <- stringr::str_detect(lab, "\\bplasma\\b")
 
   per_method <- function(d, m) {
     # No Treg output -> the method's CD4 still contains Tregs.
     if (!any(d$base %in% "Treg")) d$base[d$base %in% "CD4T"] <- "CD4T_all"
-    direct <- d[!is.na(d$base), ]
+    direct <- d[!is.na(d$base) & d$base != "Immune_other", ]
     direct$lineage <- direct$base
     # A whole-lineage label wins over that lineage's subsets.
     keep <- stats::ave(!direct$subset, direct$lineage, FUN = function(w) !any(w) | w)
@@ -820,7 +845,12 @@ deconv_contributions <- function(celltypes) {
         add("CD4T_all",  d$cell_type[d$base %in% c("CD4T", "Treg")]),
         add("Cytotoxic", d$cell_type[d$base %in% c("CD8T", "NK")]),
         add("T_total",   d$cell_type[d$is_t]),
+        add("Immune_other", d$cell_type[d$base %in% "Immune_other"]),
         add("NonImmune", d$cell_type[d$nonimm])))
+      # Relative to leukocytes, every immune label sums to 1: a constant, not a
+      # comparison. Only a method on the all-cells denominator gets Immune_total.
+      if (deconv_ihc_denominator(m) == "all")
+        out <- c(out, list(add("Immune_total", d$cell_type[!d$nonimm & !d$plasma])))
     }
     dplyr::mutate(dplyr::bind_rows(out), method = m, .before = 1)
   }
@@ -856,10 +886,12 @@ ihc_comparison_fraction <- function(cells) {
     tokens <- trimws(strsplit(deconv_comparison_lineages$ihc_phenotypes[i], ";")[[1]])
     member <- rep(FALSE, length(pid))
     for (tok in tokens) {
-      m <- regmatches(tok, regexec("^(.*)\\[(\\w+)\\+\\]$", tok))[[1]]
+      m <- regmatches(tok, regexec("^(.*)\\[(\\w+)([+-])\\]$", tok))[[1]]
       if (length(m)) {
         if (is.null(pos[[m[3]]])) pos[[m[3]]] <<- marker_pos(cells, m[3])
-        member <- member | (key == pheno_join_key(m[2]) & pos[[m[3]]])
+        # "-" is NOT positive (incl. never gated), so [X+] and [X-] partition a label.
+        want <- if (m[4] == "+") pos[[m[3]]] else !pos[[m[3]]]
+        member <- member | (key == pheno_join_key(m[2]) & want)
       } else {
         member <- member | key == pheno_join_key(tok)
       }

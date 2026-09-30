@@ -415,17 +415,24 @@ paper_deconv_scatter <- function(paired, method = "quantiseq", groups = NULL,
 # --- Additional file 4: the mapping, as data ---------------------------------
 # The tier -> cell-type mapping the legends promise, generated from the SAME
 # objects the analyses join on, so it cannot drift from what was actually computed.
-# `deconv_to_lineage()` resolves four lineages and returns NA for everything else,
-# so the deconvolution side of the table is exactly those four by construction.
+# `deconv_to_lineage()` resolves the four T/NK lineages plus Immune_other (B, myeloid,
+# granulocytes); gamma delta, plasma and uncharacterized cells stay "(unmapped)".
 paper_lineage_table <- function() {
   # `lineage` is the composition lineage; `compared_as` is where the deconvolution
   # comparison puts the same call (deconv_comparison_lineages). They differ on
   # purpose: CD8+ T reg is Treg in a composition panel but CD8T against RNA.
-  cmp <- lapply(strsplit(deconv_comparison_lineages$ihc_phenotypes, ";"),
-                function(x) pheno_join_key(sub("\\[.*\\]$", "", trimws(x))))
-  compared_as <- function(label) vapply(pheno_join_key(label), function(k)
-    paste(deconv_comparison_lineages$lineage[vapply(cmp, function(x) k %in% x, logical(1))],
-          collapse = ", "), character(1), USE.NAMES = FALSE)
+  # A marker-qualified token (`Immune[CD3+]`) keeps its qualifier, so `Immune` reads
+  # "T_total (CD3+), Immune_other (CD3-)" rather than claiming both for every cell.
+  toks <- lapply(strsplit(deconv_comparison_lineages$ihc_phenotypes, ";"), trimws)
+  compared_as <- function(label) vapply(pheno_join_key(label), function(k) {
+    hit <- unlist(Map(function(tk, lin) {
+      at <- which(pheno_join_key(sub("\\[.*\\]$", "", tk)) == k)
+      if (!length(at)) return(character())
+      qual <- ifelse(grepl("\\]$", tk[at]), sub("^.*\\[(.*)\\]$", "\\1", tk[at]), NA)
+      if (anyNA(qual)) lin else paste0(lin, " (", qual[1], ")")
+    }, toks, deconv_comparison_lineages$lineage))
+    paste(hit, collapse = ", ")
+  }, character(1), USE.NAMES = FALSE)
   pheno <- phenotype_lineage_labels |>
     dplyr::transmute(side = "imaging (phenotype call)",
                      label = phenotype_clean, lineage,

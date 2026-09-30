@@ -98,8 +98,9 @@ test_that("LM22's cell-type names reach the comparable lineages through deconv_t
             "NK cells resting", "NK cells activated", "T cells follicular helper",
             "T cells gamma delta", "Macrophages M2")
   got <- deconv_to_lineage(lm22)
-  # Tfh are CD4+FOXP3-: the gate tree's T helper. Gamma delta and macrophages have
-  # no single leaf in the tree.
+  # Tfh are CD4+FOXP3-: the gate tree's T helper. Gamma delta has no single leaf;
+  # macrophages are the tree's CD3- CD56- Immune leaf.
   expect_equal(got[1:8], c("CD8T", "CD4T", "CD4T", "CD4T", "Treg", "NK", "NK", "CD4T"))
-  expect_true(all(is.na(got[9:10])))
+  expect_true(is.na(got[9]))
+  expect_equal(got[10], "Immune_other")
 })

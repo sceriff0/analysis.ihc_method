@@ -29,7 +29,7 @@ test_that("MCP-counter's pan-T and cytotoxic signatures get a counterpart", {
 test_that("a method with no Treg output compares its CD4 against CD4 incl. Treg", {
   # EPIC's tumour CD4 reference is 'CD4 but not CD8' — Tregs included.
   c <- deconv_contributions(.ct("epic", c("T cell CD4+", "T cell CD8+", "NK cell")))
-  expect_equal(.lineages_of(c, "T cell CD4+"), c("CD4T_all", "T_total"))
+  expect_equal(.lineages_of(c, "T cell CD4+"), c("CD4T_all", "Immune_total", "T_total"))
   expect_false("CD4T" %in% c$lineage)
 })
 
@@ -37,10 +37,10 @@ test_that("an additive method with Tregs gets CD4T, Treg and their sum", {
   c <- deconv_contributions(.ct("quantiseq", c("T cell CD4+ (non-regulatory)",
                                                "T cell regulatory (Tregs)", "T cell CD8+",
                                                "NK cell", "uncharacterized cell")))
-  expect_equal(.lineages_of(c, "T cell CD4+ (non-regulatory)"), c("CD4T", "CD4T_all", "T_total"))
-  expect_equal(.lineages_of(c, "T cell regulatory (Tregs)"),    c("CD4T_all", "T_total", "Treg"))
-  expect_equal(.lineages_of(c, "T cell CD8+"),                  c("CD8T", "Cytotoxic", "T_total"))
-  expect_equal(.lineages_of(c, "NK cell"),                      c("Cytotoxic", "NK"))
+  expect_equal(.lineages_of(c, "T cell CD4+ (non-regulatory)"), c("CD4T", "CD4T_all", "Immune_total", "T_total"))
+  expect_equal(.lineages_of(c, "T cell regulatory (Tregs)"),    c("CD4T_all", "Immune_total", "T_total", "Treg"))
+  expect_equal(.lineages_of(c, "T cell CD8+"),                  c("CD8T", "Cytotoxic", "Immune_total", "T_total"))
+  expect_equal(.lineages_of(c, "NK cell"),                      c("Cytotoxic", "Immune_total", "NK"))
   expect_equal(.lineages_of(c, "uncharacterized cell"),         "NonImmune")
 })
 
@@ -145,4 +145,67 @@ test_that("every rule and every compared lineage is documented", {
   expect_true(all(nzchar(deconv_lineage_rules$why)))
   expect_true(all(stats::na.omit(deconv_lineage_rules$lineage) %in% deconv_comparison_lineages$lineage))
   expect_true(all(nzchar(deconv_comparison_lineages$ihc_gate)))
+})
+
+# --- Other immune cells and the macro categories -------------------------------
+test_that("B, myeloid and granulocyte labels are the tree's CD3- CD56- Immune leaf", {
+  lab <- c("B cell", "B cells memory", "Macrophages M2", "Macrophage/Monocyte",
+           "Monocyte non-conventional", "Myeloid dendritic cell",
+           "Plasmacytoid dendritic cell", "Dendritic cells resting",
+           "Mast cells activated", "Eosinophils", "Neutrophil", "Basophil")
+  expect_true(all(deconv_to_lineage(lab) == "Immune_other"))
+})
+
+test_that("plasma cells stay out: CD45-dim on IHC, so the tree may not call them immune", {
+  expect_true(all(is.na(deconv_to_lineage(c("Plasma cells", "B cell plasma immature")))))
+  # ...but 'plasmacytoid' is a dendritic cell, not a plasma cell
+  expect_equal(deconv_to_lineage("Plasmacytoid dendritic cell"), "Immune_other")
+})
+
+test_that("Immune_other is a sum, so only an additive method gets one", {
+  lm22 <- c("B cells naive", "Macrophages M2", "Neutrophils", "Plasma cells", "T cells CD8")
+  c <- deconv_contributions(.ct("cibersortx", lm22))
+  expect_setequal(c$cell_type[c$lineage == "Immune_other"], lm22[1:3])
+  expect_true(all(c$route[c$lineage == "Immune_other"] == "sum"))
+  expect_false("Plasma cells" %in% c$cell_type)
+
+  m <- deconv_contributions(.ct("mcp_counter", c("B cell", "Monocyte", "T cell")))
+  expect_false("Immune_other" %in% m$lineage)
+})
+
+test_that("Immune_total sums every immune label, only on the all-cells denominator", {
+  q <- deconv_contributions(.ct("quantiseq", c("T cell CD8+", "NK cell", "B cell",
+                                               "Macrophage M2", "uncharacterized cell")))
+  expect_setequal(q$cell_type[q$lineage == "Immune_total"],
+                  c("T cell CD8+", "NK cell", "B cell", "Macrophage M2"))
+  # CIBERSORTx sums to 1 over leukocytes: its Immune_total is constant, so skipped
+  x <- deconv_contributions(.ct("cibersortx", c("T cells CD8", "B cells naive")))
+  expect_false("Immune_total" %in% x$lineage)
+})
+
+test_that("every compared population has a level from the gate tree", {
+  expect_true(all(deconv_comparison_lineages$level %in%
+                    c("macro", "intermediate", "leaf", "cross-cutting")))
+  lv <- stats::setNames(deconv_comparison_lineages$level, deconv_comparison_lineages$lineage)
+  expect_equal(unname(lv[c("Immune_total", "NonImmune")]), c("macro", "macro"))
+  expect_equal(unname(lv[c("CD8T", "CD4T", "Treg")]), rep("leaf", 3))
+})
+
+test_that("Immune_other on IHC is the CD3- Immune cells plus mirage's myeloid calls", {
+  d <- rbind(.ihc(), tibble::tibble(patient_id = "046",
+                                    phenotype_clean = c("Myeloid", "Macrophage_M2"),
+                                    CD3_sign = "-"))
+  f <- ihc_comparison_fraction(d)
+  n <- stats::setNames(f$n, f$lineage)
+  expect_equal(n[["Immune_other"]], 3)          # one CD3- Immune + two myeloid
+  expect_equal(n[["T_total"]], 6)               # unchanged: the CD3+ Immune only
+  # Immune_total is the whole CD45+ branch, i.e. the CD45 denominator itself
+  expect_equal(n[["Immune_total"]], f$n_cd45[1])
+})
+
+test_that("with CD3 never gated, every Immune cell is Immune_other and none is T", {
+  d <- .ihc(); d$CD3_sign <- NULL
+  f <- ihc_comparison_fraction(d)
+  expect_equal(f$n[f$lineage == "Immune_other"], 2)
+  expect_equal(f$n[f$lineage == "T_total"], 5)
 })

@@ -219,14 +219,14 @@ test_that("asking for a method that was not run warns and names what is availabl
   expect_null(p)
 })
 
-test_that("the lineage table maps exactly four deconvolution types and no more", {
-  # Additional file 4's content, and the answer to the legend's "full list of
-  # populations plotted". deconv_to_lineage() resolves four; everything else is the
-  # catch-all the legend calls Tier 3. If this number changes, Fig 5(c) changes.
+test_that("the lineage table maps the four T/NK lineages plus the Tier 3 catch-all", {
+  # Additional file 4's content. deconv_to_lineage() resolves the four T/NK lineages
+  # Fig 5(c) plots, and sends B / myeloid / granulocyte labels to Immune_other — the
+  # catch-all the legend calls Tier 3. Fig 5(c) filters to the four regardless.
   t <- paper_lineage_table()
   d <- dplyr::filter(t, side == "deconvolution (cell type)")
   expect_setequal(setdiff(unique(d$lineage), "(unmapped)"),
-                  c("CD4T", "CD8T", "Treg", "NK"))
+                  c("CD4T", "CD8T", "Treg", "NK", "Immune_other"))
   expect_gt(sum(d$lineage == "(unmapped)"), 0)
   # The imaging side is generated from the join table itself, so it cannot drift.
   expect_equal(sum(t$side == "imaging (phenotype call)"), nrow(phenotype_lineage_labels))
@@ -281,16 +281,17 @@ test_that("quanTIseq's helper T cells map to CD4T, not to Treg", {
   expect_equal(deconv_to_lineage("T cell regulatory (Tregs)"),    "Treg")
   expect_equal(deconv_to_lineage("T cell CD8+"),                  "CD8T")
   expect_equal(deconv_to_lineage("NK cell"),                      "NK")
-  expect_true(is.na(deconv_to_lineage("Myeloid dendritic cell")))
+  expect_equal(deconv_to_lineage("Myeloid dendritic cell"), "Immune_other")
 })
 
 test_that("the lineage table says where each call goes in the RNA comparison", {
   t <- paper_lineage_table()
   ca <- function(l) t$compared_as[t$label == l]
-  expect_equal(ca("CD8+ T reg"), "CD8T, Cytotoxic, T_total")
-  expect_equal(ca("CD8_Treg"),   "CD8T, Cytotoxic, T_total")
-  expect_equal(ca("CD4+ Treg"),  "Treg, CD4T_all, T_total")
-  expect_equal(ca("Immune"),     "T_total")          # the CD3+ Immune cells only
+  expect_equal(ca("CD8+ T reg"), "Immune_total, T_total, CD8T, Cytotoxic")
+  expect_equal(ca("CD8_Treg"),   "Immune_total, T_total, CD8T, Cytotoxic")
+  expect_equal(ca("CD4+ Treg"),  "Immune_total, T_total, CD4T_all, Treg")
+  expect_equal(ca("Immune"),     "Immune_total, T_total (CD3+), Immune_other (CD3-)")
+  expect_equal(ca("Myeloid"),    "Immune_total, Immune_other")
   expect_equal(t$lineage[t$label == "CD8+ T reg"], "Treg")  # composition unchanged
 })
 
