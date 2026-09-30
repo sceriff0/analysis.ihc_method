@@ -463,68 +463,84 @@ test_that("the tumour subset is taken from cell_lineage, not from the label text
 })
 
 # =============================================================================
-# csv-only patients — FlowPath's in/out flag, no polygon, no pathologist score
+# csv-only patients — one csv in data/flowpath/, FlowPath's in/out flag, every arm
 # =============================================================================
-# 15370 and 36766_2 (arms.R FLAG_MEMBERSHIP_PATIENTS) arrived after the annotation
-# sessions. They must NOT take massimo2's "no annotation directory means everything
-# is inside" convention: their export carries the in/out call FlowPath made, and
-# that flag is the only membership rule that exists for them, in every arm.
-test_that("a csv-only patient in massimo2 is cut by its flag, while 24086 stays whole", {
+# 15370 and 36672_2 (arms.R FLAG_MEMBERSHIP_FILES) arrived after the annotation
+# sessions. Each has ONE FlowPath export, in data/flowpath/, and every arm reads it
+# from there: no polygon, so no arm's own convention applies, and membership is the
+# export's own Out_of_annotation flag.
+
+# The two registry files, under the names the share ships them with.
+.flowpath_csvs <- function(data_dir, n = c(`15370` = 200L, `36672_2` = 120L)) {
+  for (pid in names(n))
+    .cells_csv(file.path(data_dir, FLAG_MEMBERSHIP_DIR, FLAG_MEMBERSHIP_FILES[[pid]]), n[[pid]])
+}
+
+test_that("every arm reads the csv-only patients from data/flowpath, cut by their flag", {
   d <- .tmp_data()
-  .massimo2_tree(d, regions = list(`046` = c("A", "B"), `24086` = NULL, `15370` = NULL),
-                 annotate = "046", n = 200)
-  spec  <- .spec2(d)
-  cells <- arm_cells(spec)
-  fl    <- dplyr::filter(cells, patient_id == "15370")
-  # Its one region is ANNOTATION_1 — the annotation FlowPath cut it against — and
-  # the membership source says the flag decided, not a polygon and not a convention.
-  expect_equal(unique(fl$annotation), "ANNOTATION_1")
-  expect_equal(unique(fl$.membership_source), "flag")
-  expect_false(any(fl$has_annotation))
-  expect_equal(unique(dplyr::filter(cells, patient_id == "24086")$annotation), "whole_slide")
+  .massimo2_tree(d, regions = list(`046` = c("A", "B"), `24086` = NULL), annotate = "046")
+  .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200, inverted = "046")
+  .flowpath_csvs(d)
 
-  per <- suppressWarnings(arm_metrics(spec, cells, NULL, "per_annotation"))
-  r   <- dplyr::filter(per, patient_id == "15370")
-  expect_equal(r$annotation, "ANNOTATION_1")
-  expect_equal(r$source, "flag")
-  # .cells_csv flags one cell in four as outside: 150 of 200 are in.
-  expect_equal(r$n_inside, 150)
-  expect_equal(dplyr::filter(per, patient_id == "24086")$n_inside, 200)
-  expect_equal(dplyr::filter(per, patient_id == "24086")$source, "whole_slide")
+  for (arm in ARM_MODES) {
+    spec  <- arm_spec(arm, data_dir = d)
+    cells <- suppressMessages(arm_cells(spec))
+    # Keyed as slide_key() keys the clinical sheet, whatever the file is called:
+    # 153070.csv is 15370, and 36672_2.csv is 366722.
+    for (pid in c("15370", "366722")) {
+      fl <- dplyr::filter(cells, patient_id == pid)
+      expect_equal(unique(fl$annotation), "ANNOTATION_1", label = paste(arm, pid))
+      expect_equal(unique(fl$.membership_source), "flag", label = paste(arm, pid))
+      expect_false(any(fl$has_annotation), label = paste(arm, pid))
+    }
+    expect_equal(nrow(dplyr::filter(cells, patient_id == "15370")), 200, label = arm)
+    expect_equal(nrow(dplyr::filter(cells, patient_id == "366722")), 120, label = arm)
 
-  un <- suppressWarnings(arm_metrics(spec, cells, NULL, "union"))
-  u  <- dplyr::filter(un, patient_id == "15370")
-  expect_equal(u$annotation, "union"); expect_equal(u$source, "flag"); expect_equal(u$n_inside, 150)
-
-  sc <- suppressWarnings(arm_cells_in_annotation(spec, arm_cohort_cells(spec, cells)))
-  s  <- dplyr::filter(sc, patient_id == "15370")
-  expect_equal(unique(s$.in_annotation_source), "flag")
-  expect_equal(sum(s$in_annotation), 150)
-  # The regression the other way: the convention patient is untouched by the rule.
-  expect_equal(unique(dplyr::filter(sc, patient_id == "24086")$.in_annotation_source), "whole_slide")
+    per <- suppressWarnings(suppressMessages(arm_metrics(spec, cells, NULL, "per_annotation")))
+    r   <- dplyr::filter(per, patient_id == "15370")
+    # .cells_csv flags one cell in four as outside: 150 of 200 are in.
+    expect_equal(r$source, "flag", label = arm); expect_equal(r$n_inside, 150, label = arm)
+  }
 })
 
-test_that("a csv-only patient in massimo1's whole-slide tier keeps a region row and a union row, both from the flag", {
-  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200)
-  # Only a whole-slide csv, no polygon of either tier: the shape the new patients ship in.
-  .cells_csv(file.path(d, "massimo1", "FlowPath_csv_all", "36766_2", "36766_2.csv"), 120)
-  spec  <- .spec1(d)
-  cells <- arm_cells(spec); ucell <- arm_union_tier_cells(spec)
-  uf <- dplyr::filter(ucell, patient_id == "367662")
-  expect_equal(nrow(uf), 120)
-  expect_false(any(uf$has_annotation))            # no annotation_all polygon listed
-  expect_equal(unique(uf$.membership_source), "flag")
+test_that("a copy of a csv-only patient inside an arm tree is ignored — data/flowpath wins", {
+  d <- .tmp_data()
+  .massimo2_tree(d, regions = list(`046` = c("A", "B"), `24086` = NULL, `15370` = NULL),
+                 annotate = "046", n = 999)
+  .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200)
+  .cells_csv(file.path(d, "massimo1", "FlowPath_csv_all", "36672_2", "36672_2.csv"), 999)
+  .flowpath_csvs(d)
 
-  prom <- arm_promote_unregioned(spec, cells, NULL, ucell, NULL)
-  per  <- suppressWarnings(arm_metrics(spec, prom$cells, prom$polys, "per_annotation"))
-  r    <- dplyr::filter(per, patient_id == "367662")
-  expect_equal(r$annotation, "ANNOTATION_1"); expect_equal(r$source, "flag"); expect_equal(r$n_inside, 90)
+  spec2  <- .spec2(d)
+  cells2 <- suppressMessages(arm_cells(spec2))
+  expect_equal(nrow(dplyr::filter(cells2, patient_id == "15370")), 200)
+  # 24086 is not a csv-only patient: it keeps massimo2's whole-slide convention.
+  expect_equal(unique(dplyr::filter(cells2, patient_id == "24086")$annotation), "whole_slide")
 
-  un <- suppressWarnings(arm_metrics(spec, prom$cells, prom$polys, "union",
+  spec1 <- .spec1(d)
+  ucell <- suppressMessages(arm_union_tier_cells(spec1))
+  expect_false("366722" %in% ucell$patient_id)
+  cells1 <- suppressMessages(arm_cells(spec1))
+  prom   <- suppressMessages(arm_promote_unregioned(spec1, cells1, NULL, ucell, NULL))
+  expect_equal(nrow(dplyr::filter(prom$cells, patient_id == "366722")), 120)
+
+  un <- suppressWarnings(arm_metrics(spec1, prom$cells, prom$polys, "union",
                                      union_cells = ucell, union_polys = NULL))
-  u  <- dplyr::filter(un, patient_id == "367662")
+  u  <- dplyr::filter(un, patient_id == "366722")
   expect_equal(u$source, "flag"); expect_equal(u$n_inside, 90)
 
-  sc <- suppressWarnings(arm_cells_in_annotation(spec, arm_cohort_cells(spec, cells, ucell)))
-  expect_equal(unique(dplyr::filter(sc, patient_id == "367662")$.in_annotation_source), "flag")
+  sc <- suppressWarnings(arm_cells_in_annotation(spec1, arm_cohort_cells(spec1, cells1, ucell)))
+  s  <- dplyr::filter(sc, patient_id == "366722")
+  expect_equal(nrow(s), 120)
+  expect_equal(unique(s$.in_annotation_source), "flag")
+})
+
+test_that("a csv-only patient whose data/flowpath file is missing warns, naming the path", {
+  d <- .tmp_data()
+  .massimo2_tree(d, regions = list(`046` = c("A", "B")), annotate = "046")
+  .flowpath_csvs(d, n = c(`15370` = 200L))
+  spec <- .spec2(d)
+  expect_warning(cells <- arm_cells(spec), "36672_2\\.csv")
+  expect_false("366722" %in% cells$patient_id)
+  expect_equal(nrow(dplyr::filter(cells, patient_id == "15370")), 200)
 })

@@ -121,7 +121,7 @@ test_that(".annotation_key delegates here rather than keeping its own parser", {
 test_that("arm_tier_status reports which tiers are actually on disk", {
   spec <- arm_spec("massimo2", data_dir = file.path(tempdir(), "definitely-not-there"))
   st   <- arm_tier_status(spec)
-  expect_equal(nrow(st), 5)   # + region_csv_fallback
+  expect_equal(nrow(st), 6)   # + region_csv_fallback, flag_csv
   expect_false(any(st$exists))
   expect_true(all(is.na(st$dir[st$tier %in% c("union_csv", "union_poly")])))
 })
@@ -130,13 +130,27 @@ test_that("arm_tier_status reports which tiers are actually on disk", {
 # csv-only patients: membership from the export's own flag
 # =============================================================================
 test_that("the csv-only patients are recognised under every spelling slide_key() would give them", {
-  expect_true(all(arm_flag_patient(c("15370", "36766_2"))))
-  # The same normalisation as norm_slide_id(): digits only, so a directory named
-  # "36766_2", a clinical "36766-2" and a bare "367662" are one patient.
-  expect_true(arm_flag_patient("36766-2"))
-  expect_true(arm_flag_patient("367662"))
+  expect_true(all(arm_flag_patient(FLAG_MEMBERSHIP_PATIENTS)))
+  expect_equal(FLAG_MEMBERSHIP_PATIENTS, c("15370", "36672_2"))
+  # The same normalisation as norm_slide_id(): digits only, so a file named
+  # "36672_2", a clinical "36672-2" and the key "366722" are one patient.
+  expect_true(arm_flag_patient("36672-2"))
+  expect_true(arm_flag_patient("366722"))
   expect_true(arm_flag_patient("EPM - 15370"))
-  # And nobody else — 24086 keeps massimo2's whole-slide convention.
-  expect_false(any(arm_flag_patient(c("046", "24086", "36766", "1537"))))
+  # And nobody else — 24086 keeps massimo2's whole-slide convention. 153070 is
+  # 15370's FILE name, not an id: the registry maps it, nothing parses it.
+  expect_false(any(arm_flag_patient(c("046", "24086", "36672", "1537", "153070", "36766_2"))))
   expect_length(arm_flag_patient(character(0)), 0)
+})
+
+test_that("every arm points the csv-only patients at the same data/flowpath files", {
+  d <- file.path(tempdir(), paste0("flagdata-", sample(1e6, 1)))
+  dir.create(file.path(d, "flowpath"), recursive = TRUE)
+  file.create(file.path(d, "flowpath", "153070.csv"))
+  for (arm in ARM_MODES) {
+    ff <- arm_flag_files(arm_spec(arm, data_dir = d))
+    expect_equal(ff$patient_id, c("15370", "36672_2"))
+    expect_equal(basename(ff$path), c("153070.csv", "36672_2.csv"))
+    expect_equal(ff$exists, c(TRUE, FALSE))
+  }
 })

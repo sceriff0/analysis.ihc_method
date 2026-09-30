@@ -42,10 +42,11 @@
 # `source` as "whole_slide" rather than "sf".
 #
 # A CSV-ONLY PATIENT IS CUT BY ITS OWN FLAG, IN EVERY ARM. arms.R's
-# FLAG_MEMBERSHIP_PATIENTS names the patients that arrived after the annotation
+# FLAG_MEMBERSHIP_FILES names the patients that arrived after the annotation
 # sessions with a FlowPath export and nothing else — no polygon, no pathologist
-# score. Their bare csv is their one region, ANNOTATION_1, and membership comes
-# from the export's Out_of_annotation flag. That rule OUTRANKS `bare_region_is`,
+# score. Every arm reads that one csv from data/flowpath/ (never from its own
+# tree), it is their one region, ANNOTATION_1, and membership comes from the
+# export's Out_of_annotation flag. That rule OUTRANKS `bare_region_is`,
 # because massimo2's convention describes the slides annotated in that session
 # and these were not, and it is applied at every decision point below so a
 # metrics row and a per-cell verdict cannot disagree about the same patient.
@@ -177,14 +178,68 @@ source(here::here("code", "arms.R"))
   })
 }
 
+# --- Cells: the csv-only patients, from data/flowpath/ ------------------------
+# The same file for every arm (arms.R, FLAG_MEMBERSHIP_FILES), keyed by the
+# registry's patient id rather than by the file's stem. With data/flowpath/ present,
+# a registry entry with no file is warned about BY PATH: these two otherwise vanish
+# from every arm with nothing but an absent row to show for it. With the directory
+# absent altogether (a fresh clone) it is silent, like any unmounted tree, and the
+# `flag_csv` row of arm_tier_status() says so.
+.arm_read_flag_csvs <- function(spec) {
+  if (!dir.exists(spec$flag_csv$path)) return(tibble::tibble())
+  ff <- arm_flag_files(spec)
+  if (any(!ff$exists))
+    warning("arm ", spec$arm, ": csv-only patient(s) ",
+            paste(ff$patient_id[!ff$exists], collapse = ", "), " have no file at ",
+            paste(ff$path[!ff$exists], collapse = ", "), " — they load no cells")
+  ff <- ff[ff$exists, , drop = FALSE]
+  if (nrow(ff) == 0) return(tibble::tibble())
+
+  purrr::pmap_dfr(ff[c("path", "patient_id")], function(path, patient_id) {
+    pid   <- slide_key(patient_id)
+    cells <- read_cell_csv(path, patient_id = pid)
+    if (nrow(cells) == 0) {
+      warning("arm ", spec$arm, ": ", path, " has no cells — skipping")
+      return(tibble::tibble())
+    }
+    dplyr::mutate(cells,
+                  arm                = spec$arm,
+                  annotation         = "ANNOTATION_1",
+                  classification     = spec$flag_csv$classification,
+                  file_origin        = spec$arm,
+                  has_annotation     = FALSE,
+                  .membership_source = "flag")
+  })
+}
+
+# The csv-only patients' rows REPLACE whatever the arm's own tree held for them.
+.arm_with_flag_csvs <- function(spec, cells) {
+  if (nrow(cells)) {
+    stray <- arm_flag_patient(cells$patient_id)
+    if (any(stray)) {
+      message(sprintf("arm %s: ignoring %s's own csv for %s — csv-only patients load from %s",
+                      spec$arm, spec$arm,
+                      paste(sort(unique(cells$patient_id[stray])), collapse = ", "),
+                      spec$flag_csv$path))
+      cells <- cells[!stray, , drop = FALSE]
+    }
+  }
+  flagged <- .arm_read_flag_csvs(spec)
+  if (nrow(flagged) == 0) return(cells)
+  if (nrow(cells) == 0) return(flagged)
+  dplyr::bind_rows(cells, flagged)
+}
+
 # The arm's region cells: its own tier, topped up from the fallback for the patients
-# it does not cover.
+# it does not cover, with the csv-only patients taken from data/flowpath/.
 #
 # TOP-UP IS PER PATIENT, NOT PER FILE. A patient the arm re-ran is taken entirely
 # from the arm's own tier; a patient it did not is taken entirely from the fallback.
 # Mixing the two within one patient would put re-classified and ordinary cells in the
 # same denominator, and no column could then say what that patient's number means.
-arm_cells <- function(spec) {
+arm_cells <- function(spec) .arm_with_flag_csvs(spec, .arm_region_cells(spec))
+
+.arm_region_cells <- function(spec) {
   primary <- .arm_read_region_tier(spec, spec$region_csv, "region csv")
   if (!arm_has_fallback(spec)) return(primary)
 
@@ -209,6 +264,12 @@ arm_cells <- function(spec) {
 arm_union_tier_cells <- function(spec) {
   if (!arm_has_union_tier(spec)) return(tibble::tibble())
   meta <- .arm_tier_files(spec$union_csv, "csv", "whole-slide csv")
+  if (nrow(meta) == 0) return(tibble::tibble())
+
+  # The csv-only patients never come from here: their one csv is data/flowpath/'s,
+  # which arm_cells() already holds as their ANNOTATION_1, so arm_metrics() pools it
+  # for the union row and cuts it by its flag.
+  meta <- meta[!arm_flag_patient(meta$patient_id), , drop = FALSE]
   if (nrow(meta) == 0) return(tibble::tibble())
 
   # An arm with a fallback re-ran only some patients, and its whole-slide tier is the

@@ -20,6 +20,8 @@
 #                                                             not re-draw them
 #   massimo2            csv/<pid>/<pid>_<A|B|C>.csv          annotation/
 #                                                              <pid>/<pid>_<A|B|C>.geojson
+#   (every arm)         data/flowpath/<file>.csv             none — the csv-only
+#                       for FLAG_MEMBERSHIP_FILES only        patients, cut by their flag
 #
 # THE ARMS' REGIONS ARE INDEPENDENTLY DRAWN. massimo1's `a1` is NOT massimo2's `A`.
 # They are separate annotation sessions over the same tissue, so ANNOTATION_<k> is
@@ -196,27 +198,39 @@ ARM_SPECS <- list(
 
 ARM_MODES <- names(ARM_SPECS)
 
-# --- csv-only patients: membership from the export's own flag ----------------
-# 15370 and 36766_2 arrived after the annotation sessions. Nobody drew a polygon
-# for them in any arm and the pathologist never scored them; what they have is a
-# FlowPath csv whose Out_of_annotation column records the in/out call made in
-# FlowPath. For them that flag IS the annotation: their one region is ANNOTATION_1,
-# membership comes from the flag, and `source` says so on every row.
+# --- csv-only patients: one csv in data/flowpath/, cut by its own flag --------
+# 15370 and 36672_2 arrived after the annotation sessions. Nobody drew a polygon
+# for them in any arm and the pathologist never scored them; what they have is ONE
+# FlowPath csv each, in data/flowpath/, whose Out_of_annotation column records the
+# in/out call made in FlowPath. For them that flag IS the annotation: their one
+# region is ANNOTATION_1, membership comes from the flag, and `source` says so.
+#
+# EVERY ARM READS THEM FROM data/flowpath/, AND ONLY FROM THERE. They were not
+# re-phenotyped per arm, so the same export stands in all three, and a copy that
+# turns up inside an arm's own tree is ignored rather than pooled on top of it
+# (arm_cells.R). One file per patient means the three arms cannot disagree about
+# these two for any reason but the arm itself.
+#
+# THE FILE IS NAMED, NOT PARSED. The share ships 15370 as `153070.csv`; reading the
+# patient off that stem would key it 153070 and lose its clinical row and its RNA
+# sample. So the registry maps patient -> file, and the patient id is the NAME.
 #
 # THIS LIST OUTRANKS `bare_region_is`. massimo2's "no annotation directory means
 # everything is inside" is a statement its producers made about the slides they
 # annotated in that session; these two were not among them, so applying it would
-# count every cell of a slide that was in fact cut. It also outranks massimo1's
-# "drop a bare region csv": a bare csv is the only shape these patients ship in.
+# count every cell of a slide that was in fact cut.
 #
 # Kept as a registry constant rather than inferred from the data (e.g. "the flag
 # varies, so use it") because a rule nobody wrote down is how a 100 %-inside
 # patient ends up on the x = y line looking like a result.
-FLAG_MEMBERSHIP_PATIENTS <- c("15370", "36766_2")
+FLAG_MEMBERSHIP_DIR   <- "flowpath"
+FLAG_MEMBERSHIP_FILES <- c(`15370`   = "153070.csv",
+                           `36672_2` = "36672_2.csv")
+FLAG_MEMBERSHIP_PATIENTS <- names(FLAG_MEMBERSHIP_FILES)
 
 # Is this a csv-only patient? Matched on the same key slide_key() would give it —
-# digits only, so the directory "36766_2", a clinical "36766-2" and the key
-# "367662" agree. Re-stated here rather than imported: arms.R sits below
+# digits only, so the file "36672_2", a clinical "36672-2" and the key "366722"
+# agree. Re-stated here rather than imported: arms.R sits below
 # validation_helpers.R and cannot source it.
 arm_flag_patient <- function(patient_id) {
   key <- function(x) {
@@ -260,7 +274,19 @@ arm_spec <- function(arm = ARM_MODES, data_dir = here::here("data")) {
                  "region_poly", "union_csv", "union_poly"))
     if (!is.null(spec[[tier]]))
       spec[[tier]]$path <- .arm_resolve_dir(root, spec[[tier]]$dir)
+  # Shared by every arm, so it hangs off data/ rather than the arm's own root.
+  spec$flag_csv <- list(dir = FLAG_MEMBERSHIP_DIR,
+                        path = .arm_resolve_dir(data_dir, FLAG_MEMBERSHIP_DIR),
+                        classification = "normal")
   spec
+}
+
+# The csv-only patients' files, one row per registry entry whether or not it is on
+# disk: a missing file has to be reportable by name, not merely absent.
+arm_flag_files <- function(spec) {
+  path <- file.path(spec$flag_csv$path, unname(FLAG_MEMBERSHIP_FILES))
+  tibble::tibble(patient_id = FLAG_MEMBERSHIP_PATIENTS, path = path,
+                 exists = file.exists(path))
 }
 
 # Does this arm ship a dedicated whole-slide tier, or must the union be derived by
@@ -276,7 +302,7 @@ arm_has_fallback <- function(spec) !is.null(spec$region_csv_fallback)
 # be able to say which directory it looked in rather than "no cells".
 arm_tier_status <- function(spec) {
   tiers <- c("region_csv", "region_csv_fallback",
-             "region_poly", "union_csv", "union_poly")
+             "region_poly", "union_csv", "union_poly", "flag_csv")
   tibble::tibble(
     arm    = spec$arm,
     tier   = tiers,

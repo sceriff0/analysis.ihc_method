@@ -41,11 +41,13 @@ an analysis; every table is a listing of what the readers in `code/arms.R`,
 Root searched: `` `r here("data")` ``.
 
 ```{r flag-patients, results="asis"}
-cat("**csv-only patients** (`FLAG_MEMBERSHIP_PATIENTS` in `code/arms.R`): ",
-    paste0("`", FLAG_MEMBERSHIP_PATIENTS, "`", collapse = ", "),
-    ". No polygon in any arm and no pathologist score; membership comes from the ",
-    "export's own `Out_of_annotation` flag, and their one region is `ANNOTATION_1`.\n",
-    sep = "")
+cat("**csv-only patients** (`FLAG_MEMBERSHIP_FILES` in `code/arms.R`): ",
+    paste0("`", FLAG_MEMBERSHIP_PATIENTS, "` ← `", FLAG_MEMBERSHIP_DIR, "/",
+           FLAG_MEMBERSHIP_FILES, "`", collapse = ", "),
+    ". Every arm reads them from that one file and ignores any copy in its own ",
+    "tree. No polygon in any arm and no pathologist score; membership comes from ",
+    "the export's own `Out_of_annotation` flag, and their one region is ",
+    "`ANNOTATION_1`.\n", sep = "")
 ```
 
 # Per arm
@@ -94,7 +96,19 @@ For each arm, three tables:
                is.na(annotation) ~ "!! bare file, arm has no rule: dropped",
                TRUE ~ "")) |>
       select(tier, file, patient_id, patient_key, annotation, csv_only, note)
-  })
+  }) |> bind_rows(.flag_files_found(spec))
+}
+
+# The csv-only patients' files sit outside the arm's root, under data/, and are
+# listed from the registry — so a missing one shows as a row, not as an absence.
+.flag_files_found <- function(spec) {
+  arm_flag_files(spec) |>
+    mutate(tier = "flag_csv",
+           file = sub(paste0("^", here("data"), "/?"), "", path),
+           patient_key = slide_key(patient_id), annotation = "ANNOTATION_1",
+           csv_only = TRUE,
+           note = if_else(exists, "every arm reads this file", "!! registry file missing")) |>
+    select(tier, file, patient_id, patient_key, annotation, csv_only, note)
 }
 
 arm_summaries <- list()
