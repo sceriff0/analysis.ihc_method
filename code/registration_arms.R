@@ -114,6 +114,10 @@ source(here::here("code", "placeholders.R"))   # opt-in synthetic stand-ins (def
 
 ARMS_DIR <- here::here("data", "registration_arms")
 
+# The VALIS accuracy presets, in order of cost. `high` and `low` keep the hues they
+# had when the sweep ran only those two.
+MEMORY_MODE_COLS <- c(low = "#D55E00", medium = "#009E73", high = "#0072B2")
+
 ARM_CAPTION <- "mirage staged registration QC (reg_qc = 2), study slides, one run per arm."
 
 # The unit of every final-transform panel, said the same way in each. A slide is one
@@ -131,7 +135,7 @@ PAIR_UNIT_NOTE <- paste("One point per channel pair (reference vs moving slide),
 #   arm_dir,memory_mode,micro_reg
 #   valis_high_micro2,high,2
 #
-# Without one, the directory name is parsed for `high`/`low` and for a micro depth
+# Without one, the directory name is parsed for `high`/`medium`/`low` and for a micro depth
 # written any of the usual ways (micro2, micro_2, micro-reg-2, mr2). Anything that
 # does not parse keeps the directory name as its label and gets NA knobs, so it
 # still appears in the figures — unlabelled, rather than dropped.
@@ -153,6 +157,7 @@ PAIR_UNIT_NOTE <- paste("One point per channel pair (reference vs moving slide),
                           memory_mode = NA_character_, micro_reg = NA_integer_))
   mode <- if (grepl("high", low) && !grepl("low", low)) "high"
           else if (grepl("low", low)) "low"
+          else if (grepl("medium", low)) "medium"
           else NA_character_
   m <- regmatches(low, regexec("(?:micro|mr)[^0-9]{0,6}([0-2])", low))[[1]]
   micro <- if (length(m) == 2) as.integer(m[2]) else NA_integer_
@@ -715,7 +720,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
     # VALIS arms only: the two knobs do not exist on the tiled backend, so including
     # it here would put a point on a grid it was never run on.
     d <- dplyr::filter(fin, backend == "valis",
-                       is.finite(disp_um_p50), !is.na(memory_mode), !is.na(micro_reg))
+                       is.finite(disp_um_p50), !is.na(memory_mode), !is.na(micro_reg)) |>
+      dplyr::mutate(memory_mode = factor(memory_mode, levels = intersect(
+        c(names(MEMORY_MODE_COLS), sort(unique(memory_mode))), unique(memory_mode))))
     if (nrow(d)) {
       figs[["05_knob_effects"]] <-
         ggplot(d, aes(factor(micro_reg), disp_um_p50, colour = memory_mode)) +
@@ -723,7 +730,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
                      position = position_dodge(.7)) +
         geom_point(position = position_jitterdodge(jitter.width = .12, dodge.width = .7),
                    alpha = .8, size = 1.9) +
-        scale_colour_manual(values = unname(oi[c(1, 2)]), name = "memory_mode") +
+        # Named, so a preset keeps its hue whichever presets this sweep ran; the
+        # sweep gained `medium`, and a positional two-colour scale stopped the knit.
+        scale_colour_manual(values = MEMORY_MODE_COLS, name = "memory_mode") +
         labs(title = "Which knob moved the result",
              subtitle = paste("Final-transform residual by micro-registration depth,",
                               "split by VALIS accuracy preset. Note the presets use",

@@ -273,6 +273,17 @@ test_that("the knob-effects figure excludes the tiled arm", {
   expect_false("tiled" %in% figs[["05_knob_effects"]]$data$backend)
 })
 
+test_that("a three-preset sweep builds every figure, each preset with its own colour", {
+  # The sweep gained `medium`; a two-colour positional scale stopped the knit there.
+  expect_equal(.parse_arm_dir("valis_medium_micro1")$memory_mode, "medium")
+  man  <- arm_manifest(arms_tree(modes = c("low", "medium", "high"), tiled = TRUE))
+  expect_setequal(stats::na.omit(man$memory_mode), c("low", "medium", "high"))
+  figs <- build_arm_figs(read_arms_seg_qc(man), read_arms_valis(man), man)
+  for (p in figs) expect_s3_class(ggplot2::ggplot_build(p), "ggplot_built")
+  expect_identical(levels(figs[["05_knob_effects"]]$data$memory_mode),
+                   c("low", "medium", "high"))
+})
+
 test_that("STARE's own error and tile map are read into their own figures", {
   root <- arms_tree(modes = "high", depths = 2, tiled = TRUE)
   man  <- arm_manifest(root)
