@@ -210,8 +210,10 @@ SEG_QC_EMPTY <- tibble::tibble(
   stage_index = integer(),
   n_pairs = numeric(), pair_fraction = numeric(), iou_mean = numeric(),
   iou_p50 = numeric(), dice_matched = numeric(), disp_um_p50 = numeric(),
-  disp_um_p90 = numeric(), disp_px_p50 = numeric(),
-  d_dice_vs_rigid = numeric(), d_disp_um_vs_rigid = numeric())
+  disp_um_p90 = numeric(), disp_px_p50 = numeric(), disp_px_p90 = numeric(),
+  pixel_size_um = numeric(),
+  d_dice_vs_rigid = numeric(), d_disp_um_vs_rigid = numeric(),
+  d_disp_px_vs_rigid = numeric())
 
 read_seg_qc <- function(root = RUN_QC_ROOT) {
   out <- purrr::map_dfr(.qc_patient_dirs(root), function(dir) {
@@ -246,8 +248,14 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
           disp_um_p50      = as.numeric(s$displacement_um_p50 %||% NA),
           disp_um_p90      = as.numeric(s$displacement_um_p90 %||% NA),
           disp_px_p50      = as.numeric(s$displacement_px_p50 %||% NA),
+          disp_px_p90      = as.numeric(s$displacement_px_p90 %||% NA),
+          # The pixel size the scorer used for its micron columns. NA where it had none
+          # -- the tiled path reads it from a CLI flag the pipeline does not pass, so a
+          # STARE record carries pixels only.
+          pixel_size_um    = as.numeric((d$params %||% list())$pixel_size_um %||% NA),
           d_dice_vs_rigid  = as.numeric(dv$dice_matched %||% NA),
-          d_disp_um_vs_rigid = as.numeric(dv$displacement_um_p50 %||% NA))
+          d_disp_um_vs_rigid = as.numeric(dv$displacement_um_p50 %||% NA),
+          d_disp_px_vs_rigid = as.numeric(dv$displacement_px_p50 %||% NA))
       })
     })
   })
@@ -276,7 +284,8 @@ SEG_QC_FULL_EMPTY <- tibble::tibble(
   reference = character(), pair = character(), final_stage = character(),
   n_pairs = numeric(), pair_fraction = numeric(), iou_mean = numeric(),
   iou_p50 = numeric(), dice_matched = numeric(), disp_um_p50 = numeric(),
-  disp_um_p90 = numeric(), disp_px_p50 = numeric())
+  disp_um_p90 = numeric(), disp_px_p50 = numeric(), disp_px_p90 = numeric(),
+  pixel_size_um = numeric())
 
 read_seg_qc_full <- function(root = RUN_QC_ROOT) {
   out <- purrr::map_dfr(.qc_patient_dirs(root), function(dir) {
@@ -301,7 +310,9 @@ read_seg_qc_full <- function(root = RUN_QC_ROOT) {
         dice_matched  = as.numeric(s$dice_matched %||% NA),
         disp_um_p50   = as.numeric(s$displacement_um_p50 %||% NA),
         disp_um_p90   = as.numeric(s$displacement_um_p90 %||% NA),
-        disp_px_p50   = as.numeric(s$displacement_px_p50 %||% NA))
+        disp_px_p50   = as.numeric(s$displacement_px_p50 %||% NA),
+        disp_px_p90   = as.numeric(s$displacement_px_p90 %||% NA),
+        pixel_size_um = as.numeric((d$params %||% list())$pixel_size_um %||% NA))
     })
   })
   if (nrow(out) == 0) SEG_QC_FULL_EMPTY else out

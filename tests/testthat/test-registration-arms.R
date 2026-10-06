@@ -605,14 +605,15 @@ test_that("stage figures draw the shipped arm of each backend on its own stage a
   d  <- arm_stage_frame(fx$seg, fx$full)
   expect_setequal(unique(d$arm_dir), c("valis_high_micro2", "tiled_high_s128"))
   st <- function(a) as.character(sort(unique(d$stage[d$arm_dir == a])))
-  expect_identical(st("valis_high_micro2"),
-                   c("native", "rigid", "non_rigid", "micro", "full_transform"))
-  expect_identical(st("tiled_high_s128"), c("native", "rigid", "refined", "full_transform"))
+  # Rigid and the re-paired whole transform ONLY: the rungs between are scored on the
+  # rigid pairs and read, beside a re-paired box, as a progression they are not.
+  expect_identical(st("valis_high_micro2"), c("rigid", "full_transform"))
+  expect_identical(st("tiled_high_s128"), c("rigid", "full_transform"))
   # Both panels name their backend: a bare "high / micro 2" beside STARE does not.
   expect_setequal(levels(d$arm), c("VALIS (high / micro 2)", "STARE (high, stride 128 px)"))
   # The last box holds the re-paired score, not a copy of the ladder's last stage.
   expect_true(all(d$dice_matched[d$stage == "full_transform"] == 0.71))
-  expect_false(any(d$dice_matched[d$stage == "micro"] == 0.71))
+  expect_false(any(d$dice_matched[d$stage == "rigid"] == 0.71))
   # The channel set is patient-free, so one colour collects a pair across patients.
   expect_setequal(unique(d$channels[d$backend == "valis"]), c("CD3_P53", "CD4_CD8"))
 })
@@ -633,13 +634,103 @@ test_that("each stage figure exists plain, by patient and by channels", {
   expect_length(unique(cols), 14)
 })
 
-test_that("old scores draw the ladder only, and an absent arm falls back out loud", {
+test_that("old scores draw the rigid stage only, and an absent arm falls back out loud", {
   fx <- stage_fixture(full = FALSE)
   d  <- arm_stage_frame(fx$seg, fx$full)
   expect_false("full_transform" %in% as.character(d$stage))
   expect_match(build_arm_stage_figs(fx$seg, fx$full)$stage_dice$labels$subtitle,
-               "ladder only")
+               "rigid stage only")
   seg <- dplyr::filter(fx$seg, arm_dir != "tiled_high_s128")
   expect_message(d2 <- arm_stage_frame(seg, fx$full), "tiled_high_s128")
   expect_true("tiled_defaults" %in% d2$arm_dir)
+})
+
+# --- the headline is scored after the whole transform ---------------------------
+test_that("the ranking takes the re-paired record, with its own pair fraction, and says so", {
+  fx  <- stage_fixture()
+  fin <- arm_final_score(fx$seg, fx$full)
+  expect_equal(nrow(fin), nrow(arm_final_stage(fx$seg)))      # same rows, other values
+  expect_true(all(fin$scored_on == SCORED_FULL))
+  expect_true(all(fin$dice_matched == 0.71))
+  expect_true(all(fin$pair_fraction == 0.55))                 # NOT the anchor's
+  expect_true(all(is.na(fin$d_disp_um_vs_rigid)))             # no delta across pair sets
+  tbl <- arm_ranking_table(fx$seg, fx$full)
+  expect_true(all(tbl$dice_matched == 0.71))
+  expect_true(all(tbl$scored_on == SCORED_FULL))
+  # The pair-fraction and Dice panels draw the same re-paired values.
+  figs <- build_arm_figs(fx$seg, tibble::tibble(), fx$man, fx$full)
+  expect_true(all(figs[["04_pair_fraction_by_arm"]]$data$pair_fraction == 0.55))
+  expect_true(all(figs[["02_final_dice_by_arm"]]$data$dice_matched == 0.71))
+  expect_match(figs[["02_final_dice_by_arm"]]$labels$subtitle, "after the whole transform")
+})
+
+test_that("an arm scored before the record existed falls back to the ladder, labelled", {
+  fx  <- stage_fixture(full = FALSE)
+  fin <- arm_final_score(fx$seg, fx$full)
+  expect_true(all(fin$scored_on == SCORED_LADDER))
+  expect_equal(fin$dice_matched, arm_final_stage(fx$seg)$dice_matched)
+  # One arm re-scored, the rest not: both kinds survive and the note says MIXED.
+  fx2 <- stage_fixture()
+  one <- dplyr::filter(fx2$full, arm_dir == "valis_high_micro2")
+  mix <- arm_final_score(fx2$seg, one)
+  expect_setequal(unique(mix$scored_on), c(SCORED_FULL, SCORED_LADDER))
+  expect_match(scored_on_note(mix), "MIXED")
+})
+
+test_that("the ranking table carries a mean beside each median", {
+  seg <- read_arms_seg_qc(arm_manifest(arms_tree()))
+  fin <- arm_final_stage(seg)
+  tbl <- arm_ranking_table(seg)
+  one <- tbl[1, ]
+  v   <- fin$disp_um_p50[fin$arm == one$arm]
+  expect_equal(one$disp_um_p50, stats::median(v))
+  expect_equal(one$disp_um_mean, mean(v))
+  expect_true(all(c("dice_mean", "pair_fraction_mean") %in% names(tbl)))
+  # Skewed slides: the two summaries must differ, so the mean is not a relabelled median.
+  seg$disp_um_p50[seg$arm == one$arm & seg$patient_id == "046"] <- 50
+  sk <- dplyr::filter(arm_ranking_table(seg), arm == one$arm)
+  fs <- arm_final_stage(seg); w <- fs$disp_um_p50[fs$arm == one$arm]
+  expect_equal(sk$disp_um_mean, mean(w))
+  expect_equal(sk$disp_um_p50, stats::median(w))
+})
+
+# --- STARE's microns: converted from pixels with the slide's own pixel size -------
+# Rewrite a fixture tree the way the real runs are written: VALIS records carry
+# params.pixel_size_um; tiled records carry pixels and no micron value at all.
+strip_tiled_um <- function(root, ps = 0.325) {
+  for (f in fs::dir_ls(root, recurse = TRUE, glob = "*_seg_qc.json")) {
+    d <- jsonlite::fromJSON(f, simplifyVector = FALSE)
+    tiled <- grepl("/tiled_", f)
+    d$params <- list(pixel_size_um = if (tiled) NULL else ps)
+    if (tiled) {
+      for (st in names(d$stages)) d$stages[[st]]$displacement_um_p50 <- NULL
+      d$delta_vs_anchor <- NULL
+    }
+    jsonlite::write_json(d, f, auto_unbox = TRUE, null = "null")
+  }
+  root
+}
+
+test_that("a pixel-only STARE record gets microns from the same slide's pixel size", {
+  root <- strip_tiled_um(arms_tree(modes = "high", depths = 2, tiled = TRUE))
+  seg  <- suppressMessages(read_arms_seg_qc(arm_manifest(root)))
+  tl   <- dplyr::filter(seg, backend == "tiled")
+  expect_true(all(tl$um_from_px))
+  expect_false(any(dplyr::filter(seg, backend == "valis")$um_from_px))
+  # px x pixel size: the fixture wrote px = um / 0.325 (to write_json's 4 digits).
+  expect_equal(tl$disp_um_p50[tl$stage == "refined"], rep(1.15, 2), tolerance = 1e-3)
+  expect_message(read_arms_seg_qc(arm_manifest(root)), "converted")
+  # STARE now has a place in the micron ranking.
+  tbl <- arm_ranking_table(seg)
+  expect_true(is.finite(tbl$disp_um_p50[tbl$backend == "tiled"]))
+})
+
+test_that("with no pixel size anywhere, nothing is invented", {
+  root <- strip_tiled_um(arms_tree(modes = "high", depths = 2, tiled = TRUE))
+  for (f in fs::dir_ls(root, recurse = TRUE, glob = "*_seg_qc.json")) {
+    d <- jsonlite::fromJSON(f, simplifyVector = FALSE); d$params <- NULL
+    jsonlite::write_json(d, f, auto_unbox = TRUE, null = "null")
+  }
+  expect_warning(seg <- read_arms_seg_qc(arm_manifest(root)), "no pixel size")
+  expect_true(all(is.na(dplyr::filter(seg, backend == "tiled")$disp_um_p50)))
 })

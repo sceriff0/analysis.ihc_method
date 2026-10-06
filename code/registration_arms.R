@@ -304,7 +304,50 @@ read_arms_seg_qc <- function(manifest = arm_manifest()) {
     dplyr::mutate(d, arm = arm, arm_dir = arm_dir, backend = backend,
                   memory_mode = memory_mode, micro_reg = micro_reg, .before = 1)
   })
-  .arm_seg_placeholders(real, manifest)
+  .arm_seg_placeholders(.arm_fill_um(real), manifest)
+}
+
+# --- Microns for a record that carries pixels only ---------------------------
+# mirage's scorer writes its micron columns only when it knows the pixel size. The
+# VALIS path reads it from the registrar's slide metadata; the tiled path takes it from
+# a CLI flag the pipeline does not pass, so every STARE record has `displacement_px_*`
+# and no `displacement_um_*` -- and STARE was absent from every micron figure.
+#
+# The slides are the same slides in every arm, so the pixel size a VALIS arm recorded
+# for a slide is that slide's pixel size in a STARE arm too. Looked up most specific
+# first: the same (patient, slide), then the patient, then the cohort -- the last only
+# when every record agrees on one value, because a guessed scale is a wrong number in
+# physical units. `um_from_px` marks every row filled this way.
+.arm_pixel_sizes <- function(d) {
+  ok <- d[is.finite(d$pixel_size_um) & d$pixel_size_um > 0, , drop = FALSE]
+  med <- function(g) tapply(ok$pixel_size_um, g, stats::median)
+  all_ps <- unique(round(ok$pixel_size_um, 6))
+  list(slide   = if (nrow(ok)) med(paste(ok$patient_id, ok$slide_token)) else numeric(),
+       patient = if (nrow(ok)) med(ok$patient_id) else numeric(),
+       cohort  = if (length(all_ps) == 1) all_ps else NA_real_)
+}
+
+.arm_fill_um <- function(d, sizes = .arm_pixel_sizes(d)) {
+  if (nrow(d) == 0 || !all(c("pixel_size_um", "disp_px_p50") %in% names(d))) return(d)
+  ps <- dplyr::coalesce(
+    d$pixel_size_um,
+    unname(sizes$slide[paste(d$patient_id, d$slide_token)]),
+    unname(sizes$patient[as.character(d$patient_id)]),
+    rep(sizes$cohort, nrow(d)))
+  d$um_from_px <- !is.finite(d$disp_um_p50) & is.finite(d$disp_px_p50) & is.finite(ps)
+  for (k in intersect(c("disp_um_p50", "disp_um_p90", "d_disp_um_vs_rigid"), names(d))) {
+    px   <- d[[sub("_um_", "_px_", k)]]
+    fill <- !is.finite(d[[k]]) & is.finite(px) & is.finite(ps)
+    d[[k]][fill] <- px[fill] * ps[fill]
+  }
+  n <- sum(d$um_from_px)
+  if (n) message("registration arms: ", n, " record(s) had no micron residual; converted ",
+                 "from pixels with the slide's pixel size (",
+                 paste(sort(unique(d$arm_dir[d$um_from_px])), collapse = ", "), ")")
+  if (any(!is.finite(d$disp_um_p50) & is.finite(d$disp_px_p50)))
+    warning("registration arms: some records have a pixel residual and no pixel size ",
+            "to convert it with; they stay out of the micron figures")
+  d
 }
 
 read_arms_valis <- function(manifest = arm_manifest()) {
@@ -390,6 +433,53 @@ arm_final_stage <- function(seg) {
     dplyr::ungroup() |>
     dplyr::select(-.ord) |>
     dplyr::rename(final_stage = stage)
+}
+
+# --- The arm's HEADLINE score: paired after the whole transform ---------------
+# arm_final_stage() is the last rung of the ladder, and the ladder pairs its cells once,
+# at the rigid anchor: a cell rigid left outside the match radius is never scored,
+# however well the later stages place it. mirage's `full_transform` record applies the
+# same pairing rule and scorer AFTER the complete transform, and is the number to quote
+# for what an arm ships. So the ranking table and every final-transform figure take
+# this frame: one row per (arm, patient, moving slide), the ladder's last stage with its
+# Dice, residual and pair fraction replaced by the re-paired record's.
+#
+# A slide scored before that record existed keeps its ladder values, and `scored_on`
+# says which a row is -- the two are different measurements and must not be read as one.
+SCORED_FULL   <- "whole transform (re-paired)"
+SCORED_LADDER <- "last ladder stage (paired at rigid)"
+
+arm_final_score <- function(seg, full = NULL) {
+  fin <- arm_final_stage(seg)
+  if (nrow(fin) == 0) return(fin)
+  fin$scored_on <- SCORED_LADDER
+  if (is.null(full) || nrow(full) == 0) return(fin)
+  swap <- intersect(c("n_pairs", "pair_fraction", "iou_mean", "iou_p50", "dice_matched",
+                      "disp_um_p50", "disp_um_p90", "disp_px_p50", "disp_px_p90",
+                      "um_from_px"), intersect(names(fin), names(full)))
+  key <- function(d) paste(d$arm_dir, d$patient_id, d$moving, sep = "\r")
+  hit <- match(key(fin), key(full))
+  # A synthetic row (placeholder mode) has no re-paired record to take.
+  use <- !is.na(hit) & !(if ("is_placeholder" %in% names(fin)) fin$is_placeholder %in% TRUE
+                         else FALSE)
+  for (k in swap) fin[[k]][use] <- full[[k]][hit[use]]
+  # A difference against the rigid stage is a ladder quantity: the pair sets differ.
+  for (k in intersect(c("d_dice_vs_rigid", "d_disp_um_vs_rigid", "d_disp_px_vs_rigid"),
+                      names(fin))) fin[[k]][use] <- NA_real_
+  fin$scored_on[use] <- SCORED_FULL
+  fin
+}
+
+# One line for a subtitle or caption: what the final-transform values were scored on.
+scored_on_note <- function(fin) {
+  s <- unique(fin$scored_on)
+  if (identical(s, SCORED_FULL))
+    "Scored after the whole transform, cells re-paired in the final frame."
+  else if (identical(s, SCORED_LADDER))
+    "Scored at the last ladder stage, on the cells paired at the rigid anchor."
+  else paste0("MIXED scoring: ", sum(fin$scored_on == SCORED_FULL), " slide(s) re-paired ",
+              "after the whole transform, ", sum(fin$scored_on == SCORED_LADDER),
+              " on the rigid-anchored ladder.")
 }
 
 # --- STARE's own error -------------------------------------------------------
@@ -577,14 +667,17 @@ read_arms_stare_tiles <- function(manifest = arm_manifest()) {
 # Same contract as the other figure builders: a named list, skipping any figure
 # whose input is absent, so the page renders against a partial sweep.
 build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
-                           manifest = NULL) {
+                           manifest = NULL, full = NULL) {
   figs <- list()
   if (nrow(seg) == 0) return(figs)
 
   # Arm display order comes from the manifest when the caller has one; otherwise from
   # the data itself. Never from a re-read of the global root — a builder that reaches
   # past its arguments for a global is right only when the global happens to match.
-  fin      <- arm_final_stage(seg)
+  # Every final-transform panel is scored after the WHOLE transform where the scorer
+  # wrote that record (arm_final_score); the ladder figures below still read `seg`.
+  fin      <- arm_final_score(seg, full)
+  fin_note <- scored_on_note(fin)
   arm_lvls <- if (!is.null(manifest) && nrow(manifest)) unique(manifest$arm)
               else unique(seg$arm)
   .arm_f   <- function(x) factor(x, levels = intersect(arm_lvls, unique(x)))
@@ -608,7 +701,8 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
            # The unit note takes its own line in all three main panels: run on, the
            # subtitle overruns a double-column panel and the clipped part is the unit.
            subtitle = paste0("Matched-nucleus centroid residual, median per channel pair. ",
-                             "Physical units; lower = tighter.\n", PAIR_UNIT_NOTE),
+                             "Physical units; lower = tighter.\n", PAIR_UNIT_NOTE,
+                             "\n", fin_note),
            x = NULL, y = "residual displacement, median (µm)", caption = ARM_CAPTION)
   }
 
@@ -626,7 +720,7 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       coord_flip() +
       labs(title = "Matched-nucleus Dice at each arm's final transform",
            subtitle = paste0("Higher = better. Same arms and channel pairs as the ",
-                             "residual figure.\n", PAIR_UNIT_NOTE),
+                             "residual figure.\n", PAIR_UNIT_NOTE, "\n", fin_note),
            x = NULL, y = "Matched-nucleus Dice (unitless, 0-1)", caption = ARM_CAPTION)
   }
 
@@ -692,8 +786,10 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   # -- 4. Is the pairing thick enough to trust the arm at all? mirage's own rule:
   # below ~0.5 the later stages are scored on a biased subset of cells that happened
   # to land close. An arm that wins on residual while pairing thinly has not won.
-  if (any(is.finite(seg$pair_fraction))) {
-    d <- seg |>
+  # The pair fraction is the one that belongs to the score being ranked: the re-paired
+  # record's own where there is one, the rigid anchor's otherwise.
+  if (any(is.finite(fin$pair_fraction))) {
+    d <- fin |>
       dplyr::filter(is.finite(pair_fraction)) |>
       dplyr::select(arm, micro_reg, patient_id, moving, pair_fraction,
                     dplyr::any_of("is_placeholder")) |>
@@ -707,9 +803,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
       geom_jitter(width = .12, height = 0, alpha = .8, size = 2, colour = oi[3]) +
       coord_flip() + ylim(0, 1) +
       labs(title = "How much of the slide each arm could actually pair",
-           subtitle = paste("Fraction of nuclei matched at the rigid anchor. Below the",
-                            "dashed 0.5 line the later stages are measured on a biased",
-                            "subset — check this before believing a ranking."),
+           subtitle = paste0("Fraction of nuclei matched within the match radius. Below ",
+                             "the dashed 0.5 line the score is measured on a biased\n",
+                             "subset — check this before believing a ranking. ", fin_note),
            x = NULL, y = "Pair fraction (unitless, 0-1)", caption = ARM_CAPTION)
   }
 
@@ -960,26 +1056,22 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   factor(lab, levels = names(ARM_KIND_COLS))
 }
 
-# --- Stage by stage, ONE arm per backend -------------------------------------
-# The run-QC page draws Dice by stage for one run. These are the same boxes for the
-# shipped arm of each backend, side by side: one panel per arm, each with ITS OWN stage
-# axis (VALIS native -> rigid -> non_rigid -> micro, STARE native -> rigid -> refined),
-# so the two vocabularies are never put on one axis. The y axis is shared.
+# --- Rigid against the whole transform, ONE arm per backend -------------------
+# The shipped arm of each backend, side by side: one panel per arm, two boxes each,
+# shared y axis.
 #
-# THE LAST BOX IS A DIFFERENT PAIRING. The ladder pairs the cells once, at the rigid
-# anchor, and follows those pairs through the stages. `whole transform` is mirage's
-# `full_transform` record: the same pairing rule and scorer applied AFTER the complete
-# transform. It is the number to quote for the shipped output, and it is not a further
-# rung of the ladder -- its pair set differs, so its residual is bounded by the match
-# radius and a failure shows as a low pair fraction instead of a large displacement.
+# THE TWO BOXES ARE DIFFERENT PAIRINGS. `rigid` is scored on the cells paired at the
+# rigid stage. `whole transform` is mirage's `full_transform` record: the same pairing
+# rule and scorer applied AFTER the complete transform. It is the number to quote for
+# the shipped output; its residual is bounded by the match radius, so a failure shows
+# as a low pair fraction instead of a large displacement.
 #
 # Three colourings of each figure: boxes only, points by patient, points by the moving
 # slide's channel set. One point is one moving slide scored against its patient's
 # reference.
 STAGE_FIG_ARMS <- c(valis = "valis_high_micro2", tiled = "tiled_high_s128")
 FULL_STAGE     <- "full_transform"
-STAGE_LABELS   <- c(native = "native", rigid = "rigid", refined = "refined",
-                    non_rigid = "non-rigid", micro = "micro",
+STAGE_LABELS   <- c(rigid = "rigid\n(paired at rigid)",
                     full_transform = "whole transform\n(re-paired)")
 
 # read_seg_qc_full(), once per arm tree -- the after-transform record of every arm.
@@ -992,7 +1084,8 @@ read_arms_seg_qc_full <- function(manifest = arm_manifest()) {
     if (nrow(d) == 0) return(tibble::tibble())
     dplyr::mutate(d, arm = arm, arm_dir = arm_dir, backend = backend,
                   memory_mode = memory_mode, micro_reg = micro_reg, .before = 1)
-  })
+  }) |>
+    .arm_fill_um()
 }
 
 # Which arm directories to draw. A named arm that is absent falls back to the first arm
@@ -1011,15 +1104,23 @@ read_arms_seg_qc_full <- function(manifest = arm_manifest()) {
   unique(out)
 }
 
-# The long frame behind every stage figure: the ladder rows of the chosen arms plus,
-# where the scorer wrote one, the after-transform record as a last stage.
+# The long frame behind every stage figure: the RIGID rung of the chosen arms plus,
+# where the scorer wrote one, the after-transform record.
+#
+# Only those two, on purpose. The rungs between them (non_rigid, micro, refined) are
+# scored on the cells rigid already paired, so they cannot show a cell rigid missed and
+# a later stage fixed; beside a re-paired box they read as a like-for-like progression
+# and are not one. `rigid` is each backend's own rigid (see the header), so compare
+# rigid against whole transform WITHIN a panel, not rigid across panels.
+STAGE_FIG_STAGES <- c("rigid", "full_transform")
+
 arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
   if (nrow(seg) == 0) return(tibble::tibble())
   keep <- .stage_fig_arms(seg, arms)
   cols <- c("arm", "arm_dir", "backend", "patient_id", "moving", "slide_token",
             "stage", "dice_matched", "disp_um_p50", "pair_fraction", "is_placeholder")
   lad <- seg |>
-    dplyr::filter(arm_dir %in% keep) |>
+    dplyr::filter(arm_dir %in% keep, as.character(stage) %in% STAGE_FIG_STAGES) |>
     dplyr::mutate(stage = as.character(stage)) |>
     dplyr::select(dplyr::any_of(cols))
   ful <- if (is.null(full) || nrow(full) == 0) tibble::tibble() else
@@ -1036,7 +1137,7 @@ arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
   arm_lvls <- unique(out$arm[order(match(out$arm_dir, keep))])
   dplyr::mutate(out,
                 arm   = factor(arm, levels = arm_lvls),
-                stage = factor(stage, levels = c(QC_STAGE_LEVELS, FULL_STAGE)),
+                stage = factor(stage, levels = STAGE_FIG_STAGES),
                 channels = slide_token)
 }
 
@@ -1057,11 +1158,11 @@ arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
   if (nrow(d) == 0) return(NULL)
   has_full <- any(d$stage == FULL_STAGE)
   sub <- paste0(
-    "One panel per configuration, each with its own stages. One value per moving slide",
+    "One panel per configuration. One value per moving slide",
     " (", n_note(d$patient_id, "patients"), ").\n",
-    if (has_full) paste0("Stages up to the last are paired once at the rigid anchor;",
+    if (has_full) paste0("`rigid` is scored on the cells paired at the rigid stage;",
                          " `whole transform` is re-paired after the complete transform.")
-    else "Scored before the after-transform record existed: the ladder only.",
+    else "Scored before the after-transform record existed: the rigid stage only.",
     if (!is.null(note)) paste0("\n", note))
   p <- ggplot(d, aes(stage, .data[[y]])) +
     geom_boxplot(outlier.shape = NA, width = .5,
@@ -1082,7 +1183,7 @@ arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
   p
 }
 
-# Dice and residual by stage for the shipped arm of each backend, in the three
+# Dice and residual at rigid and after the whole transform, shipped arm of each backend, in the three
 # colourings. Same contract as build_arm_figs(): a named list, a figure with no data
 # is absent.
 build_arm_stage_figs <- function(seg = read_arms_seg_qc(),
@@ -1093,11 +1194,11 @@ build_arm_stage_figs <- function(seg = read_arms_seg_qc(),
   if (nrow(d) == 0) return(figs)
   metrics <- list(
     dice = list(y = "dice_matched", ylab = "Matched-nucleus Dice (unitless, 0-1)",
-                title = "Matched-nucleus Dice by registration stage", log_y = FALSE,
+                title = "Matched-nucleus Dice: rigid against the whole transform", log_y = FALSE,
                 note = NULL),
     residual_um = list(
       y = "disp_um_p50", ylab = "residual displacement, median (µm, log10)",
-      title = "Centroid residual displacement by registration stage", log_y = TRUE,
+      title = "Centroid residual: rigid against the whole transform", log_y = TRUE,
       note = paste("The re-paired residual is bounded by the match radius, so read it",
                    "with the pair fraction.")))
   for (m in names(metrics)) for (by in c("none", "patient", "channels")) {
@@ -1294,19 +1395,32 @@ arm_paper_table <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 }
 
 # The ranking, as a table — Additional-file material, and the numbers to quote.
-arm_ranking_table <- function(seg = read_arms_seg_qc()) {
-  fin <- arm_final_stage(seg)
+# Median AND mean across slides, per metric: the median is the ranking (one failed slide
+# does not move it), the mean is what that failed slide costs. `disp_um_p50`,
+# `dice_matched` and `pair_fraction` are the medians and keep their names.
+arm_ranking_table <- function(seg = read_arms_seg_qc(), full = NULL) {
+  fin <- arm_final_score(seg, full)
   if (nrow(fin) == 0) return(tibble::tibble())
+  mean_ <- function(x) if (any(is.finite(x))) mean(x[is.finite(x)]) else NA_real_
   fin |>
     dplyr::group_by(arm, backend, memory_mode, micro_reg) |>
     dplyr::summarise(
       n_slides      = dplyr::n(),
       final_stage   = paste(sort(unique(as.character(final_stage))), collapse = "/"),
+      scored_on     = paste(sort(unique(scored_on)), collapse = " + "),
+      # The means FIRST: summarise() evaluates in order, and each median below
+      # overwrites the column it summarises.
+      disp_um_mean  = mean_(disp_um_p50),
+      dice_mean     = mean_(dice_matched),
+      pair_fraction_mean = mean_(pair_fraction),
       disp_um_p50   = stats::median(disp_um_p50, na.rm = TRUE),
       dice_matched  = stats::median(dice_matched, na.rm = TRUE),
       pair_fraction = stats::median(pair_fraction, na.rm = TRUE),
       dplyr::across(dplyr::any_of("is_placeholder"), ~ sum(.x %in% TRUE),
                     .names = "n_placeholder"),
       .groups = "drop") |>
+    dplyr::relocate(disp_um_mean, .after = disp_um_p50) |>
+    dplyr::relocate(dice_mean, .after = dice_matched) |>
+    dplyr::relocate(pair_fraction_mean, .after = pair_fraction) |>
     dplyr::arrange(disp_um_p50)
 }

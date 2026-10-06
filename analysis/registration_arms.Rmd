@@ -130,6 +130,8 @@ same artifacts, only the number of trees changed.
 ```{r manifest}
 arms <- if (have_arms) arm_manifest() else tibble::tibble()
 seg  <- if (nrow(arms)) read_arms_seg_qc(arms) else tibble::tibble()
+# The same score, re-paired after the whole transform: the headline numbers below.
+full <- if (nrow(arms)) read_arms_seg_qc_full(arms) else tibble::tibble()
 
 if (nrow(arms)) {
   knitr::kable(dplyr::select(arms, arm, arm_dir, backend, memory_mode, micro_reg,
@@ -208,11 +210,30 @@ if (nrow(seg)) {
 
 ## Headline: the arm ranking
 
+The headline numbers are scored **after the whole transform**: mirage's
+`full_transform` record pairs the cells again in the final frame, with the same match
+radius and the same per-pair scorer, so a cell the rigid stage left out of reach and a
+later stage brought in is counted. `scored_on` says so per arm; an arm scored before
+that record existed (2026-10-05) falls back to its last ladder stage, which is scored
+on the cells paired at rigid, and is labelled as such. `pair_fraction` is the one that
+belongs to the score shown.
+
+**The pair fraction is not 100% under exact assignment, and is not meant to be.** A
+pair is only allowed within 1.5 median nuclear radii, and the denominator is the
+smaller of the two slides' nucleus counts — so a nucleus segmented in one round and
+not the other, or one still further than a radius away, stays unpaired.
+
+**STARE's microns are converted here.** mirage's scorer writes a micron residual only
+when it knows the pixel size, which on the tiled path it does not; those records carry
+pixels. They are multiplied by the same slide's pixel size as a VALIS arm recorded it.
+
 ```{r ranking-table}
 if (nrow(seg))
-  knitr::kable(arm_ranking_table(seg), digits = 3, caption = paste(
-    "Per arm, median across slides at that arm's final transform.",
-    "Sorted by residual displacement — lower is better.",
+  knitr::kable(arm_ranking_table(seg, full), digits = 3, caption = paste(
+    "Per arm, across slides, at that arm's final transform. `disp_um_p50`,",
+    "`dice_matched` and `pair_fraction` are MEDIANS across slides; the `_mean` column",
+    "beside each is the mean of the same per-slide values. Sorted by median residual",
+    "displacement — lower is better.",
     "`pair_fraction` is the trust check: read it before the ranking."))
 ```
 
@@ -243,10 +264,10 @@ arm_notes <- c(
     "Read DOWN a panel — inside one arm `rigid` has a fixed meaning. Do not read",
     "`rigid` ACROSS panels."),
   "04_pair_fraction_by_arm" = paste(
-    "**Is the ranking trustworthy?** Fraction of nuclei paired at the rigid anchor.",
-    "mirage's own rule: below ~0.5 the later stages are scored on a biased subset of",
-    "cells that happened to land close. An arm that wins on residual while pairing",
-    "thinly has not won."),
+    "**Is the ranking trustworthy?** Fraction of nuclei paired for the score being",
+    "ranked — after the whole transform where that record exists. mirage's own rule:",
+    "below ~0.5 the score is measured on a biased subset of cells that happened to",
+    "land close. An arm that wins on residual while pairing thinly has not won."),
   "05_knob_effects" = paste(
     "**Which knob moved the result.** Final-transform residual by micro-registration",
     "depth, split by accuracy preset. The presets use different feature matchers",
@@ -283,7 +304,7 @@ arm_notes <- c(
     "facets rather than sharing one axis. See [run QC](registration_run_qc.html) for the full",
     "column-and-file to stage mapping."))
 
-figs <- if (nrow(seg)) build_arm_figs(seg, read_arms_valis(arms), arms) else list()
+figs <- if (nrow(seg)) build_arm_figs(seg, read_arms_valis(arms), arms, full) else list()
 is_supp <- grepl("^S[0-9]+_", names(figs))
 print_figs <- function(nms) for (nm in nms) {
   cat("\n\n### ", gsub("_", " ", sub("^S?[0-9]+[a-z]?_", "", nm)), "\n\n", sep = "")
@@ -295,27 +316,31 @@ print_figs(names(figs)[!is_supp])
 if (!length(figs)) cat("\n_No figures — see the loader note above._\n")
 ```
 
-## Stage by stage, VALIS and STARE
+## Rigid against the whole transform, VALIS and STARE
 
-Dice and centroid residual at every stage, for the shipped configuration of each
-backend (`STAGE_FIG_ARMS` in `code/registration_arms.R`: `valis_high_micro2` and
-`tiled_high_s128`). One panel per configuration, each with **its own stage axis** — the
-two backends do not share a stage vocabulary — and a shared y axis. One value per
-moving slide, scored against its patient's reference.
+Dice and centroid residual for the shipped configuration of each backend
+(`STAGE_FIG_ARMS` in `code/registration_arms.R`: `valis_high_micro2` and
+`tiled_high_s128`), at two points only. One panel per configuration, shared y axis.
+One value per moving slide, scored against its patient's reference.
 
-The stages up to the last are the **diagnostic ladder**: cells are paired once, at the
-rigid anchor, and those pairs are followed through the stages. The last box,
-**whole transform (re-paired)**, is mirage's `full_transform` record: the same pairing
-rule and scorer applied after the complete transform. It is the number to quote for
-the shipped output. It is not a further rung of the ladder, because its pair set
-differs; an arm scored before that record existed shows the ladder only.
+- **rigid** — cells paired at the rigid stage and scored there.
+- **whole transform (re-paired)** — mirage's `full_transform` record: the same pairing
+  rule and scorer applied after the complete transform. The number to quote for the
+  shipped output.
+
+The rungs between them (`non_rigid`, `micro`, `refined`) are left out on purpose. They
+are scored on the cells rigid already paired, so they cannot show a cell that rigid
+missed and a later stage fixed; beside a re-paired box they read as a like-for-like
+progression and are not one. They remain in the ladder figure above. `rigid` is each
+backend's own rigid, so read rigid against whole transform **within** a panel. The two
+boxes are over different pair sets, which is why no difference between them is drawn.
 
 Each figure is drawn three times: boxes only, points coloured by **patient**, and
 points coloured by the **moving slide's channel set**.
 
 ```{r figures-stage, results="asis", fig.width=fig_width("double"), fig.height=4.5}
 stage_figs <- if (nrow(seg)) {
-  build_arm_stage_figs(seg, read_arms_seg_qc_full(arms))
+  build_arm_stage_figs(seg, full)
 } else list()
 for (nm in names(stage_figs)) {
   cat("\n\n### ", gsub("_", " ", nm), "\n\n", sep = "")
