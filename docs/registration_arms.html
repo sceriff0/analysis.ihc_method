@@ -485,7 +485,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-09-30
+<strong>Last updated:</strong> 2026-10-06
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -616,15 +616,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree65fe237cde01f70eba87f592a740fdcbad82cc3atargetblank65fe237a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree281bd725287317751a6fce8430266ae99eea96bctargetblank281bd72a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/65fe237cde01f70eba87f592a740fdcbad82cc3a" target="_blank">65fe237</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/281bd725287317751a6fce8430266ae99eea96bc" target="_blank">281bd72</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree65fe237cde01f70eba87f592a740fdcbad82cc3atargetblank65fe237a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree281bd725287317751a6fce8430266ae99eea96bctargetblank281bd72a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -634,7 +634,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/65fe237cde01f70eba87f592a740fdcbad82cc3a" target="_blank">65fe237</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/281bd725287317751a6fce8430266ae99eea96bc" target="_blank">281bd72</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -652,6 +652,7 @@ Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
     Ignored:    data/
+    Ignored:    fractions_latest.sif
     Ignored:    output/additional_file_2_registration_arms.csv
     Ignored:    output/additional_file_4_lineage_mapping.csv
     Ignored:    output/deconv_celltype_map.csv
@@ -661,9 +662,6 @@ Ignored files:
     Ignored:    output/summary_region.csv
     Ignored:    renv/library/
     Ignored:    renv/staging/
-
-Unstaged changes:
-    Modified:   .gitignore
 
 </code></pre>
 <p>
@@ -711,19 +709,37 @@ Message
 <tbody>
 <tr>
 <td>
-html
+Rmd
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/registration_arms.html" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a68e1f33246a6ba5358610442f0282bdb2c3cc92/analysis/registration_arms.Rmd" target="_blank">a68e1f3</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
+2026-10-06
+</td>
+<td>
+:sparkles: Stage-by-stage figures for VALIS and STARE, with the
+re-paired whole-transform score
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/4ca73a518880130570dad085b500b95b308e69e0/docs/registration_arms.html" target="_blank">4ca73a5</a>
+</td>
+<td>
+bolt3x
+</td>
+<td>
 2026-09-30
 </td>
 <td>
-:thread: knitting
+Your commit message
 </td>
 </tr>
 <tr>
@@ -1123,13 +1139,6 @@ changed.</p>
 <caption>The arms found, and how each was labelled. A <code>tiled</code>
 arm carries no preset and no micro depth — those params do not exist on
 that backend.</caption>
-<colgroup>
-<col width="33%" />
-<col width="25%" />
-<col width="11%" />
-<col width="16%" />
-<col width="13%" />
-</colgroup>
 <thead>
 <tr class="header">
 <th align="left">arm</th>
@@ -1183,9 +1192,9 @@ that backend.</caption>
 <td align="right">2</td>
 </tr>
 <tr class="odd">
-<td align="left">tiled (STARE, defaults)</td>
 <td align="left">tiled_defaults</td>
-<td align="left">tiled</td>
+<td align="left">tiled_defaults</td>
+<td align="left">valis</td>
 <td align="left">NA</td>
 <td align="right">NA</td>
 </tr>
@@ -1211,17 +1220,15 @@ values.</p>
 <div id="what-may-be-compared-across-arms-and-what-may-not"
 class="section level2">
 <h2>What may be compared across arms, and what may not</h2>
-<p>This sweep crosses REGISTRATION BACKENDS (tiled and valis). They do
-not share a stage vocabulary — VALIS reports
-<code>native → rigid → non_rigid → micro</code>, STARE reports
-<code>native → rigid → refined</code> — and <code>rigid</code> is a
-shared word rather than a shared operation (VALIS: affine, composed with
-micro-rigid at depth ≥ 1; STARE: the coarse global anchor before mesh
-refinement). Only <code>native</code> and each run’s FINAL stage may be
-put on one axis. The segmentation-overlap METRIC is backend-agnostic —
-mirage’s scorer builds its warper from either a VALIS registrar or a
-STARE manifest — which is what makes the final-stage comparison
-legitimate at all.</p>
+<p>This sweep crosses <code>reg_micro_reg</code> = 0, 1, 2. mirage
+defines the QC <code>rigid</code> stage as the rigid transform
+<em>after</em> <code>MicroRigidRegistrar</code> refined it, so
+<code>rigid</code> means affine alone at depth 0 and affine ∘
+micro-rigid at depth ≥ 1 — two different transforms. Per-stage
+comparisons across arms are therefore restricted to <code>native</code>
+(untransformed) and to each run’s FINAL stage, which is that run’s
+shipped output. The stage ladder is still read <em>within</em> an arm,
+where the definition is fixed.</p>
 <p>Stages directly comparable across these arms:
 <code>native</code>.</p>
 <p>Three traps are worth stating before any figure:</p>
@@ -1313,15 +1320,15 @@ Sorted by residual displacement — lower is better.
 <code>pair_fraction</code> is the trust check: read it before the
 ranking.</caption>
 <colgroup>
-<col width="21%" />
+<col width="14%" />
 <col width="7%" />
-<col width="10%" />
+<col width="11%" />
+<col width="9%" />
 <col width="8%" />
-<col width="7%" />
-<col width="10%" />
-<col width="10%" />
+<col width="11%" />
 <col width="11%" />
 <col width="12%" />
+<col width="13%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -1404,8 +1411,8 @@ ranking.</caption>
 <td align="right">0.642</td>
 </tr>
 <tr class="odd">
-<td align="left">tiled (STARE, defaults)</td>
-<td align="left">tiled</td>
+<td align="left">tiled_defaults</td>
+<td align="left">valis</td>
 <td align="left">NA</td>
 <td align="right">NA</td>
 <td align="right">54</td>
@@ -1450,10 +1457,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-1.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-1.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -1541,10 +1548,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-2.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-2.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -1634,10 +1641,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-3.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-3.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -1723,10 +1730,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-4.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-4.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -1813,10 +1820,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-5.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-5.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -1903,10 +1910,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-6.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-6.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -1997,10 +2004,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-7.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-7.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2098,10 +2105,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-8.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-8.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2156,50 +2163,50 @@ sceriff0
 </div>
 </div>
 </div>
-<div id="stare-intrinsic-tre-px" class="section level3">
-<h3>stare intrinsic tre px</h3>
-<p><strong>STARE grading itself</strong>, before and after mesh
-refinement. In <strong>pixels</strong> — this is deliberately a separate
-figure from the VALIS rTRE above, because the two are in different units
-and a shared axis would invite a comparison that is not one.</p>
-<p><img src="figure/registration_arms.Rmd/figures-9.png" alt="" width="864" style="display: block; margin: auto;" /></p>
-<p>
-<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-figures-9">
-Past versions of figures-9.png
-</button>
-</p>
-<div id="fig-figures-9" class="collapse">
-<div class="table-responsive">
-<table class="table table-condensed table-hover">
-<thead>
-<tr>
-<th>
-Version
-</th>
-<th>
-Author
-</th>
-<th>
-Date
-</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-9.png" target="_blank">3c2d0ad</a>
-</td>
-<td>
-sceriff0
-</td>
-<td>
-2026-09-30
-</td>
-</tr>
-</tbody>
-</table>
 </div>
+<div id="stage-by-stage-valis-and-stare" class="section level2">
+<h2>Stage by stage, VALIS and STARE</h2>
+<p>Dice and centroid residual at every stage, for the shipped
+configuration of each backend (<code>STAGE_FIG_ARMS</code> in
+<code>code/registration_arms.R</code>: <code>valis_high_micro2</code>
+and <code>tiled_high_s128</code>). One panel per configuration, each
+with <strong>its own stage axis</strong> — the two backends do not share
+a stage vocabulary — and a shared y axis. One value per moving slide,
+scored against its patient’s reference.</p>
+<p>The stages up to the last are the <strong>diagnostic ladder</strong>:
+cells are paired once, at the rigid anchor, and those pairs are followed
+through the stages. The last box, <strong>whole transform
+(re-paired)</strong>, is mirage’s <code>full_transform</code> record:
+the same pairing rule and scorer applied after the complete transform.
+It is the number to quote for the shipped output. It is not a further
+rung of the ladder, because its pair set differs; an arm scored before
+that record existed shows the ladder only.</p>
+<p>Each figure is drawn three times: boxes only, points coloured by
+<strong>patient</strong>, and points coloured by the <strong>moving
+slide’s channel set</strong>.</p>
+<div id="stage-dice" class="section level3">
+<h3>stage dice</h3>
+<p><img src="figure/registration_arms.Rmd/figures-stage-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
+<div id="stage-dice-by-patient" class="section level3">
+<h3>stage dice by patient</h3>
+<p><img src="figure/registration_arms.Rmd/figures-stage-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stage-dice-by-channels" class="section level3">
+<h3>stage dice by channels</h3>
+<p><img src="figure/registration_arms.Rmd/figures-stage-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stage-residual-um" class="section level3">
+<h3>stage residual um</h3>
+<p><img src="figure/registration_arms.Rmd/figures-stage-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stage-residual-um-by-patient" class="section level3">
+<h3>stage residual um by patient</h3>
+<p><img src="figure/registration_arms.Rmd/figures-stage-5.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stage-residual-um-by-channels" class="section level3">
+<h3>stage residual um by channels</h3>
+<p><img src="figure/registration_arms.Rmd/figures-stage-6.png" alt="" width="864" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="supplementary-the-main-panels-split" class="section level2">
@@ -2252,10 +2259,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-1.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-supp-1.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2293,10 +2300,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-2.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-supp-2.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2334,10 +2341,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-3.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-supp-3.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2375,10 +2382,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-4.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-supp-4.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2416,10 +2423,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-5.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-supp-5.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
@@ -2457,10 +2464,10 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3c2d0ad52c8978d3b475a6e36596bec7a60ccb6f/docs/figure/registration_arms.Rmd/figures-supp-6.png" target="_blank">3c2d0ad</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/registration_arms.Rmd/figures-supp-6.png" target="_blank">4ca73a5</a>
 </td>
 <td>
-sceriff0
+bolt3x
 </td>
 <td>
 2026-09-30
