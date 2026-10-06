@@ -580,8 +580,8 @@ ANHIR_METHOD_LABELS <- c(initial  = "initial (no registration)",
                          bunwarpj = "bUnwarpJ (challenge baseline)",
                          valis    = "VALIS",
                          tiled    = "STARE (tiled)",
-                         stare    = "STARE v1",
-                         drape    = "DRAPE")
+                         stare    = "STARE",
+                         drape    = "STARE (run as DRAPE)")  # interim name, same method
 ANHIR_UNKNOWN_COL <- "#A6A6A6"
 
 # Display name for a method key; an unlisted key is shown as itself.

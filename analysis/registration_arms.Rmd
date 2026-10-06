@@ -295,6 +295,36 @@ print_figs(names(figs)[!is_supp])
 if (!length(figs)) cat("\n_No figures — see the loader note above._\n")
 ```
 
+## Stage by stage, VALIS and STARE
+
+Dice and centroid residual at every stage, for the shipped configuration of each
+backend (`STAGE_FIG_ARMS` in `code/registration_arms.R`: `valis_high_micro2` and
+`tiled_high_s128`). One panel per configuration, each with **its own stage axis** — the
+two backends do not share a stage vocabulary — and a shared y axis. One value per
+moving slide, scored against its patient's reference.
+
+The stages up to the last are the **diagnostic ladder**: cells are paired once, at the
+rigid anchor, and those pairs are followed through the stages. The last box,
+**whole transform (re-paired)**, is mirage's `full_transform` record: the same pairing
+rule and scorer applied after the complete transform. It is the number to quote for
+the shipped output. It is not a further rung of the ladder, because its pair set
+differs; an arm scored before that record existed shows the ladder only.
+
+Each figure is drawn three times: boxes only, points coloured by **patient**, and
+points coloured by the **moving slide's channel set**.
+
+```{r figures-stage, results="asis", fig.width=fig_width("double"), fig.height=4.5}
+stage_figs <- if (nrow(seg)) {
+  build_arm_stage_figs(seg, read_arms_seg_qc_full(arms))
+} else list()
+for (nm in names(stage_figs)) {
+  cat("\n\n### ", gsub("_", " ", nm), "\n\n", sep = "")
+  print(stage_figs[[nm]])
+  cat("\n\n")
+}
+if (!length(stage_figs)) cat("\n_No stage figures — see the loader note above._\n")
+```
+
 ## Supplementary: the main panels, split
 
 The three main-text panels (residual, Dice, VALIS's own error) pool **every channel

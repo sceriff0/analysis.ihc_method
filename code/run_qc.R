@@ -260,6 +260,53 @@ read_seg_qc <- function(root = RUN_QC_ROOT) {
     dplyr::filter(!is.na(stage))
 }
 
+# --- 1b. the same score, PAIRED AFTER THE WHOLE TRANSFORM ---------------------
+# One row per (patient, moving slide), from the `full_transform` record mirage's scorer
+# writes beside the ladder (bin/warp_seg_qc.py, since 2026-10-05). The ladder above
+# pairs the cells ONCE at the rigid anchor and follows those pairs through the stages;
+# this record applies the same pairing rule and the same per-pair scorer in the FINAL
+# stage's frame, so it is the answer to "how well do the nuclei overlap in the output
+# that ships". It carries its OWN pair_fraction, and no delta: the two pair sets
+# differ, so a difference between them is not a stage effect.
+#
+# A `*_seg_qc.json` scored before that date has no such record and contributes no row
+# -- an empty result means "old scores", not "no QC".
+SEG_QC_FULL_EMPTY <- tibble::tibble(
+  patient_id = character(), moving = character(), slide_token = character(),
+  reference = character(), pair = character(), final_stage = character(),
+  n_pairs = numeric(), pair_fraction = numeric(), iou_mean = numeric(),
+  iou_p50 = numeric(), dice_matched = numeric(), disp_um_p50 = numeric(),
+  disp_um_p90 = numeric(), disp_px_p50 = numeric())
+
+read_seg_qc_full <- function(root = RUN_QC_ROOT) {
+  out <- purrr::map_dfr(.qc_patient_dirs(root), function(dir) {
+    purrr::map_dfr(.qc_files(dir, "qc/registration", "*_seg_qc.json"), function(f) {
+      d <- .read_json(f)
+      s <- if (is.null(d)) NULL else d$full_transform
+      if (is.null(s)) return(tibble::tibble())
+      mv  <- d$moving %||% fs::path_ext_remove(fs::path_file(f))
+      ref <- as.character(d$reference %||% NA_character_)
+      m   <- s$matching %||% list()
+      tibble::tibble(
+        patient_id    = slide_key(d$patient_id %||% fs::path_file(dir)),
+        moving        = mv,
+        slide_token   = .slide_token(mv, fs::path_file(dir)),
+        reference     = ref,
+        pair          = .channel_pair(ref, mv, fs::path_file(dir)),
+        final_stage   = as.character(s$stage %||% NA_character_),
+        n_pairs       = as.numeric(s$n_pairs %||% m$n_pairs %||% NA),
+        pair_fraction = as.numeric(m$pair_fraction %||% NA),
+        iou_mean      = as.numeric(s$iou_mean %||% NA),
+        iou_p50       = as.numeric(s$iou_p50 %||% NA),
+        dice_matched  = as.numeric(s$dice_matched %||% NA),
+        disp_um_p50   = as.numeric(s$displacement_um_p50 %||% NA),
+        disp_um_p90   = as.numeric(s$displacement_um_p90 %||% NA),
+        disp_px_p50   = as.numeric(s$displacement_px_p50 %||% NA))
+    })
+  })
+  if (nrow(out) == 0) SEG_QC_FULL_EMPTY else out
+}
+
 # --- 2. VALIS's own error ----------------------------------------------------
 # Column-agnostic: VALIS's schema varies by build, so keep what it wrote and tag the
 # provenance. `stage_scope` separates the post-micro summary from the pre-micro one.

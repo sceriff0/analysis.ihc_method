@@ -192,10 +192,12 @@ DRAPE_ARM_RE <- "^tiled_(low|medium|high)_s([0-9]+)(_.*)?$"
   # new cross starts, so an underscore inside a value (mutual_nn) survives.
   cross  <- vapply(strsplit(sfx, "_(?=seg|pair)", perl = TRUE), .drape_cross_label,
                    character(1))
-  built <- sprintf("DRAPE (%s, stride %s px)%s", tier, stride, cross)
+  # mirage renamed DRAPE back to STARE on 2026-09-30: the stride arms are STARE, and a
+  # label written under the interim name DRAPE is shown as STARE too.
+  built <- sprintf("STARE (%s, stride %s px)%s", tier, stride, cross)
   lab <- out[hit]
   out[hit] <- ifelse(is.na(lab) | !nzchar(lab), built,
-                     gsub("STARE", "DRAPE", sub("^tiled \\(STARE,\\s*", "DRAPE (", lab),
+                     gsub("DRAPE", "STARE", sub("^tiled \\(STARE,\\s*", "STARE (", lab),
                           fixed = TRUE))
   out
 }
@@ -947,6 +949,154 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
                 ifelse(is.na(micro_reg), "valis",
                        paste0("valis · micro ", micro_reg)))))
   factor(lab, levels = names(ARM_KIND_COLS))
+}
+
+# --- Stage by stage, ONE arm per backend -------------------------------------
+# The run-QC page draws Dice by stage for one run. These are the same boxes for the
+# shipped arm of each backend, side by side: one panel per arm, each with ITS OWN stage
+# axis (VALIS native -> rigid -> non_rigid -> micro, STARE native -> rigid -> refined),
+# so the two vocabularies are never put on one axis. The y axis is shared.
+#
+# THE LAST BOX IS A DIFFERENT PAIRING. The ladder pairs the cells once, at the rigid
+# anchor, and follows those pairs through the stages. `whole transform` is mirage's
+# `full_transform` record: the same pairing rule and scorer applied AFTER the complete
+# transform. It is the number to quote for the shipped output, and it is not a further
+# rung of the ladder -- its pair set differs, so its residual is bounded by the match
+# radius and a failure shows as a low pair fraction instead of a large displacement.
+#
+# Three colourings of each figure: boxes only, points by patient, points by the moving
+# slide's channel set. One point is one moving slide scored against its patient's
+# reference.
+STAGE_FIG_ARMS <- c(valis = "valis_high_micro2", tiled = "tiled_high_s128")
+FULL_STAGE     <- "full_transform"
+STAGE_LABELS   <- c(native = "native", rigid = "rigid", refined = "refined",
+                    non_rigid = "non-rigid", micro = "micro",
+                    full_transform = "whole transform\n(re-paired)")
+
+# read_seg_qc_full(), once per arm tree -- the after-transform record of every arm.
+read_arms_seg_qc_full <- function(manifest = arm_manifest()) {
+  if (nrow(manifest) == 0) return(tibble::tibble())
+  purrr::pmap_dfr(manifest, function(arm_dir, path, backend, memory_mode, micro_reg,
+                                     label, arm, ...) {
+    if (is.na(path)) return(tibble::tibble())
+    d <- read_seg_qc_full(path)
+    if (nrow(d) == 0) return(tibble::tibble())
+    dplyr::mutate(d, arm = arm, arm_dir = arm_dir, backend = backend,
+                  memory_mode = memory_mode, micro_reg = micro_reg, .before = 1)
+  })
+}
+
+# Which arm directories to draw. A named arm that is absent falls back to the first arm
+# of its backend, and says so: a silently substituted configuration is a mislabelled
+# figure.
+.stage_fig_arms <- function(seg, arms = STAGE_FIG_ARMS) {
+  have <- unique(seg$arm_dir)
+  out  <- unname(arms[arms %in% have])
+  for (b in names(arms)[!arms %in% have]) {
+    alt <- unique(seg$arm_dir[seg$backend == b])
+    if (!length(alt) || !nzchar(b)) next
+    message("stage figures: arm `", arms[[b]], "` is not on disk; drawing `", alt[1],
+            "` for backend ", b)
+    out <- c(out, alt[1])
+  }
+  unique(out)
+}
+
+# The long frame behind every stage figure: the ladder rows of the chosen arms plus,
+# where the scorer wrote one, the after-transform record as a last stage.
+arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
+  if (nrow(seg) == 0) return(tibble::tibble())
+  keep <- .stage_fig_arms(seg, arms)
+  cols <- c("arm", "arm_dir", "backend", "patient_id", "moving", "slide_token",
+            "stage", "dice_matched", "disp_um_p50", "pair_fraction", "is_placeholder")
+  lad <- seg |>
+    dplyr::filter(arm_dir %in% keep) |>
+    dplyr::mutate(stage = as.character(stage)) |>
+    dplyr::select(dplyr::any_of(cols))
+  ful <- if (is.null(full) || nrow(full) == 0) tibble::tibble() else
+    full |>
+      dplyr::filter(arm_dir %in% keep) |>
+      dplyr::mutate(stage = FULL_STAGE) |>
+      dplyr::select(dplyr::any_of(cols))
+  out <- dplyr::bind_rows(lad, ful)
+  if (nrow(out) == 0) return(out)
+  # A VALIS arm is labelled by its two knobs alone ("high / micro 2"), which is enough
+  # among VALIS arms and not beside another backend: name the backend in the panel.
+  out$arm <- ifelse(out$backend == "valis" & !grepl("valis", out$arm, ignore.case = TRUE),
+                    paste0("VALIS (", out$arm, ")"), as.character(out$arm))
+  arm_lvls <- unique(out$arm[order(match(out$arm_dir, keep))])
+  dplyr::mutate(out,
+                arm   = factor(arm, levels = arm_lvls),
+                stage = factor(stage, levels = c(QC_STAGE_LEVELS, FULL_STAGE)),
+                channels = slide_token)
+}
+
+# A colour per level for a legend that can outgrow the eight Okabe-Ito hues (a cohort
+# has more patients, and more channel sets, than that).
+.many_cols <- function(x) {
+  lv <- sort(unique(as.character(x[!is.na(x)])))
+  cols <- if (length(lv) <= length(oi)) unname(oi)[seq_along(lv)]
+          else scales::hue_pal(l = 55, c = 95)(length(lv))
+  stats::setNames(cols, lv)
+}
+
+.stage_fig <- function(d, y, ylab, title, colour = c("none", "patient", "channels"),
+                       log_y = FALSE, note = NULL) {
+  colour <- match.arg(colour)
+  d <- dplyr::filter(d, is.finite(.data[[y]]))
+  if (log_y) d <- dplyr::filter(d, .data[[y]] > 0)
+  if (nrow(d) == 0) return(NULL)
+  has_full <- any(d$stage == FULL_STAGE)
+  sub <- paste0(
+    "One panel per configuration, each with its own stages. One value per moving slide",
+    " (", n_note(d$patient_id, "patients"), ").\n",
+    if (has_full) paste0("Stages up to the last are paired once at the rigid anchor;",
+                         " `whole transform` is re-paired after the complete transform.")
+    else "Scored before the after-transform record existed: the ladder only.",
+    if (!is.null(note)) paste0("\n", note))
+  p <- ggplot(d, aes(stage, .data[[y]])) +
+    geom_boxplot(outlier.shape = NA, width = .5,
+                 colour = if (colour == "none") "black" else "grey35") +
+    facet_grid(~ arm, scales = "free_x", space = "free_x") +
+    scale_x_discrete(labels = STAGE_LABELS) +
+    labs(title = title, subtitle = sub, x = NULL, y = ylab, caption = ARM_CAPTION)
+  if (colour != "none") {
+    col <- if (colour == "patient") "patient_id" else "channels"
+    p <- p +
+      geom_point(aes(colour = .data[[col]]), size = 1.9, alpha = .85,
+                 position = position_jitter(width = .14, height = 0, seed = 1)) +
+      scale_colour_manual(values = .many_cols(d[[col]]),
+                          name = if (colour == "patient") "patient"
+                                 else "moving slide (channels)")
+  }
+  if (log_y) p <- p + scale_y_log10()
+  p
+}
+
+# Dice and residual by stage for the shipped arm of each backend, in the three
+# colourings. Same contract as build_arm_figs(): a named list, a figure with no data
+# is absent.
+build_arm_stage_figs <- function(seg = read_arms_seg_qc(),
+                                 full = read_arms_seg_qc_full(),
+                                 arms = STAGE_FIG_ARMS) {
+  d <- arm_stage_frame(seg, full, arms)
+  figs <- list()
+  if (nrow(d) == 0) return(figs)
+  metrics <- list(
+    dice = list(y = "dice_matched", ylab = "Matched-nucleus Dice (unitless, 0-1)",
+                title = "Matched-nucleus Dice by registration stage", log_y = FALSE,
+                note = NULL),
+    residual_um = list(
+      y = "disp_um_p50", ylab = "residual displacement, median (µm, log10)",
+      title = "Centroid residual displacement by registration stage", log_y = TRUE,
+      note = paste("The re-paired residual is bounded by the match radius, so read it",
+                   "with the pair fraction.")))
+  for (m in names(metrics)) for (by in c("none", "patient", "channels")) {
+    mm <- metrics[[m]]
+    nm <- paste0("stage_", m, if (by != "none") paste0("_by_", by))
+    figs[[nm]] <- .stage_fig(d, mm$y, mm$ylab, mm$title, by, mm$log_y, mm$note)
+  }
+  lapply(Filter(Negate(is.null), figs), placeholder_style)
 }
 
 # --- The manuscript's Fig 4(b)/(c) and Additional file 2 ---------------------

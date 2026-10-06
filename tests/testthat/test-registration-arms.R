@@ -525,15 +525,15 @@ test_that("placeholder mode ON: the plan's missing slides are synthesised, flagg
 # --- DRAPE arms ------------------------------------------------------------------
 # The DRAPE branch names its tiled-backend arms tiled_<tier>_s<stride>[_<cross>], and
 # its arms.csv still writes the pre-rename "tiled (STARE, ...)" label.
-test_that("DRAPE arms are labelled DRAPE with tier and stride, never 'tiled (STARE, defaults)'", {
-  expect_identical(.drape_arm_label("tiled_high_s128"), "DRAPE (high, stride 128 px)")
+test_that("stride arms are labelled STARE with tier and stride, never 'tiled (STARE, defaults)'", {
+  expect_identical(.drape_arm_label("tiled_high_s128"), "STARE (high, stride 128 px)")
   expect_identical(.drape_arm_label("tiled_low_s64_segstardist"),
-                   "DRAPE (low, stride 64 px) [QC seg: stardist]")
+                   "STARE (low, stride 64 px) [QC seg: stardist]")
   expect_identical(.drape_arm_label("tiled_medium_s256_segcellsam_pairmutual_nn"),
-                   "DRAPE (medium, stride 256 px) [QC seg: cellsam] [QC pairing: mutual_nn]")
-  # The manifest's own label is kept, with the method renamed.
+                   "STARE (medium, stride 256 px) [QC seg: cellsam] [QC pairing: mutual_nn]")
+  # The manifest's own label is kept, with the method named STARE.
   expect_identical(.drape_arm_label("tiled_high_s128", "tiled (STARE, high, stride 128 px) [QC seg: stardist]"),
-                   "DRAPE (high, stride 128 px) [QC seg: stardist]")
+                   "STARE (high, stride 128 px) [QC seg: stardist]")
   # Not a DRAPE arm: untouched.
   expect_identical(.drape_arm_label(c("tiled_defaults", "tiled_high_gate05", "valis_high_micro2"),
                                     c(NA, "tiled (STARE, high, gate 0.5 px)", "high / micro 2")),
@@ -544,9 +544,91 @@ test_that("DRAPE arms are labelled DRAPE with tier and stride, never 'tiled (STA
     fs::dir_copy(file.path(root, "tiled_defaults"), file.path(root, a))
   man <- suppressMessages(arm_manifest(root))
   lab <- stats::setNames(man$arm, man$arm_dir)
-  expect_identical(unname(lab["tiled_high_s128"]), "DRAPE (high, stride 128 px)")
+  expect_identical(unname(lab["tiled_high_s128"]), "STARE (high, stride 128 px)")
   expect_identical(unname(lab["tiled_low_s64_segstardist"]),
-                   "DRAPE (low, stride 64 px) [QC seg: stardist]")
+                   "STARE (low, stride 64 px) [QC seg: stardist]")
   expect_true(all(man$backend[man$arm_dir %in% c("tiled_high_s128", "tiled_low_s64_segstardist")] == "tiled"))
-  expect_false(any(grepl("STARE", lab[startsWith(names(lab), "tiled_") & grepl("_s[0-9]", names(lab))])))
+  expect_false(any(grepl("DRAPE|tiled \\(", lab[startsWith(names(lab), "tiled_") & grepl("_s[0-9]", names(lab))])))
+})
+
+# --- stage figures: the shipped arm of each backend, with the after-transform record ---
+# Add mirage's `full_transform` record to every seg_qc.json of a fixture tree, the way
+# bin/warp_seg_qc.py writes it: the final stage's name, its own Dice and its own
+# pair_fraction (a different pair set from the rigid-anchored ladder).
+add_full_transform <- function(root, dice = 0.71, pair_fraction = 0.55) {
+  for (f in fs::dir_ls(root, recurse = TRUE, glob = "*_seg_qc.json")) {
+    d <- jsonlite::fromJSON(f, simplifyVector = FALSE)
+    last <- d$stage_order[[length(d$stage_order)]]
+    d$full_transform <- list(
+      stage = last, n_pairs = 800, dice_matched = dice, iou_mean = 0.6,
+      displacement_um_p50 = 0.4,
+      matching = list(anchor_stage = last, n_pairs = 800, pair_fraction = pair_fraction))
+    jsonlite::write_json(d, f, auto_unbox = TRUE)
+  }
+  root
+}
+
+stage_fixture <- function(full = TRUE) {
+  root <- arms_tree(modes = "high", depths = c(0, 2), tiled = TRUE,
+                    movings = c("CD3_P53", "CD4_CD8"))
+  fs::dir_copy(file.path(root, "tiled_defaults"), file.path(root, "tiled_high_s128"))
+  if (full) add_full_transform(root)
+  man <- suppressMessages(arm_manifest(root))
+  list(man = man, seg = read_arms_seg_qc(man), full = read_arms_seg_qc_full(man))
+}
+
+test_that("the after-transform record is read with its own Dice and pair fraction", {
+  fx <- stage_fixture()
+  v  <- dplyr::filter(fx$full, arm_dir == "valis_high_micro2")
+  expect_equal(nrow(v), 4)                       # 2 patients x 2 moving slides
+  expect_true(all(v$dice_matched == 0.71))
+  expect_true(all(v$pair_fraction == 0.55))      # NOT the ladder's 0.9
+  expect_true(all(v$final_stage == "micro"))
+  expect_true(all(dplyr::filter(fx$full, arm_dir == "tiled_high_s128")$final_stage == "refined"))
+  # A tree scored before the record existed yields no row, not an error.
+  expect_equal(nrow(stage_fixture(full = FALSE)$full), 0)
+})
+
+test_that("stage figures draw the shipped arm of each backend on its own stage axis", {
+  fx <- stage_fixture()
+  d  <- arm_stage_frame(fx$seg, fx$full)
+  expect_setequal(unique(d$arm_dir), c("valis_high_micro2", "tiled_high_s128"))
+  st <- function(a) as.character(sort(unique(d$stage[d$arm_dir == a])))
+  expect_identical(st("valis_high_micro2"),
+                   c("native", "rigid", "non_rigid", "micro", "full_transform"))
+  expect_identical(st("tiled_high_s128"), c("native", "rigid", "refined", "full_transform"))
+  # Both panels name their backend: a bare "high / micro 2" beside STARE does not.
+  expect_setequal(levels(d$arm), c("VALIS (high / micro 2)", "STARE (high, stride 128 px)"))
+  # The last box holds the re-paired score, not a copy of the ladder's last stage.
+  expect_true(all(d$dice_matched[d$stage == "full_transform"] == 0.71))
+  expect_false(any(d$dice_matched[d$stage == "micro"] == 0.71))
+  # The channel set is patient-free, so one colour collects a pair across patients.
+  expect_setequal(unique(d$channels[d$backend == "valis"]), c("CD3_P53", "CD4_CD8"))
+})
+
+test_that("each stage figure exists plain, by patient and by channels", {
+  fx   <- stage_fixture()
+  figs <- build_arm_stage_figs(fx$seg, fx$full)
+  expect_setequal(names(figs), c(
+    "stage_dice", "stage_dice_by_patient", "stage_dice_by_channels",
+    "stage_residual_um", "stage_residual_um_by_patient", "stage_residual_um_by_channels"))
+  for (p in figs) expect_s3_class(ggplot2::ggplot_build(p), "ggplot_built")
+  colour_of <- function(p) rlang::as_label(p$layers[[2]]$mapping$colour)
+  expect_length(figs$stage_dice$layers, 1)                       # boxes only
+  expect_match(colour_of(figs$stage_dice_by_patient), "patient_id")
+  expect_match(colour_of(figs$stage_dice_by_channels), "channels")
+  # More levels than the house palette still get one distinct colour each.
+  cols <- .many_cols(sprintf("p%02d", 1:14))
+  expect_length(unique(cols), 14)
+})
+
+test_that("old scores draw the ladder only, and an absent arm falls back out loud", {
+  fx <- stage_fixture(full = FALSE)
+  d  <- arm_stage_frame(fx$seg, fx$full)
+  expect_false("full_transform" %in% as.character(d$stage))
+  expect_match(build_arm_stage_figs(fx$seg, fx$full)$stage_dice$labels$subtitle,
+               "ladder only")
+  seg <- dplyr::filter(fx$seg, arm_dir != "tiled_high_s128")
+  expect_message(d2 <- arm_stage_frame(seg, fx$full), "tiled_high_s128")
+  expect_true("tiled_defaults" %in% d2$arm_dir)
 })

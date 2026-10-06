@@ -206,11 +206,11 @@ test_that("placeholder mode: an unrun (case, method) leg is synthesised, flagged
   expect_no_error(ggplot2::ggplot_build(plot_anhir_rtre_by_method(a$cases)))
 })
 
-# --- new legs: DRAPE, STARE v1, and a leg the palette does not know yet -------------
+# --- new legs: STARE, its interim name DRAPE, and a leg the palette does not know yet -------------
 test_that("drape and stare have their own colour and label; an unknown leg is drawn grey, not dropped", {
   expect_true(all(c("drape", "stare") %in% names(ANHIR_METHOD_COLS)))
   expect_identical(.anhir_method_labels(c("drape", "stare", "brandnew")),
-                   c("DRAPE", "STARE v1", "brandnew"))
+                   c("STARE (run as DRAPE)", "STARE", "brandnew"))
   cases <- dplyr::bind_rows(
     synth_cases(),
     dplyr::mutate(dplyr::filter(synth_cases(), method == "valis"), method = "drape"),
