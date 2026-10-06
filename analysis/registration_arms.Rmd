@@ -316,24 +316,26 @@ print_figs(names(figs)[!is_supp])
 if (!length(figs)) cat("\n_No figures — see the loader note above._\n")
 ```
 
-## Rigid against the whole transform, VALIS and STARE
+## Native, rigid and the whole transform, VALIS and STARE
 
-Dice and centroid residual for the shipped configuration of each backend
-(`STAGE_FIG_ARMS` in `code/registration_arms.R`: `valis_high_micro2` and
-`tiled_high_s128`), at two points only. One panel per configuration, shared y axis.
-One value per moving slide, scored against its patient's reference.
+Dice and centroid residual for one configuration of each backend (`STAGE_FIG_ARMS` in
+`code/registration_arms.R`: `valis_high_micro2` and `tiled_high_s64`, i.e. STARE
+high, stride 64 px), at three points. One panel per configuration, shared y axis. One
+value per moving slide, scored against its patient's reference.
 
-- **rigid** — cells paired at the rigid stage and scored there.
+- **native** — no registration: the baseline. Scored on the cells paired at the rigid
+  stage, so it is the same cells as the next box, before any transform.
+- **rigid** — those same cells after the rigid stage.
 - **whole transform (re-paired)** — mirage's `full_transform` record: the same pairing
   rule and scorer applied after the complete transform. The number to quote for the
   shipped output.
 
-The rungs between them (`non_rigid`, `micro`, `refined`) are left out on purpose. They
+The rungs after rigid (`non_rigid`, `micro`, `refined`) are left out on purpose. They
 are scored on the cells rigid already paired, so they cannot show a cell that rigid
 missed and a later stage fixed; beside a re-paired box they read as a like-for-like
 progression and are not one. They remain in the ladder figure above. `rigid` is each
-backend's own rigid, so read rigid against whole transform **within** a panel. The two
-boxes are over different pair sets, which is why no difference between them is drawn.
+backend's own rigid, so read across the boxes **within** a panel. The last box is over
+a different pair set from the first two, which is why no difference is drawn.
 
 Each figure is drawn three times: boxes only, points coloured by **patient**, and
 points coloured by the **moving slide's channel set**.

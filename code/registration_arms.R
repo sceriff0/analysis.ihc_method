@@ -1057,10 +1057,11 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 }
 
 # --- Rigid against the whole transform, ONE arm per backend -------------------
-# The shipped arm of each backend, side by side: one panel per arm, two boxes each,
+# The shipped arm of each backend, side by side: one panel per arm, three boxes each,
 # shared y axis.
 #
-# THE TWO BOXES ARE DIFFERENT PAIRINGS. `rigid` is scored on the cells paired at the
+# THE LAST BOX IS A DIFFERENT PAIRING. `native` (no registration) and `rigid` are
+# scored on the cells paired at the
 # rigid stage. `whole transform` is mirage's `full_transform` record: the same pairing
 # rule and scorer applied AFTER the complete transform. It is the number to quote for
 # the shipped output; its residual is bounded by the match radius, so a failure shows
@@ -1069,9 +1070,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 # Three colourings of each figure: boxes only, points by patient, points by the moving
 # slide's channel set. One point is one moving slide scored against its patient's
 # reference.
-STAGE_FIG_ARMS <- c(valis = "valis_high_micro2", tiled = "tiled_high_s128")
+STAGE_FIG_ARMS <- c(valis = "valis_high_micro2", tiled = "tiled_high_s64")
 FULL_STAGE     <- "full_transform"
-STAGE_LABELS   <- c(rigid = "rigid\n(paired at rigid)",
+STAGE_LABELS   <- c(native = "native\n(paired at rigid)", rigid = "rigid\n(paired at rigid)",
                     full_transform = "whole transform\n(re-paired)")
 
 # read_seg_qc_full(), once per arm tree -- the after-transform record of every arm.
@@ -1107,12 +1108,13 @@ read_arms_seg_qc_full <- function(manifest = arm_manifest()) {
 # The long frame behind every stage figure: the RIGID rung of the chosen arms plus,
 # where the scorer wrote one, the after-transform record.
 #
-# Only those two, on purpose. The rungs between them (non_rigid, micro, refined) are
+# `native` is the no-registration baseline, on the same rigid pairs as `rigid`. The
+# rungs after rigid (non_rigid, micro, refined) are left out on purpose: they are
 # scored on the cells rigid already paired, so they cannot show a cell rigid missed and
 # a later stage fixed; beside a re-paired box they read as a like-for-like progression
 # and are not one. `rigid` is each backend's own rigid (see the header), so compare
 # rigid against whole transform WITHIN a panel, not rigid across panels.
-STAGE_FIG_STAGES <- c("rigid", "full_transform")
+STAGE_FIG_STAGES <- c("native", "rigid", "full_transform")
 
 arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
   if (nrow(seg) == 0) return(tibble::tibble())
@@ -1160,9 +1162,9 @@ arm_stage_frame <- function(seg, full = NULL, arms = STAGE_FIG_ARMS) {
   sub <- paste0(
     "One panel per configuration. One value per moving slide",
     " (", n_note(d$patient_id, "patients"), ").\n",
-    if (has_full) paste0("`rigid` is scored on the cells paired at the rigid stage;",
+    if (has_full) paste0("`native` and `rigid` are scored on the cells paired at the rigid stage;",
                          " `whole transform` is re-paired after the complete transform.")
-    else "Scored before the after-transform record existed: the rigid stage only.",
+    else "Scored before the after-transform record existed: native and rigid only.",
     if (!is.null(note)) paste0("\n", note))
   p <- ggplot(d, aes(stage, .data[[y]])) +
     geom_boxplot(outlier.shape = NA, width = .5,
@@ -1194,11 +1196,11 @@ build_arm_stage_figs <- function(seg = read_arms_seg_qc(),
   if (nrow(d) == 0) return(figs)
   metrics <- list(
     dice = list(y = "dice_matched", ylab = "Matched-nucleus Dice (unitless, 0-1)",
-                title = "Matched-nucleus Dice: rigid against the whole transform", log_y = FALSE,
+                title = "Matched-nucleus Dice: native, rigid and the whole transform", log_y = FALSE,
                 note = NULL),
     residual_um = list(
       y = "disp_um_p50", ylab = "residual displacement, median (µm, log10)",
-      title = "Centroid residual: rigid against the whole transform", log_y = TRUE,
+      title = "Centroid residual: native, rigid and the whole transform", log_y = TRUE,
       note = paste("The re-paired residual is bounded by the match radius, so read it",
                    "with the pair fraction.")))
   for (m in names(metrics)) for (by in c("none", "patient", "channels")) {

@@ -582,7 +582,7 @@ add_full_transform <- function(root, dice = 0.71, pair_fraction = 0.55) {
 stage_fixture <- function(full = TRUE) {
   root <- arms_tree(modes = "high", depths = c(0, 2), tiled = TRUE,
                     movings = c("CD3_P53", "CD4_CD8"))
-  fs::dir_copy(file.path(root, "tiled_defaults"), file.path(root, "tiled_high_s128"))
+  fs::dir_copy(file.path(root, "tiled_defaults"), file.path(root, "tiled_high_s64"))
   if (full) add_full_transform(root)
   man <- suppressMessages(arm_manifest(root))
   list(man = man, seg = read_arms_seg_qc(man), full = read_arms_seg_qc_full(man))
@@ -595,7 +595,7 @@ test_that("the after-transform record is read with its own Dice and pair fractio
   expect_true(all(v$dice_matched == 0.71))
   expect_true(all(v$pair_fraction == 0.55))      # NOT the ladder's 0.9
   expect_true(all(v$final_stage == "micro"))
-  expect_true(all(dplyr::filter(fx$full, arm_dir == "tiled_high_s128")$final_stage == "refined"))
+  expect_true(all(dplyr::filter(fx$full, arm_dir == "tiled_high_s64")$final_stage == "refined"))
   # A tree scored before the record existed yields no row, not an error.
   expect_equal(nrow(stage_fixture(full = FALSE)$full), 0)
 })
@@ -603,14 +603,14 @@ test_that("the after-transform record is read with its own Dice and pair fractio
 test_that("stage figures draw the shipped arm of each backend on its own stage axis", {
   fx <- stage_fixture()
   d  <- arm_stage_frame(fx$seg, fx$full)
-  expect_setequal(unique(d$arm_dir), c("valis_high_micro2", "tiled_high_s128"))
+  expect_setequal(unique(d$arm_dir), c("valis_high_micro2", "tiled_high_s64"))
   st <- function(a) as.character(sort(unique(d$stage[d$arm_dir == a])))
-  # Rigid and the re-paired whole transform ONLY: the rungs between are scored on the
+  # Native, rigid and the re-paired whole transform ONLY: the later rungs are scored on the
   # rigid pairs and read, beside a re-paired box, as a progression they are not.
-  expect_identical(st("valis_high_micro2"), c("rigid", "full_transform"))
-  expect_identical(st("tiled_high_s128"), c("rigid", "full_transform"))
+  expect_identical(st("valis_high_micro2"), c("native", "rigid", "full_transform"))
+  expect_identical(st("tiled_high_s64"), c("native", "rigid", "full_transform"))
   # Both panels name their backend: a bare "high / micro 2" beside STARE does not.
-  expect_setequal(levels(d$arm), c("VALIS (high / micro 2)", "STARE (high, stride 128 px)"))
+  expect_setequal(levels(d$arm), c("VALIS (high / micro 2)", "STARE (high, stride 64 px)"))
   # The last box holds the re-paired score, not a copy of the ladder's last stage.
   expect_true(all(d$dice_matched[d$stage == "full_transform"] == 0.71))
   expect_false(any(d$dice_matched[d$stage == "rigid"] == 0.71))
@@ -634,14 +634,14 @@ test_that("each stage figure exists plain, by patient and by channels", {
   expect_length(unique(cols), 14)
 })
 
-test_that("old scores draw the rigid stage only, and an absent arm falls back out loud", {
+test_that("old scores draw native and rigid only, and an absent arm falls back out loud", {
   fx <- stage_fixture(full = FALSE)
   d  <- arm_stage_frame(fx$seg, fx$full)
   expect_false("full_transform" %in% as.character(d$stage))
   expect_match(build_arm_stage_figs(fx$seg, fx$full)$stage_dice$labels$subtitle,
-               "rigid stage only")
-  seg <- dplyr::filter(fx$seg, arm_dir != "tiled_high_s128")
-  expect_message(d2 <- arm_stage_frame(seg, fx$full), "tiled_high_s128")
+               "native and rigid only")
+  seg <- dplyr::filter(fx$seg, arm_dir != "tiled_high_s64")
+  expect_message(d2 <- arm_stage_frame(seg, fx$full), "tiled_high_s64")
   expect_true("tiled_defaults" %in% d2$arm_dir)
 })
 
