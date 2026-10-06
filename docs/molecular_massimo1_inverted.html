@@ -616,15 +616,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtreea6b588db5ffe108d94f3e2461f8a062f6d2c23b4targetblanka6b588da">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree71e63511bf6b0f801bab8a00140257af26f47a71targetblank71e6351a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/a6b588db5ffe108d94f3e2461f8a062f6d2c23b4" target="_blank">a6b588d</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/71e63511bf6b0f801bab8a00140257af26f47a71" target="_blank">71e6351</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtreea6b588db5ffe108d94f3e2461f8a062f6d2c23b4targetblanka6b588da"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree71e63511bf6b0f801bab8a00140257af26f47a71targetblank71e6351a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -634,7 +634,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/a6b588db5ffe108d94f3e2461f8a062f6d2c23b4" target="_blank">a6b588d</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/71e63511bf6b0f801bab8a00140257af26f47a71" target="_blank">71e6351</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -708,6 +708,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/71e63511bf6b0f801bab8a00140257af26f47a71/docs/molecular_massimo1_inverted.html" target="_blank">71e6351</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -2836,28 +2853,38 @@ CD45- ─ SMA+ ...................................... Stroma
              └ PANCK- ─ VIMENTIN+ ................. VIM+ Tumor
                       └ VIMENTIN- ................. Unknown</code></pre>
 <p>Two properties of the tree drive the table below. <code>Immune</code>
-is reached from two branches, so a population that needs the CD3+ one
-reads the cell’s CD3 sign (written <code>Immune[CD3+]</code>). And FOXP3
-is tested under CD8 as well as under CD4, so the tree has CD8+ T regs,
-which no deconvolution Treg signature models.</p>
+is reached from two branches, so a population that needs one of them
+reads the cell’s CD3 sign (written <code>Immune[CD3+]</code> /
+<code>Immune[CD3-]</code>; “−” means <em>not positive</em>, so with CD3
+never gated every <code>Immune</code> cell is <code>Immune[CD3-]</code>
+and the two stay a partition). And FOXP3 is tested under CD8 as well as
+under CD4, so the tree has CD8+ T regs, which no deconvolution Treg
+signature models.</p>
 <p><strong>Table 1 — compared populations.</strong> One row per
-population: its gate in the tree, the tree leaves it sums, and what the
-deconvolution side contributes.</p>
+population: its level in the tree, its gate, the tree leaves it sums,
+and what the deconvolution side contributes. The levels follow the gate
+tree from the root down — <strong>macro</strong> (CD45+ vs CD45−),
+<strong>intermediate</strong> (T, NK, the other immune cells, CD4 incl.
+Treg, stroma), <strong>leaf</strong> (CD8T, CD4T, Treg) — plus
+<strong>cross-cutting</strong> for Cytotoxic, which straddles the CD3
+split. Every table and figure below keeps this order.</p>
 <pre class="r"><code>knitr::kable(deconv_comparison_lineages,
-  col.names = c(&quot;population&quot;, &quot;IHC gate&quot;, &quot;IHC leaves summed&quot;, &quot;deconvolution side&quot;),
+  col.names = c(&quot;population&quot;, &quot;level&quot;, &quot;IHC gate&quot;, &quot;IHC leaves summed&quot;, &quot;deconvolution side&quot;),
   caption = &quot;Each compared population: its gate in the phenotyping tree, and what estimates it on the deconvolution side.&quot;)</code></pre>
 <table>
 <caption>Each compared population: its gate in the phenotyping tree, and
 what estimates it on the deconvolution side.</caption>
 <colgroup>
-<col width="4%" />
-<col width="18%" />
-<col width="36%" />
+<col width="3%" />
+<col width="3%" />
+<col width="12%" />
+<col width="39%" />
 <col width="40%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th align="left">population</th>
+<th align="left">level</th>
 <th align="left">IHC gate</th>
 <th align="left">IHC leaves summed</th>
 <th align="left">deconvolution side</th>
@@ -2865,48 +2892,27 @@ what estimates it on the deconvolution side.</caption>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">CD8T</td>
-<td align="left">CD3+ CD8+ (any GZMB, any FOXP3)</td>
-<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg</td>
-<td align="left">CD8 T cells; subsets summed</td>
+<td align="left">Immune_total</td>
+<td align="left">macro</td>
+<td align="left">CD45+</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; T
+helper; CD4+ Treg; Natural Killer; Activated Natural Killer; Immune;
+Myeloid; Macrophage_M2</td>
+<td align="left">every immune label summed, plasma cells excluded; only
+for an additive method on the all-cells denominator (a
+leukocyte-fraction method sums to 1)</td>
 </tr>
 <tr class="even">
-<td align="left">CD4T</td>
-<td align="left">CD3+ CD8- CD4+ FOXP3-</td>
-<td align="left">T helper</td>
-<td align="left">non-regulatory CD4 T cells incl. follicular helper;
-only for a method that also reports Tregs</td>
-</tr>
-<tr class="odd">
-<td align="left">Treg</td>
-<td align="left">CD3+ CD8- CD4+ FOXP3+</td>
-<td align="left">CD4+ Treg</td>
-<td align="left">regulatory T cells</td>
-</tr>
-<tr class="even">
-<td align="left">CD4T_all</td>
-<td align="left">CD3+ CD8- CD4+ (any FOXP3)</td>
-<td align="left">T helper; CD4+ Treg</td>
-<td align="left">CD4 of a method with no Treg output (EPIC, ABIS); CD4T
-+ Treg for an additive method</td>
-</tr>
-<tr class="odd">
-<td align="left">NK</td>
-<td align="left">CD3- CD56+ (any GZMB)</td>
-<td align="left">Natural Killer; Activated Natural Killer</td>
-<td align="left">NK cells; resting + activated summed (LM22 ‘activated’
-is cytokine-stimulated, not GZMB+)</td>
-</tr>
-<tr class="even">
-<td align="left">Cytotoxic</td>
-<td align="left">CD3+ CD8+ or CD3- CD56+</td>
-<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; Natural
-Killer; Activated Natural Killer</td>
-<td align="left">MCP-counter cytotoxicity score; CD8T + NK for an
-additive method</td>
+<td align="left">NonImmune</td>
+<td align="left">macro</td>
+<td align="left">CD45-</td>
+<td align="left">PANCK+Tumor; VIM+Tumor; Stroma; Unknown</td>
+<td align="left">uncharacterized cell (+ CAF + endothelial for EPIC);
+additive methods only</td>
 </tr>
 <tr class="odd">
 <td align="left">T_total</td>
+<td align="left">intermediate</td>
 <td align="left">CD3+ (every T leaf, plus CD3+CD8-CD4- Immune)</td>
 <td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; T
 helper; CD4+ Treg; Immune[CD3+]</td>
@@ -2914,18 +2920,68 @@ helper; CD4+ Treg; Immune[CD3+]</td>
 (incl. gamma delta, MAIT, NKT) for an additive method</td>
 </tr>
 <tr class="even">
+<td align="left">NK</td>
+<td align="left">intermediate</td>
+<td align="left">CD3- CD56+ (any GZMB)</td>
+<td align="left">Natural Killer; Activated Natural Killer</td>
+<td align="left">NK cells; resting + activated summed (LM22 ‘activated’
+is cytokine-stimulated, not GZMB+)</td>
+</tr>
+<tr class="odd">
+<td align="left">Immune_other</td>
+<td align="left">intermediate</td>
+<td align="left">CD45+ CD3- CD56-</td>
+<td align="left">Immune[CD3-]; Myeloid; Macrophage_M2</td>
+<td align="left">B, monocyte, macrophage, dendritic, mast and
+granulocyte labels summed, plasma cells excluded; additive methods
+only</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T_all</td>
+<td align="left">intermediate</td>
+<td align="left">CD3+ CD8- CD4+ (any FOXP3)</td>
+<td align="left">T helper; CD4+ Treg</td>
+<td align="left">CD4 of a method with no Treg output (EPIC, ABIS); CD4T
++ Treg for an additive method</td>
+</tr>
+<tr class="odd">
 <td align="left">Stroma</td>
+<td align="left">intermediate</td>
 <td align="left">CD45- SMA+</td>
 <td align="left">Stroma</td>
 <td align="left">cancer-associated fibroblasts (MCP-counter, EPIC);
 MCP’s signature is collagen/DCN/TAGLN, not ACTA2</td>
 </tr>
+<tr class="even">
+<td align="left">CD8T</td>
+<td align="left">leaf</td>
+<td align="left">CD3+ CD8+ (any GZMB, any FOXP3)</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg</td>
+<td align="left">CD8 T cells; subsets summed</td>
+</tr>
 <tr class="odd">
-<td align="left">NonImmune</td>
-<td align="left">CD45-</td>
-<td align="left">PANCK+Tumor; VIM+Tumor; Stroma; Unknown</td>
-<td align="left">uncharacterized cell (+ CAF + endothelial for EPIC);
-additive methods only</td>
+<td align="left">CD4T</td>
+<td align="left">leaf</td>
+<td align="left">CD3+ CD8- CD4+ FOXP3-</td>
+<td align="left">T helper</td>
+<td align="left">non-regulatory CD4 T cells incl. follicular helper;
+only for a method that also reports Tregs</td>
+</tr>
+<tr class="even">
+<td align="left">Treg</td>
+<td align="left">leaf</td>
+<td align="left">CD3+ CD8- CD4+ FOXP3+</td>
+<td align="left">CD4+ Treg</td>
+<td align="left">regulatory T cells</td>
+</tr>
+<tr class="odd">
+<td align="left">Cytotoxic</td>
+<td align="left">cross-cutting</td>
+<td align="left">CD3+ CD8+ or CD3- CD56+</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; Natural
+Killer; Activated Natural Killer</td>
+<td align="left">MCP-counter cytotoxicity score; CD8T + NK for an
+additive method</td>
 </tr>
 </tbody>
 </table>
@@ -2957,12 +3013,36 @@ signature is collagen / DCN / TAGLN without ACTA2 — a partial match.
 Endothelium (CD45−SMA−PANCK−VIM+) lands in <strong>VIM+ Tumor</strong>,
 so no endothelial comparison is attempted; it is inside
 <strong>NonImmune</strong>.</li>
+<li><strong>Immune_other</strong> is how the other immune cells are
+used. The panel has no B-cell or myeloid marker, so B cells, monocytes /
+macrophages, dendritic cells, mast cells and granulocytes all end in the
+CD3−CD56− <code>Immune</code> leaf (mirage calls some of them
+<code>Myeloid</code> / <code>Macrophage_M2</code>; both count). No
+single deconvolution label matches that leaf, so it is compared only as
+the <strong>sum</strong> of those labels, and only for an additive
+method. MCP-counter’s B-cell and monocyte scores cannot be added, so
+MCP-counter has no Immune_other.</li>
+<li><strong>Immune_total</strong> is the whole CD45+ branch — on the IHC
+side, exactly the CD45 denominator of Table 3. It is compared only for
+an additive method whose fractions are of <em>all</em> cells (quanTIseq,
+EPIC, ABIS): for CIBERSORT(x), whose immune labels sum to 1 by
+construction, it would be a constant.</li>
+<li><strong>Plasma cells are left out</strong> of both sums. They are
+often CD45-dim or negative on tissue, so the tree may not call them
+immune at all; counting them on the RNA side only would inflate it
+against a denominator that misses them.</li>
+<li><strong>MAIT cells</strong> are mostly CD8+ and so sit in the tree’s
+CD8T leaf, while their ABIS label joins only T_total. The mismatch is a
+small population and is kept.</li>
 </ul>
 <p><strong>Table 2 — deconvolution label → population.</strong>
 Case-insensitive patterns, tested top to bottom; the first match wins.
 The order is load-bearing: <code>non-regulatory</code> must be tested
-before <code>regulatory</code>, and gamma delta / MAIT / NKT before
-<code>cd8</code> and <code>nk</code>.</p>
+before <code>regulatory</code>, gamma delta / MAIT / NKT before
+<code>cd8</code> and <code>nk</code>, and <code>plasma</code> before the
+B-cell pattern (ABIS’s <code>B cell plasma immature</code>).
+<code>\bplasma\b</code> does not match <code>plasmacytoid</code>, which
+is a dendritic cell.</p>
 <pre class="r"><code>knitr::kable(dplyr::mutate(deconv_lineage_rules,
                            lineage = tidyr::replace_na(lineage, &quot;(none — T_total only)&quot;)),
   col.names = c(&quot;pattern (regex)&quot;, &quot;population&quot;, &quot;why&quot;),
@@ -2971,9 +3051,9 @@ before <code>regulatory</code>, and gamma delta / MAIT / NKT before
 <caption>How a deconvolution cell-type label is assigned to a
 population. First matching row wins.</caption>
 <colgroup>
-<col width="28%" />
-<col width="14%" />
-<col width="57%" />
+<col width="52%" />
+<col width="9%" />
+<col width="38%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -3006,49 +3086,79 @@ population. First matching row wins.</caption>
 the tree; they join T_total only</td>
 </tr>
 <tr class="odd">
+<td align="left">(none — T_total only)</td>
+<td align="left">plasma cells are CD45-dim on tissue; kept out of
+Immune_other (tested before ‘b cell’)</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
 <td align="left">cd8</td>
 <td align="left">CD8T</td>
 <td align="left">CD8 T cells, any state</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">cd4</td>
 <td align="left">CD4T</td>
 <td align="left">CD4 T cells, any state (becomes CD4T_all if the method
 has no Treg)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">^nk|cells?|natural killer</td>
 <td align="left">NK</td>
 <td align="left">NK cells, resting or activated</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">cytotoxicity score</td>
 <td align="left">Cytotoxic</td>
 <td align="left">MCP-counter cytotoxic lymphocytes (CD8 + NK genes)</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">^t cells?$</td>
 <td align="left">T_total</td>
 <td align="left">MCP-counter pan-T signature</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">fibroblast</td>
 <td align="left">Stroma</td>
 <td align="left">CAF signature vs the tree’s SMA+ Stroma</td>
 </tr>
+<tr class="even">
+<td
+align="left">cells?|monocyte|macrophage|dendritic||eosinophil|neutrophil|basophil</td>
+<td align="left">Immune_other</td>
+<td align="left">CD45+ CD3- CD56- in the tree: no B or myeloid marker,
+so only their sum is compared</td>
+</tr>
 </tbody>
 </table>
 <p><strong>Table 3 — what each method’s number means.</strong> This
-fixes two things. The IHC denominator: CIBERSORT in relative mode (and
-so CIBERSORTx, run without <code>--absolute</code> by
-<code>code/cibersortx_fractions.sh</code>) reports fractions of
-<em>leukocytes</em>, so it is compared against the IHC fraction of
-<strong>CD45+</strong> cells; quanTIseq and EPIC report fractions of
+fixes two things. The first is the IHC denominator.</p>
+<p><em>Why CIBERSORT and CIBERSORTx are compared against CD45+
+cells.</em> In relative mode (CIBERSORTx is run without
+<code>--absolute</code> by <code>code/cibersortx_fractions.sh</code>)
+the output for a sample sums to exactly 1 over the 22 LM22 populations,
+and all 22 are leukocytes: LM22 has no tumour, stromal or “other” row. A
+CIBERSORTx CD8 value of 0.20 therefore means “CD8 T cells are 20 % of
+the leukocytes”, not 20 % of the tissue. Set against the IHC fraction of
+<em>all</em> cells, that would fold tumour purity into the comparison: a
+tumour-rich slide with few immune cells, most of them CD8, reads high on
+CIBERSORTx and low on IHC, and the disagreement is about purity, not
+CD8. Dividing the IHC count by CD45+ cells puts both sides on “share of
+the immune compartment”. quanTIseq and EPIC carry an
+<code>uncharacterized cell</code> term, so their fractions are of
 <em>all</em> cells and are compared against the fraction of all cells.
-And whether sub-types may be added: fractions add, enrichment scores
-(xCell, MCP-counter) do not, so a composite (<code>CD4T_all</code>,
-<code>Cytotoxic</code>, <code>T_total</code>, <code>NonImmune</code>) is
-built by summing only for an additive method.</p>
+Three caveats hold for the CD45 route: CD45-dim cells (plasma cells
+above all) can fall outside the IHC denominator; the sum-to-one
+constraint makes one population’s gain another’s loss, so
+leukocyte-relative estimates are not independent; and a weak CD45 gate
+moves every CIBERSORT(x) comparison at once. ABIS is kept on the
+all-cells denominator but was trained on blood: it has no non-immune
+term, so its “absolute abundance” in tissue is a scale, and only its
+ranks are used. And whether sub-types may be added: fractions add,
+enrichment scores (xCell, MCP-counter) do not, so a composite
+(<code>CD4T_all</code>, <code>Cytotoxic</code>, <code>T_total</code>,
+<code>NonImmune</code>) is built by summing only for an additive
+method.</p>
 <pre class="r"><code>knitr::kable(dplyr::mutate(deconv_method_output, method = method_label(method)),
   col.names = c(&quot;method&quot;, &quot;what its value is&quot;, &quot;IHC denominator&quot;, &quot;sub-types may be summed&quot;),
   caption = &quot;Per method: the IHC denominator it is compared against, and whether its cell types can be summed into a composite population.&quot;)</code></pre>
@@ -3143,19 +3253,25 @@ composite, additive methods only, when the method has no direct label for it:
     CD4T_all  = CD4T + Treg labels
     Cytotoxic = CD8T + NK labels
     T_total   = every label beginning &#39;T cell(s)&#39;
+    Immune_other = B, monocyte, macrophage, dendritic, mast, granulocyte labels
+                   (sum-only: never a direct label, so non-additive methods have none)
     NonImmune = &#39;uncharacterized cell&#39; + fibroblast + endothelial labels
+    Immune_total = every label that is not NonImmune and not a plasma cell,
+                   only for a method on the all-cells denominator
 score(method, patient, population) = sum of that method&#39;s contributing labels&#39; scores</code></pre>
 </div>
 <div id="every-cell-type-each-method-returned-and-where-it-went"
 class="section level3">
 <h3>Every cell type each method returned, and where it went</h3>
 <p>The tables above are rules; this is what they did to the labels each
-method actually emitted. One row per (method, cell type), with every
-population it feeds and whether it feeds it directly or as part of a
-sum. <code>(unmapped)</code> means the label feeds nothing and is
-dropped — read down a method for a label that landed somewhere it should
-not, or one that should have mapped and did not. The same table is
-written to <code>output/deconv_celltype_map.csv</code>.</p>
+method actually emitted. One row per (method, cell type) that feeds at
+least one population: the population the label <strong>is</strong> (its
+direct match, if any) and the populations it is <strong>summed
+into</strong>. A label with no direct match is only ever part of a sum —
+gamma delta and MAIT feed T_total, the B / myeloid labels feed
+Immune_other. Below the table, each method’s <strong>dropped</strong>
+labels: what feeds nothing, and why. The full table, dropped rows
+included, is written to <code>output/deconv_celltype_map.csv</code>.</p>
 <pre class="r"><code>deconv_contrib &lt;- NULL
 if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
   deconv_contrib &lt;- deconv_contributions(deconv_long)
@@ -3166,181 +3282,165 @@ if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
         mutate(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage)) |&gt;
         arrange(lineage) |&gt;
         group_by(method, cell_type) |&gt;
-        summarise(direct = paste(lineage[route == &quot;direct&quot;], collapse = &quot;, &quot;),
-                  in_sum = paste(lineage[route == &quot;sum&quot;],    collapse = &quot;, &quot;),
+        summarise(is_pop  = paste(lineage[route == &quot;direct&quot;], collapse = &quot;, &quot;),
+                  summed  = paste(lineage[route == &quot;sum&quot;],    collapse = &quot;, &quot;),
                   .groups = &quot;drop&quot;),
       by = c(&quot;method&quot;, &quot;cell_type&quot;)) |&gt;
-    mutate(direct = ifelse(is.na(direct) &amp; is.na(in_sum), &quot;(unmapped)&quot;,
-                           dplyr::coalesce(direct, &quot;&quot;)),
-           in_sum = dplyr::coalesce(in_sum, &quot;&quot;),
-           method = method_label(method)) |&gt;
-    arrange(method, direct == &quot;(unmapped)&quot;, direct, cell_type)
+    mutate(mapped = !is.na(is_pop),
+           is_pop = ifelse(!mapped | is_pop == &quot;&quot;, &quot;—&quot;, is_pop),
+           summed = ifelse(!mapped | summed == &quot;&quot;, &quot;—&quot;, summed),
+           # Why a label feeds nothing: the rule it matched (Table 2), or a sum-only
+           # population the method cannot build because its scores do not add.
+           why = dplyr::case_when(
+             mapped ~ NA_character_,
+             stringr::str_detect(tolower(cell_type), &quot;\\bplasma\\b&quot;) ~ &quot;plasma: CD45-dim on tissue&quot;,
+             deconv_to_lineage(cell_type) %in% &quot;Immune_other&quot; ~ &quot;scores do not add&quot;,
+             TRUE ~ &quot;no IHC population&quot;),
+           method = method_label(method),
+           first  = factor(sub(&quot;,.*&quot;, &quot;&quot;, ifelse(is_pop == &quot;—&quot;, summed, is_pop)),
+                           levels = deconv_comparison_lineages$lineage)) |&gt;
+    arrange(method, first, cell_type)
   dir.create(here(&quot;output&quot;), showWarnings = FALSE, recursive = TRUE)
-  readr::write_csv(celltype_map, here(&quot;output&quot;, &quot;deconv_celltype_map.csv&quot;))
+  readr::write_csv(select(celltype_map, method, cell_type, is_pop, summed, why),
+                   here(&quot;output&quot;, &quot;deconv_celltype_map.csv&quot;))
   cat(&quot;cell types:&quot;, nrow(celltype_map), &quot;across&quot;, dplyr::n_distinct(celltype_map$method),
-      &quot;methods;&quot;, sum(celltype_map$direct != &quot;(unmapped)&quot;), &quot;feed at least one population\n&quot;)
-  knitr::kable(celltype_map,
-               col.names = c(&quot;method&quot;, &quot;cell type&quot;, &quot;population (direct)&quot;, &quot;also summed into&quot;),
-               caption = &quot;Every deconvolution cell type, by method, and the populations it feeds.&quot;)
+      &quot;methods;&quot;, sum(celltype_map$mapped), &quot;feed at least one population\n\n&quot;)
+  print(knitr::kable(
+    celltype_map |&gt; filter(mapped) |&gt; select(method, cell_type, is_pop, summed),
+    col.names = c(&quot;method&quot;, &quot;cell type&quot;, &quot;is the population&quot;, &quot;summed into&quot;),
+    caption = &quot;Deconvolution cell types that feed a population, by method, in Table 1&#39;s order.&quot;))
+  dropped &lt;- celltype_map |&gt;
+    filter(!mapped) |&gt;
+    group_by(method, why) |&gt;
+    summarise(labels = paste(cell_type, collapse = &quot;, &quot;), .groups = &quot;drop&quot;) |&gt;
+    group_by(method) |&gt;
+    summarise(txt = paste0(labels, &quot; (&quot;, why, &quot;)&quot;, collapse = &quot;; &quot;), .groups = &quot;drop&quot;)
+  cat(&quot;\n\n**Dropped labels.**&quot;, if (!nrow(dropped)) &quot;None.\n&quot; else &quot;\n\n&quot;)
+  if (nrow(dropped)) cat(sprintf(&quot;- **%s:** %s\n&quot;, dropped$method, dropped$txt), sep = &quot;&quot;)
+  cat(&quot;\n&quot;)
 } else {
   cat(&quot;_No deconvolution rows yet, so nothing to map._\n&quot;)
 }</code></pre>
-<pre><code>cell types: 61 across 4 methods; 27 feed at least one population</code></pre>
+<p>cell types: 61 across 4 methods; 53 feed at least one population</p>
 <table>
-<caption>Every deconvolution cell type, by method, and the populations
-it feeds.</caption>
+<caption>Deconvolution cell types that feed a population, by method, in
+Table 1’s order.</caption>
 <colgroup>
-<col width="15%" />
-<col width="36%" />
-<col width="25%" />
-<col width="23%" />
+<col width="13%" />
+<col width="31%" />
+<col width="19%" />
+<col width="35%" />
 </colgroup>
 <thead>
 <tr class="header">
 <th align="left">method</th>
 <th align="left">cell type</th>
-<th align="left">population (direct)</th>
-<th align="left">also summed into</th>
+<th align="left">is the population</th>
+<th align="left">summed into</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td align="left">ABIS</td>
+<td align="left">B cell memory</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">ABIS</td>
+<td align="left">B cell naive</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="odd">
+<td align="left">ABIS</td>
+<td align="left">Basophil</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">ABIS</td>
+<td align="left">Monocyte conventional</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="odd">
+<td align="left">ABIS</td>
+<td align="left">Monocyte non-conventional</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">ABIS</td>
+<td align="left">Myeloid dendritic cell</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="odd">
+<td align="left">ABIS</td>
+<td align="left">Neutrophil</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">ABIS</td>
+<td align="left">Plasmacytoid dendritic cell</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="odd">
+<td align="left">ABIS</td>
 <td align="left">T cell MAIT</td>
-<td align="left"></td>
-<td align="left">T_total</td>
+<td align="left">—</td>
+<td align="left">Immune_total, T_total</td>
 </tr>
 <tr class="even">
 <td align="left">ABIS</td>
 <td align="left">T cell gamma delta VD2</td>
-<td align="left"></td>
-<td align="left">T_total</td>
+<td align="left">—</td>
+<td align="left">Immune_total, T_total</td>
 </tr>
 <tr class="odd">
 <td align="left">ABIS</td>
 <td align="left">T cell gamma delta non-VD2</td>
-<td align="left"></td>
-<td align="left">T_total</td>
-</tr>
-<tr class="even">
-<td align="left">ABIS</td>
-<td align="left">T cell CD4+ memory</td>
-<td align="left">CD4T_all</td>
-<td align="left">T_total</td>
-</tr>
-<tr class="odd">
-<td align="left">ABIS</td>
-<td align="left">T cell CD4+ naive</td>
-<td align="left">CD4T_all</td>
-<td align="left">T_total</td>
-</tr>
-<tr class="even">
-<td align="left">ABIS</td>
-<td align="left">T cell CD8+ memory</td>
-<td align="left">CD8T</td>
-<td align="left">Cytotoxic, T_total</td>
-</tr>
-<tr class="odd">
-<td align="left">ABIS</td>
-<td align="left">T cell CD8+ naive</td>
-<td align="left">CD8T</td>
-<td align="left">Cytotoxic, T_total</td>
+<td align="left">—</td>
+<td align="left">Immune_total, T_total</td>
 </tr>
 <tr class="even">
 <td align="left">ABIS</td>
 <td align="left">NK cell</td>
 <td align="left">NK</td>
-<td align="left">Cytotoxic</td>
+<td align="left">Immune_total, Cytotoxic</td>
 </tr>
 <tr class="odd">
 <td align="left">ABIS</td>
-<td align="left">B cell memory</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">T cell CD4+ memory</td>
+<td align="left">CD4T_all</td>
+<td align="left">Immune_total, T_total</td>
 </tr>
 <tr class="even">
 <td align="left">ABIS</td>
-<td align="left">B cell naive</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">T cell CD4+ naive</td>
+<td align="left">CD4T_all</td>
+<td align="left">Immune_total, T_total</td>
 </tr>
 <tr class="odd">
 <td align="left">ABIS</td>
-<td align="left">B cell plasma immature</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">T cell CD8+ memory</td>
+<td align="left">CD8T</td>
+<td align="left">Immune_total, T_total, Cytotoxic</td>
 </tr>
 <tr class="even">
 <td align="left">ABIS</td>
-<td align="left">Basophil</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">T cell CD8+ naive</td>
+<td align="left">CD8T</td>
+<td align="left">Immune_total, T_total, Cytotoxic</td>
 </tr>
 <tr class="odd">
-<td align="left">ABIS</td>
-<td align="left">Monocyte conventional</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">ABIS</td>
-<td align="left">Monocyte non-conventional</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">ABIS</td>
-<td align="left">Myeloid dendritic cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">ABIS</td>
-<td align="left">Neutrophil</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">ABIS</td>
-<td align="left">Plasmacytoid dendritic cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">T cells gamma delta</td>
-<td align="left"></td>
+<td align="left">—</td>
 <td align="left">T_total</td>
-</tr>
-<tr class="odd">
-<td align="left">CIBERSORTx</td>
-<td align="left">T cells CD4 memory activated</td>
-<td align="left">CD4T</td>
-<td align="left">CD4T_all, T_total</td>
-</tr>
-<tr class="even">
-<td align="left">CIBERSORTx</td>
-<td align="left">T cells CD4 memory resting</td>
-<td align="left">CD4T</td>
-<td align="left">CD4T_all, T_total</td>
-</tr>
-<tr class="odd">
-<td align="left">CIBERSORTx</td>
-<td align="left">T cells CD4 naive</td>
-<td align="left">CD4T</td>
-<td align="left">CD4T_all, T_total</td>
-</tr>
-<tr class="even">
-<td align="left">CIBERSORTx</td>
-<td align="left">T cells follicular helper</td>
-<td align="left">CD4T</td>
-<td align="left">CD4T_all, T_total</td>
-</tr>
-<tr class="odd">
-<td align="left">CIBERSORTx</td>
-<td align="left">T cells CD8</td>
-<td align="left">CD8T</td>
-<td align="left">Cytotoxic, T_total</td>
 </tr>
 <tr class="even">
 <td align="left">CIBERSORTx</td>
@@ -3356,222 +3456,220 @@ it feeds.</caption>
 </tr>
 <tr class="even">
 <td align="left">CIBERSORTx</td>
-<td align="left">T cells regulatory (Tregs)</td>
-<td align="left">Treg</td>
-<td align="left">CD4T_all, T_total</td>
+<td align="left">B cells memory</td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
 <tr class="odd">
-<td align="left">CIBERSORTx</td>
-<td align="left">B cells memory</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">B cells naive</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">Dendritic cells activated</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">CIBERSORTx</td>
 <td align="left">Dendritic cells resting</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">Eosinophils</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">CIBERSORTx</td>
 <td align="left">Macrophages M0</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">Macrophages M1</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">CIBERSORTx</td>
 <td align="left">Macrophages M2</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">Mast cells activated</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">CIBERSORTx</td>
 <td align="left">Mast cells resting</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">CIBERSORTx</td>
 <td align="left">Monocytes</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">CIBERSORTx</td>
 <td align="left">Neutrophils</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">CIBERSORTx</td>
+<td align="left">T cells CD8</td>
+<td align="left">CD8T</td>
+<td align="left">T_total, Cytotoxic</td>
 </tr>
 <tr class="odd">
 <td align="left">CIBERSORTx</td>
-<td align="left">Plasma cells</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">T cells CD4 memory activated</td>
+<td align="left">CD4T</td>
+<td align="left">T_total, CD4T_all</td>
 </tr>
 <tr class="even">
-<td align="left">MCP-counter</td>
-<td align="left">T cell CD8+</td>
-<td align="left">CD8T</td>
-<td align="left"></td>
+<td align="left">CIBERSORTx</td>
+<td align="left">T cells CD4 memory resting</td>
+<td align="left">CD4T</td>
+<td align="left">T_total, CD4T_all</td>
 </tr>
 <tr class="odd">
-<td align="left">MCP-counter</td>
-<td align="left">cytotoxicity score</td>
-<td align="left">Cytotoxic</td>
-<td align="left"></td>
+<td align="left">CIBERSORTx</td>
+<td align="left">T cells CD4 naive</td>
+<td align="left">CD4T</td>
+<td align="left">T_total, CD4T_all</td>
 </tr>
 <tr class="even">
-<td align="left">MCP-counter</td>
-<td align="left">NK cell</td>
-<td align="left">NK</td>
-<td align="left"></td>
+<td align="left">CIBERSORTx</td>
+<td align="left">T cells follicular helper</td>
+<td align="left">CD4T</td>
+<td align="left">T_total, CD4T_all</td>
 </tr>
 <tr class="odd">
-<td align="left">MCP-counter</td>
-<td align="left">Cancer associated fibroblast</td>
-<td align="left">Stroma</td>
-<td align="left"></td>
+<td align="left">CIBERSORTx</td>
+<td align="left">T cells regulatory (Tregs)</td>
+<td align="left">Treg</td>
+<td align="left">T_total, CD4T_all</td>
 </tr>
 <tr class="even">
 <td align="left">MCP-counter</td>
 <td align="left">T cell</td>
 <td align="left">T_total</td>
-<td align="left"></td>
+<td align="left">—</td>
 </tr>
 <tr class="odd">
 <td align="left">MCP-counter</td>
+<td align="left">NK cell</td>
+<td align="left">NK</td>
+<td align="left">—</td>
+</tr>
+<tr class="even">
+<td align="left">MCP-counter</td>
+<td align="left">Cancer associated fibroblast</td>
+<td align="left">Stroma</td>
+<td align="left">—</td>
+</tr>
+<tr class="odd">
+<td align="left">MCP-counter</td>
+<td align="left">T cell CD8+</td>
+<td align="left">CD8T</td>
+<td align="left">—</td>
+</tr>
+<tr class="even">
+<td align="left">MCP-counter</td>
+<td align="left">cytotoxicity score</td>
+<td align="left">Cytotoxic</td>
+<td align="left">—</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
 <td align="left">B cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
 </tr>
 <tr class="even">
-<td align="left">MCP-counter</td>
-<td align="left">Endothelial cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">quanTIseq</td>
+<td align="left">Macrophage M1</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
 </tr>
 <tr class="odd">
-<td align="left">MCP-counter</td>
-<td align="left">Macrophage/Monocyte</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">quanTIseq</td>
+<td align="left">Macrophage M2</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
 </tr>
 <tr class="even">
-<td align="left">MCP-counter</td>
+<td align="left">quanTIseq</td>
 <td align="left">Monocyte</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
 </tr>
 <tr class="odd">
-<td align="left">MCP-counter</td>
+<td align="left">quanTIseq</td>
 <td align="left">Myeloid dendritic cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
 </tr>
 <tr class="even">
-<td align="left">MCP-counter</td>
+<td align="left">quanTIseq</td>
 <td align="left">Neutrophil</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
 </tr>
 <tr class="odd">
 <td align="left">quanTIseq</td>
 <td align="left">uncharacterized cell</td>
-<td align="left"></td>
+<td align="left">—</td>
 <td align="left">NonImmune</td>
-</tr>
-<tr class="even">
-<td align="left">quanTIseq</td>
-<td align="left">T cell CD4+ (non-regulatory)</td>
-<td align="left">CD4T</td>
-<td align="left">CD4T_all, T_total</td>
-</tr>
-<tr class="odd">
-<td align="left">quanTIseq</td>
-<td align="left">T cell CD8+</td>
-<td align="left">CD8T</td>
-<td align="left">Cytotoxic, T_total</td>
 </tr>
 <tr class="even">
 <td align="left">quanTIseq</td>
 <td align="left">NK cell</td>
 <td align="left">NK</td>
-<td align="left">Cytotoxic</td>
+<td align="left">Immune_total, Cytotoxic</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">T cell CD8+</td>
+<td align="left">CD8T</td>
+<td align="left">Immune_total, T_total, Cytotoxic</td>
+</tr>
+<tr class="even">
+<td align="left">quanTIseq</td>
+<td align="left">T cell CD4+ (non-regulatory)</td>
+<td align="left">CD4T</td>
+<td align="left">Immune_total, T_total, CD4T_all</td>
 </tr>
 <tr class="odd">
 <td align="left">quanTIseq</td>
 <td align="left">T cell regulatory (Tregs)</td>
 <td align="left">Treg</td>
-<td align="left">CD4T_all, T_total</td>
-</tr>
-<tr class="even">
-<td align="left">quanTIseq</td>
-<td align="left">B cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">quanTIseq</td>
-<td align="left">Macrophage M1</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">quanTIseq</td>
-<td align="left">Macrophage M2</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">quanTIseq</td>
-<td align="left">Monocyte</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="even">
-<td align="left">quanTIseq</td>
-<td align="left">Myeloid dendritic cell</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
-</tr>
-<tr class="odd">
-<td align="left">quanTIseq</td>
-<td align="left">Neutrophil</td>
-<td align="left">(unmapped)</td>
-<td align="left"></td>
+<td align="left">Immune_total, T_total, CD4T_all</td>
 </tr>
 </tbody>
 </table>
+<p><strong>Dropped labels.</strong></p>
+<ul>
+<li><strong>ABIS:</strong> B cell plasma immature (plasma: CD45-dim on
+tissue)</li>
+<li><strong>CIBERSORTx:</strong> Plasma cells (plasma: CD45-dim on
+tissue)</li>
+<li><strong>MCP-counter:</strong> Endothelial cell (no IHC population);
+B cell, Macrophage/Monocyte, Monocyte, Myeloid dendritic cell,
+Neutrophil (scores do not add)</li>
+</ul>
 </div>
 <div id="ihc-population-fractions-reference" class="section level3">
 <h3>IHC population fractions (reference)</h3>
@@ -3626,40 +3724,16 @@ median per-patient fraction on each denominator.</caption>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left">CD8T</td>
-<td align="right">257166</td>
-<td align="right">0.1124</td>
-<td align="right">0.2311</td>
+<td align="left">Immune_total</td>
+<td align="right">903204</td>
+<td align="right">0.4687</td>
+<td align="right">1.0000</td>
 </tr>
 <tr class="even">
-<td align="left">CD4T</td>
-<td align="right">180739</td>
-<td align="right">0.0954</td>
-<td align="right">0.1865</td>
-</tr>
-<tr class="odd">
-<td align="left">Treg</td>
-<td align="right">42580</td>
-<td align="right">0.0214</td>
-<td align="right">0.0453</td>
-</tr>
-<tr class="even">
-<td align="left">CD4T_all</td>
-<td align="right">223319</td>
-<td align="right">0.1207</td>
-<td align="right">0.2287</td>
-</tr>
-<tr class="odd">
-<td align="left">NK</td>
-<td align="right">9595</td>
-<td align="right">0.0015</td>
-<td align="right">0.0040</td>
-</tr>
-<tr class="even">
-<td align="left">Cytotoxic</td>
-<td align="right">266761</td>
-<td align="right">0.1222</td>
-<td align="right">0.2448</td>
+<td align="left">NonImmune</td>
+<td align="right">1306621</td>
+<td align="right">0.5313</td>
+<td align="right">1.1339</td>
 </tr>
 <tr class="odd">
 <td align="left">T_total</td>
@@ -3668,16 +3742,52 @@ median per-patient fraction on each denominator.</caption>
 <td align="right">0.6610</td>
 </tr>
 <tr class="even">
+<td align="left">NK</td>
+<td align="right">9595</td>
+<td align="right">0.0015</td>
+<td align="right">0.0040</td>
+</tr>
+<tr class="odd">
+<td align="left">Immune_other</td>
+<td align="right">375760</td>
+<td align="right">0.1615</td>
+<td align="right">0.3033</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T_all</td>
+<td align="right">223319</td>
+<td align="right">0.1207</td>
+<td align="right">0.2287</td>
+</tr>
+<tr class="odd">
 <td align="left">Stroma</td>
 <td align="right">148047</td>
 <td align="right">0.0617</td>
 <td align="right">0.2008</td>
 </tr>
+<tr class="even">
+<td align="left">CD8T</td>
+<td align="right">257166</td>
+<td align="right">0.1124</td>
+<td align="right">0.2311</td>
+</tr>
 <tr class="odd">
-<td align="left">NonImmune</td>
-<td align="right">1306621</td>
-<td align="right">0.5313</td>
-<td align="right">1.1339</td>
+<td align="left">CD4T</td>
+<td align="right">180739</td>
+<td align="right">0.0954</td>
+<td align="right">0.1865</td>
+</tr>
+<tr class="even">
+<td align="left">Treg</td>
+<td align="right">42580</td>
+<td align="right">0.0214</td>
+<td align="right">0.0453</td>
+</tr>
+<tr class="odd">
+<td align="left">Cytotoxic</td>
+<td align="right">266761</td>
+<td align="right">0.1222</td>
+<td align="right">0.2448</td>
 </tr>
 </tbody>
 </table>
@@ -3699,7 +3809,7 @@ if (!is.null(deconv_long) &amp;&amp; nrow(deconv_long) &gt; 0) {
     deconv_pair_with_ihc(ihc_cmp)
   cat(&quot;deconv_paired (method x population x patient) rows:&quot;, nrow(deconv_paired), &quot;\n&quot;)
 }</code></pre>
-<pre><code>deconv_paired (method x population x patient) rows: 186 </code></pre>
+<pre><code>deconv_paired (method x population x patient) rows: 224 </code></pre>
 <p>Per method and lineage, concordance is the cross-patient Spearman
 correlation between the method’s score and the IHC fraction; method
 ranking averages those across lineages:</p>
@@ -3746,31 +3856,37 @@ like-for-like score across methods.</p>
 </tr>
 <tr class="even">
 <td align="left">cibersortx</td>
-<td align="right">0.329</td>
-<td align="right">7</td>
+<td align="right">0.334</td>
+<td align="right">8</td>
 </tr>
 <tr class="odd">
 <td align="left">abis</td>
-<td align="right">0.281</td>
-<td align="right">5</td>
+<td align="right">0.177</td>
+<td align="right">7</td>
 </tr>
 <tr class="even">
 <td align="left">quantiseq</td>
-<td align="right">-0.040</td>
-<td align="right">8</td>
+<td align="right">-0.010</td>
+<td align="right">10</td>
 </tr>
 </tbody>
 </table>
+</div>
+<div id="scatter-per-method-and-population"
+class="section level3 tabset">
+<h3 class="tabset">Scatter per method and population</h3>
 <p>Scatter of <code>ihc_frac</code> (x) vs <code>score</code> (y),
-<strong>one figure per method</strong>, panels by population, in the
-ranking’s order so the best-agreeing method comes first. Within a figure
-the panels share both axes: x is the IHC fraction on 0..1 (of all cells,
-or of CD45+ cells for a method Table 3 marks CD45 — the axis title says
-which) and y is that method’s score, so the spread across lineages reads
-on one scale. Between figures y is free by construction, because
-deconvolution scores are not on a common scale from one method to the
-next. Each strip carries that lineage’s Spearman rho from the table
-above, so the picture and the number sit together.</p>
+<strong>one figure per method and population</strong>: a tab per method,
+in the ranking’s order so the best-agreeing method comes first, and
+inside it one plot per population in Table 1’s order (macro →
+intermediate → leaf → cross-cutting). Each plot has its own axes, both
+starting at 0: x is the IHC fraction (of all cells, or of CD45+ cells
+for a method Table 3 marks CD45 — the axis title says which) and y is
+the method’s score, which is not on a common scale from one method, or
+one population, to the next. The title carries the population’s gate and
+the subtitle its Spearman rho from the table above and its n, so the
+picture and the number sit together. Each plot is exported as its own
+PDF.</p>
 <pre class="r"><code>if (!is.null(deconv_paired) &amp;&amp; nrow(deconv_paired) &gt; 0) {
   # Same hot/cold colouring as the marker panel above, on the same `clin` lookup:
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
@@ -3778,41 +3894,40 @@ above, so the picture and the number sit together.</p>
   # immuno-phenotype stays in the plot (grey) rather than shrinking the fit.
   df &lt;- deconv_paired |&gt;
     left_join(clin, by = &quot;patient_id&quot;) |&gt;
-    mutate(immuno_phe = hotcold_order(immuno_phe),
-           lineage    = factor(lineage, levels = deconv_comparison_lineages$lineage))
+    mutate(immuno_phe = hotcold_order(immuno_phe))
+  gate &lt;- stats::setNames(deconv_comparison_lineages$ihc_gate, deconv_comparison_lineages$lineage)
+  level &lt;- stats::setNames(deconv_comparison_lineages$level, deconv_comparison_lineages$lineage)
 
-  plot_deconv_method &lt;- function(m) {
-    d   &lt;- filter(df, method == m)
-    rho &lt;- filter(deconv_summary, method == m)
-    lab &lt;- stats::setNames(
-      sprintf(&quot;%s (rho = %s)&quot;, rho$lineage,
-              ifelse(is.finite(rho$rho), formatC(rho$rho, format = &quot;f&quot;, digits = 2), &quot;NA&quot;)),
-      as.character(rho$lineage))
+  plot_deconv_pair &lt;- function(m, lin) {
+    d   &lt;- filter(df, method == m, lineage == lin)
+    rho &lt;- deconv_summary$rho[deconv_summary$method == m &amp; deconv_summary$lineage == lin]
+    rho &lt;- if (length(rho) &amp;&amp; is.finite(rho)) formatC(rho, format = &quot;f&quot;, digits = 2) else &quot;NA&quot;
     ggplot(d, aes(ihc_frac, score)) +
       geom_smooth(method = &quot;lm&quot;, se = FALSE, colour = FIT_LINE, formula = y ~ x) +
       geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
-      # Shared x AND y within the method: the same IHC value lands in the same place
-      # in every panel, and the lineages&#39; scores are compared on the method&#39;s own scale.
-      facet_wrap(~ lineage, ncol = 4,
-                 labeller = as_labeller(function(x) ifelse(x %in% names(lab), lab[x], x))) +
       scale_colour_manual(values = hotcold_cols(levels(d$immuno_phe)),
                           na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
-      # Three x ticks and a wider gutter: with four panels in a row, the default
-      # 0.00 / 1.00 labels of neighbouring panels ran into each other.
-      scale_x_continuous(breaks = c(0, 0.5, 1), limits = c(0, 1)) +
-      theme(panel.spacing.x = unit(1.2, &quot;lines&quot;)) +
-      labs(title = paste0(method_label(m), &quot;: IHC lineage fraction vs deconvolution score&quot;),
-           subtitle = with_n(paste(&quot;points coloured by the clinical immuno-phenotype;&quot;,
-                                   &quot;the fit is over all patients; axes shared across the panels&quot;),
+      expand_limits(x = 0, y = 0) +
+      labs(title = sprintf(&quot;%s: %s (%s)&quot;, method_label(m), lin, gate[[lin]]),
+           subtitle = with_n(sprintf(&quot;%s population; Spearman rho = %s&quot;, level[[lin]], rho),
                              d$patient_id, &quot;patients&quot;),
            x = if (identical(deconv_ihc_denominator(m), &quot;CD45&quot;))
                  &quot;IHC fraction of CD45+ cells (unitless, 0-1)&quot;
                else &quot;IHC fraction of all cells (unitless, 0-1)&quot;,
            y = paste(method_label(m), &quot;score (unitless)&quot;))
   }
-  for (m in method_rank$method) print(plot_deconv_method(m))
+  # One tab per method (#### under the {.tabset} heading), one plot per population.
+  for (m in method_rank$method) {
+    cat(&quot;\n\n#### &quot;, method_label(m), &quot;\n\n&quot;, sep = &quot;&quot;)
+    for (lin in intersect(deconv_comparison_lineages$lineage, unique(df$lineage[df$method == m]))) {
+      print(plot_deconv_pair(m, lin))
+      cat(&quot;\n\n&quot;)
+    }
+  }
 }</code></pre>
-<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<div id="mcp-counter" class="section level4">
+<h4>MCP-counter</h4>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-1">
 Past versions of deconv-concordance-plot-1.png
@@ -3837,6 +3952,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-1.png" target="_blank">71e6351</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-1.png" target="_blank">4ca73a5</a>
 </td>
 <td>
@@ -3850,7 +3976,7 @@ bolt3x
 </table>
 </div>
 </div>
-<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-2.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-2.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-2">
 Past versions of deconv-concordance-plot-2.png
@@ -3875,6 +4001,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-2.png" target="_blank">71e6351</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-2.png" target="_blank">4ca73a5</a>
 </td>
 <td>
@@ -3888,7 +4025,7 @@ bolt3x
 </table>
 </div>
 </div>
-<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-3.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-3.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-3">
 Past versions of deconv-concordance-plot-3.png
@@ -3913,6 +4050,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-3.png" target="_blank">71e6351</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-3.png" target="_blank">4ca73a5</a>
 </td>
 <td>
@@ -3926,7 +4074,7 @@ bolt3x
 </table>
 </div>
 </div>
-<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-4.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-4.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 <p>
 <button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-4">
 Past versions of deconv-concordance-plot-4.png
@@ -3951,6 +4099,17 @@ Date
 <tbody>
 <tr>
 <td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-4.png" target="_blank">71e6351</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
+<tr>
+<td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-4.png" target="_blank">4ca73a5</a>
 </td>
 <td>
@@ -3963,6 +4122,42 @@ bolt3x
 </tbody>
 </table>
 </div>
+</div>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-5.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="cibersortx" class="section level4">
+<h4>CIBERSORTx</h4>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-6.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-7.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-8.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-9.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-10.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-11.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-12.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-13.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="abis" class="section level4">
+<h4>ABIS</h4>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-14.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-15.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-16.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-17.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-18.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-19.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-20.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="quantiseq" class="section level4">
+<h4>quanTIseq</h4>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-21.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-22.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-23.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-24.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-25.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-26.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-27.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-28.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-29.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1_inverted.Rmd/deconv-concordance-plot-30.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 <div id="cross-method-agreement-methods-vs-each-other-and-vs-ihc"
@@ -4043,6 +4238,17 @@ Date
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1_inverted.Rmd/deconv-agreement-heatmap-1.png" target="_blank">71e6351</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-09-30
+</td>
+</tr>
 <tr>
 <td>
 <a href="https://github.com/sceriff0/analysis.ihc_method/blob/4ca73a518880130570dad085b500b95b308e69e0/docs/figure/molecular_massimo1_inverted.Rmd/deconv-agreement-heatmap-1.png" target="_blank">4ca73a5</a>
@@ -4126,11 +4332,12 @@ rank-only; their slope against IHC is not meaningful, so every statistic
 here is Spearman. Absolute-fraction methods (quanTIseq, EPIC, CIBERSORT
 abs., ABIS) are the fair apples-to-apples comparison but are still
 compared by rank for uniformity.</li>
-<li>Only the populations in Table 1 are compared. B cells, plasma cells,
-monocytes / macrophages, dendritic cells and granulocytes all end in the
-tree’s CD3−CD56− <code>Immune</code> leaf, so no single IHC population
-matches any of them and they feed nothing (part 1 above does a
-marker-level CD163/CD14 check instead).</li>
+<li>Only the populations in Table 1 are compared. B cells, monocytes /
+macrophages, dendritic cells and granulocytes all end in the tree’s
+CD3−CD56− <code>Immune</code> leaf, so none is compared alone; their sum
+is compared as <strong>Immune_other</strong> (part 1 above does a
+marker-level CD163/CD14 check as well). Plasma cells feed nothing
+(CD45-dim on tissue).</li>
 <li>The per-method concordance uses each method’s own denominator (Table
 3); the cross-source agreement matrix needs one IHC value per patient
 and population, so it stays on the four T/NK populations over all cells.
