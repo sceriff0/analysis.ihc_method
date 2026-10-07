@@ -1,0 +1,363 @@
+---
+title: "Molecular — quanTIseq vs IHC, whole slide and inside each annotation"
+author: "sceriff0"
+date: "2026-10-07"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+# renv: tidyverse + here (in the lockfile), sf for the point-in-polygon behind the
+# annotation scopes, and immunedeconv (GitHub: omnideconv/immunedeconv, NOT
+# Bioconductor) for quanTIseq. The page degrades to a visible message if either the
+# cells or immunedeconv are absent.
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(purrr)
+  library(ggplot2)
+  library(stringr)
+  library(forcats)
+  library(here)
+  library(sf)
+})
+
+# The house style is sourced HERE, unconditionally and before opts_chunk$set: the
+# figure defaults below call fig_width().
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/with_n()
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+
+# load_data.R prints per-arm LOADED messages; silence them. validation_helpers.R
+# holds the deconvolution <-> IHC mapping, deconv_scopes.R the cell scopes.
+invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
+source(here("code", "validation_helpers.R"))
+source(here("code", "deconv_scopes.R"))
+source(here("code", "pdf_export.R"))          # export_pdf_figures(): plots -> output/figures/
+
+SLUG <- "molecular_quantiseq"
+# THIS PAGE IS CROSS-ARM, SO IT DECLARES NO SINGLE `ARM`. Every scope it draws names
+# its own arm in DECONV_SCOPES (code/deconv_scopes.R), and each arm's cells are taken
+# with ihc_for(<that arm>) — there is still no bare `ihc_data`. Panels from different
+# arms are compared by PATIENT only: the arms' regions were drawn in separate sessions.
+ARMS   <- unique(DECONV_SCOPES$arm)
+METHOD <- "quantiseq"
+cells_by_arm <- lapply(stats::setNames(ARMS, ARMS), ihc_for)
+
+# The quanTIseq half stands on its own; every chunk that touches an IHC quantity is
+# gated on at least one arm having cells on disk.
+have_cells <- any(vapply(cells_by_arm, nrow, integer(1)) > 0)
+```
+
+> **Arms: `massimo1` and `massimo2`, one method: quanTIseq.** The per-arm molecular
+> pages compare every deconvolution method against one arm's whole slide. This page
+> turns that around: one method, and every cell set the IHC fraction can be taken
+> over — each arm's whole slide, and the cells inside each arm's pathologist
+> annotation. The two arms' annotations are different polygons over the same tissue,
+> so panels are compared by PATIENT, never region by region.
+
+One question, asked once per population quanTIseq can estimate: **does the
+quanTIseq fraction from bulk RNA track the fraction of cells the IHC panel counts,
+and does the answer depend on which cells are counted?**
+
+## Shared keys: the id bridge and the hot/cold call
+
+Bulk RNA is keyed by CRF id and IHC by slide id. `crf2slide` maps one to the other
+(`crf_to_slide_map()` over `data/clinical_data.xlsx`: `ID CRF PRESERVE` to
+`ID PATIENT`), and `clin` carries the clinical `Immuno-phenotype` used to colour
+every point below. The line printed is the number of clinical rows and how many
+carry each of the two immune columns.
+
+```{r shared-keys}
+crf2slide <- crf_to_slide_map(clinical_data)
+
+clin <- clinical_data |>
+  mutate(patient_id = slide_key(`ID PATIENT`)) |>
+  select(patient_id,
+         hot_score  = any_of("HOT score"),
+         immuno_phe = any_of("Immuno-phenotype")) |>
+  mutate(hot_score = suppressWarnings(as.numeric(hot_score)))
+
+cat("clinical rows:", nrow(clin),
+    "| with a numeric HOT score:", sum(is.finite(clin$hot_score)),
+    "| with an immuno-phenotype:", sum(!is.na(clin$immuno_phe)), "\n")
+```
+
+## quanTIseq on the bulk RNA
+
+quanTIseq is run by `immunedeconv::deconvolute()` on the gene-by-sample matrix from
+`data/counts.RData`, on the TPM scale when gene lengths were found and on the
+DESeq2-normalised scale otherwise (`expr_scales`, built in `code/load_data.R`;
+quanTIseq was fit on TPM, so the printed `scale` matters for absolute values and
+much less for the cross-patient ranking used here). The result is one fraction per
+cell type and sample, keyed into slide space with `crf2slide`; samples with no
+slide are dropped and counted in the printed line.
+
+```{r quantiseq-run}
+EXPR_SCALE <- if (!is.null(expr_scales$tpm)) "tpm" else "normalized"
+expr_mat   <- expr_scales[[EXPR_SCALE]]
+storage.mode(expr_mat) <- "double"
+
+qs_long <- NULL
+if (requireNamespace("immunedeconv", quietly = TRUE)) {
+  qs_long <- tryCatch(
+    immunedeconv::deconvolute(expr_mat, METHOD) |>
+      pivot_longer(-cell_type, names_to = "sample", values_to = "score") |>
+      mutate(method     = METHOD,
+             crf_id     = norm_id(sample),
+             patient_id = unname(crf2slide[crf_id])),   # crf id -> slide id
+    error = function(e) {
+      cat("**quanTIseq FAILED:**", conditionMessage(e), "\n")
+      NULL
+    })
+} else {
+  # cat(), not message(): message = FALSE on this page would swallow it and leave a
+  # page with no figures and no reason.
+  cat("**immunedeconv not installed — quanTIseq skipped, so every comparison below",
+      "is empty.** Install it with",
+      "`remotes::install_github(\"omnideconv/immunedeconv\")` and re-knit.\n")
+}
+
+n_unmapped <- if (is.null(qs_long)) 0L else
+  n_distinct(qs_long$crf_id[is.na(qs_long$patient_id)])
+if (!is.null(qs_long)) qs_long <- filter(qs_long, !is.na(patient_id))
+
+have_qs    <- !is.null(qs_long) && nrow(qs_long) > 0
+have_pairs <- have_qs && have_cells
+# The populations quanTIseq can estimate, in the gate tree's order (macro ->
+# intermediate -> leaf -> cross-cutting). Every table and figure below keeps it.
+# Bound here, ungated, because the IHC-only tables read it too.
+qs_lineages <- if (have_qs)
+  intersect(deconv_comparison_lineages$lineage, deconv_contributions(qs_long)$lineage) else
+  character(0)
+cat("expression matrix:", nrow(expr_mat), "genes x", ncol(expr_mat), "samples",
+    "| scale:", EXPR_SCALE,
+    "| quanTIseq cell types:", if (have_qs) n_distinct(qs_long$cell_type) else 0L,
+    "| patients with a slide:", if (have_qs) n_distinct(qs_long$patient_id) else 0L,
+    "|", n_unmapped, "RNA sample(s) had no slide crosswalk\n")
+```
+
+## Which quanTIseq cell type is compared with which IHC population
+
+Each quanTIseq label is assigned to the IHC populations it can be compared with by
+`deconv_contributions()` (`code/validation_helpers.R`), the same rules the per-arm
+molecular pages print in full. A label either **is** a population (its direct
+match) or is **summed into** a composite; quanTIseq's fractions are of all cells,
+so its labels may be added. The B-cell and myeloid labels have no direct match
+because the IHC panel has no B or myeloid marker — they are compared only as their
+sum, `Immune_other`.
+
+```{r quantiseq-map, eval = have_qs}
+qs_contrib <- deconv_contributions(qs_long)
+qs_scores  <- deconv_lineage_scores(qs_long)
+
+dash <- function(x) ifelse(is.na(x) | x == "", "—", x)
+qs_long |>
+  distinct(cell_type) |>
+  left_join(
+    qs_contrib |>
+      mutate(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage)) |>
+      arrange(lineage) |>
+      group_by(cell_type) |>
+      summarise(first  = lineage[1],
+                is_pop = paste(lineage[route == "direct"], collapse = ", "),
+                summed = paste(lineage[route == "sum"],    collapse = ", "),
+                .groups = "drop"),
+    by = "cell_type") |>
+  arrange(first, cell_type) |>
+  transmute(method = method_label(METHOD), cell_type,
+            is_pop = dash(is_pop), summed = dash(summed)) |>
+  knitr::kable(col.names = c("method", "cell type", "is the population", "summed into"),
+               caption = "quanTIseq cell types and the IHC populations each feeds.")
+```
+
+The populations those labels add up to, each with its gate in the FlowPath
+phenotyping tree and the tree leaves counted for it on the IHC side
+(`deconv_comparison_lineages`). There is one scatter per row of this table in every
+scope below.
+
+```{r quantiseq-populations, eval = have_qs}
+deconv_comparison_lineages |>
+  filter(lineage %in% qs_lineages) |>
+  select(lineage, level, ihc_gate, ihc_phenotypes) |>
+  knitr::kable(col.names = c("population", "level", "IHC gate", "IHC leaves summed"),
+               caption = "The populations compared on this page.")
+```
+
+## Which cells the IHC fraction is taken over
+
+The IHC fraction is computed four times, once per **scope** in `DECONV_SCOPES`
+(`code/deconv_scopes.R`). The table is that registry, with the number of cells each
+scope's arm has on disk (`ihc_for(arm)`: one row per physical cell per patient —
+`data/massimo1/FlowPath_csv_all/` for `massimo1`, the pooled and de-duplicated
+`data/massimo2/csv/` for `massimo2`).
+
+```{r scopes}
+DECONV_SCOPES |>
+  mutate(cells_loaded = vapply(arm, function(a) nrow(cells_by_arm[[a]]), integer(1)),
+         polygons = c(union = "annotation_all/", region = "annotation/ (dissolved)")[tier] |>
+           replace_na("none")) |>
+  select(label, arm, kept, polygons, cells_loaded) |>
+  knitr::kable(col.names = c("scope", "arm", "cells kept", "polygon set", "cells in the arm"),
+               format.args = list(big.mark = ","),
+               caption = "The four cell scopes. A scope whose arm has 0 cells on disk draws nothing below.")
+```
+
+Three things to hold on to when reading across scopes:
+
+- **The two whole-slide scopes are different numbers.** The arms gate the same
+  slides at different thresholds, so the same slide has a different CD8T fraction
+  in each.
+- **`massimo1` has one annotation scope.** Its `annotation_all` polygon is the exact
+  union of that patient's `annotation_selected` regions, so a separate scope for the
+  selected regions would redraw the same cells.
+- **A slide with no polygon in a scope's set is cut by FlowPath's own inside/outside
+  call** — the `Out_of_annotation` column of that slide's csv. This is the rule for
+  this page only: the clinical pages count such a `massimo2` slide whole.
+
+For each scope, every cell of the arm is marked inside or outside: by
+point-in-polygon of its centroid against the scope's polygon set (`sf`), or by the
+csv's `Out_of_annotation` flag where the patient has no polygon in that set
+(`flag`); a whole-slide scope keeps every cell (`all_cells`). The table counts, per
+scope and patient, the cells the arm holds and the cells the scope keeps, and names
+the rule that decided.
+
+```{r scope-ihc, eval = have_cells}
+# One pass per scope: mark, count, and keep only the per-patient fractions — the
+# per-cell frames are several hundred thousand rows each and are not held.
+scope_ihc <- lapply(stats::setNames(DECONV_SCOPES$scope, DECONV_SCOPES$scope),
+                    function(s) deconv_scope_ihc(s, cells_by_arm[[deconv_scope(s)$arm]]))
+scope_frac <- bind_rows(map(scope_ihc, "fractions"))
+scope_inv  <- bind_rows(map(scope_ihc, "inventory"))
+scope_lab  <- stats::setNames(DECONV_SCOPES$label, DECONV_SCOPES$scope)
+
+scope_inv |>
+  mutate(scope = scope_lab[scope]) |>
+  knitr::kable(col.names = c("scope", "patient", "decided by", "cells in the arm",
+                             "cells kept", "% kept"),
+               format.args = list(big.mark = ","),
+               caption = "Cells behind each scope, per patient. `sf` = inside the scope's polygons, `flag` = the csv's own Out_of_annotation call (no polygon for that patient), `all_cells` = no restriction.")
+```
+
+Within each scope, `ihc_comparison_fraction()` counts the kept cells on each
+population's tree leaves and divides by **all kept cells** of that patient — the
+denominator quanTIseq's fractions share. The table is the median of that
+per-patient fraction, per population and scope, for the populations quanTIseq can
+estimate (every IHC population if quanTIseq did not run); it shows how far the
+annotation moves the IHC side before any RNA is involved.
+
+```{r scope-fractions, eval = have_cells}
+scope_frac |>
+  filter(!length(qs_lineages) | lineage %in% qs_lineages) |>
+  mutate(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage),
+         scope   = factor(scope_lab[scope], levels = DECONV_SCOPES$label)) |>
+  group_by(lineage, scope) |>
+  summarise(median_frac = median(frac_all), .groups = "drop") |>
+  pivot_wider(names_from = scope, values_from = median_frac, names_sort = TRUE) |>
+  arrange(lineage) |>
+  knitr::kable(digits = 4,
+               caption = "IHC side: median per-patient fraction of all kept cells, per population and scope.")
+```
+
+## quanTIseq vs IHC, per population and scope
+
+For each scope, the quanTIseq score of a population (the sum of the labels the
+mapping table assigns to it) is inner-joined on patient and population to that
+scope's IHC fraction (`deconv_pair_with_ihc()`). Agreement is the cross-patient
+Spearman correlation (`paired_spearman()`: `NA` under 3 patients or when either
+side is constant). Each cell of the table is rho with the number of patients it was
+computed over.
+
+```{r quantiseq-concordance, eval = have_pairs}
+qs_paired <- scope_frac |>
+  group_split(scope) |>
+  map_dfr(function(f) deconv_pair_with_ihc(qs_scores, select(f, -scope)) |>
+            mutate(scope = f$scope[1], .before = 1)) |>
+  left_join(clin, by = "patient_id")
+
+qs_rho <- deconv_scope_concordance(qs_paired) |>
+  mutate(lineage = factor(lineage, levels = qs_lineages),
+         scope   = factor(scope, levels = DECONV_SCOPES$scope))
+
+qs_rho |>
+  mutate(cell = ifelse(is.finite(rho), sprintf("%.2f (n = %d)", rho, n),
+                       sprintf("NA (n = %d)", n)),
+         scope = factor(scope_lab[as.character(scope)], levels = DECONV_SCOPES$label)) |>
+  select(lineage, scope, cell) |>
+  pivot_wider(names_from = scope, values_from = cell, names_sort = TRUE) |>
+  arrange(lineage) |>
+  knitr::kable(caption = "Spearman rho, quanTIseq score vs IHC fraction of all kept cells, per population and scope (n = patients).")
+```
+
+The same rho values as a grid: one tile per population (rows, in the gate tree's
+order) and scope (columns), coloured on a diverging scale centred at 0. Each column
+states the number of patients paired in that scope. With this few patients a tile
+is a description of the ranking, not a test.
+
+```{r quantiseq-concordance-heatmap, eval = have_pairs, fig.height = 5}
+scope_n <- qs_paired |>
+  group_by(scope) |>
+  summarise(n = n_distinct(patient_id), .groups = "drop")
+scope_axis <- stats::setNames(
+  sprintf("%s\n(n = %d)", sub(" — ", "\n", scope_lab[scope_n$scope]), scope_n$n),
+  scope_n$scope)
+
+ggplot(qs_rho, aes(scope, fct_rev(lineage), fill = rho)) +
+  geom_tile(colour = "white", linewidth = 0.3) +
+  geom_text(aes(label = ifelse(is.na(rho), "·", sprintf("%.2f", rho))),
+            size = pt_text(6.5)) +
+  scale_x_discrete(labels = scope_axis, position = "top") +
+  scale_fill_div(midpoint = 0, limits = c(-1, 1), name = "Spearman rho",
+                 guide = guide_cbar()) +
+  labs(title = "quanTIseq vs IHC: agreement by population and cell scope",
+       subtitle = with_n("Spearman rho across patients, per scope",
+                         qs_paired$patient_id, "patients"),
+       x = NULL, y = NULL) +
+  theme_paper_tile()
+```
+
+## One scatter per population {.tabset}
+
+One tab per scope, and inside it one figure per population in the gate tree's
+order. Each point is a patient: x is the IHC fraction of all cells the scope keeps
+(FlowPath phenotypes from that scope's arm), y is the quanTIseq fraction from that
+patient's bulk RNA. Both are fractions of all cells, so the dashed grey line is
+x = y; the blue line is a least-squares fit drawn to show direction only. Points
+are coloured by the clinical `Immuno-phenotype`. The title carries the population's
+gate, the subtitle the scope, its Spearman rho and its n. Each plot is exported as
+its own PDF.
+
+```{r quantiseq-scatter, eval = have_pairs, results = "asis", fig.width = fig_width("single"), fig.height = 3.4}
+for (s in DECONV_SCOPES$scope) {
+  ds <- filter(qs_paired, scope == s)
+  if (!nrow(ds)) next
+  cat("\n\n### ", scope_lab[[s]], "\n\n", sep = "")
+  for (lin in intersect(qs_lineages, unique(ds$lineage))) {
+    print(plot_deconv_scope_pair(filter(ds, lineage == lin), s, lin, METHOD))
+    cat("\n\n")
+  }
+}
+```
+
+## Notes
+
+- Every statistic is a rank correlation over a handful of patients. Read the grid
+  for pattern across scopes, not for significance.
+- The populations overlap (CD8T sits inside Cytotoxic, T_total and Immune_total),
+  so their rho values are not independent.
+- `Immune_other` puts the sum of quanTIseq's B, macrophage, monocyte, dendritic and
+  neutrophil fractions against every CD45+ CD3− CD56− cell; `NonImmune` puts
+  quanTIseq's `uncharacterized cell` against every CD45− cell.
+- An annotation scope changes the IHC side only. The bulk RNA is one sample per
+  patient and is the same in all four scopes.
+- `massimo1_inverted` has no scope here: it re-classifies `massimo1`'s cells and
+  borrows its polygons, so it is a third phenotyping rather than a third annotation.
+
+```{r export-pdfs, include=FALSE}
+# Every plot above is also rendered to PDF by the dev = c("png", "pdf") chunk option;
+# this collects them into output/figures/<SLUG>/. Runs last, so they all exist by now.
+export_pdf_figures(SLUG)
+```

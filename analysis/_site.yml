@@ -32,6 +32,9 @@ navbar:
       href: molecular_massimo2.html
     - text: Massimo1 inverted — modified PANCK
       href: molecular_massimo1_inverted.html
+    - text: '---'
+    - text: quanTIseq — whole slide vs each annotation
+      href: molecular_quantiseq.html
   - text: 3 · Registration
     menu:
     - text: Run QC — the study samples

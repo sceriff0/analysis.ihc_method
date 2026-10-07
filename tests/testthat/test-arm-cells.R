@@ -440,6 +440,46 @@ test_that("with no polygon the export's own flag decides, and says so", {
   expect_equal(sum(sc$in_annotation), sum(!cell_outside(sc)))
 })
 
+test_that("tier = \"region\" scores against the selected regions, not the union", {
+  skip_if_not_installed("sf")
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 300)
+  spec  <- .spec1(d)
+  cells <- arm_cohort_cells(spec)
+  # annotation_all covers the whole extent; the one `_selected` box covers a quarter.
+  # The default takes the union and keeps everything, so a count strictly below
+  # that proves the region tier was the one read.
+  expect_true(all(arm_cells_in_annotation(spec, cells, tier = "union")$in_annotation))
+  sc <- arm_cells_in_annotation(spec, cells, tier = "region")
+  expect_equal(unique(sc$.in_annotation_source), "sf")
+  expect_gt(sum(sc$in_annotation), 0)
+  expect_lt(sum(sc$in_annotation), nrow(sc))
+})
+
+test_that("a patient with no polygon in the tier asked for is cut by its flag", {
+  skip_if_not_installed("sf")
+  # 10338 has an annotation_all polygon and no `_selected` region. Asked for the
+  # region tier it must NOT be answered from the union polygon behind its back.
+  d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L, `10338` = integer(0)))
+  spec <- .spec1(d)
+  sc   <- arm_cells_in_annotation(spec, arm_cohort_cells(spec), tier = "region")
+  orph <- dplyr::filter(sc, patient_id == "10338")
+  expect_equal(unique(orph$.in_annotation_source), "flag")
+  expect_equal(sum(orph$in_annotation), sum(!cell_outside(orph)))
+  expect_equal(unique(dplyr::filter(sc, patient_id == "046")$.in_annotation_source), "sf")
+})
+
+test_that("unannotated = \"flag\" overrides massimo2's count-it-whole convention", {
+  # The opt-in the quanTIseq page takes: 24086 is cut by its export's flag (one cell
+  # in four outside in the fixture) instead of being counted whole.
+  d <- .tmp_data(); .massimo2_tree(d, regions = list(`24086` = NULL), annotate = character(0))
+  spec <- .spec2(d)
+  sc   <- suppressWarnings(arm_cells_in_annotation(spec, arm_cohort_cells(spec),
+                                                   unannotated = "flag"))
+  expect_equal(unique(sc$.in_annotation_source), "flag")
+  expect_equal(sum(sc$in_annotation), sum(!cell_outside(sc)))
+  expect_lt(sum(sc$in_annotation), nrow(sc))
+})
+
 test_that("the inventory separates the tumour subset from the annotation subset", {
   skip_if_not_installed("sf")
   d <- .tmp_data(); .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200)

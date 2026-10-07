@@ -682,14 +682,34 @@ arm_cohort_cells <- function(spec, cells = NULL, union_cells = NULL) {
 #
 # sf is a LAZY dependency here as everywhere: a machine without it falls through to
 # the flag rather than failing to load the page.
-arm_cells_in_annotation <- function(spec, cells, um_per_px = 0.325) {
+#
+# TWO ARGUMENTS NARROW THAT DEFAULT, for a readout that asks about ONE polygon set
+# rather than "the arm's annotation" (the quanTIseq page, which draws a panel per
+# set). Both default to the behaviour described above.
+#   tier         "auto" prefers the union tier and falls back to the regions.
+#                "union" / "region" score against THAT tier only: massimo1's
+#                `annotation_all` and its dissolved `annotation_selected` are
+#                different shapes, and a patient with no polygon in the tier asked
+#                for is not silently answered from the other one.
+#   unannotated  what a patient with no polygon in the chosen tier gets.
+#                "convention" applies the arm's `bare_region_is` before the flag;
+#                "flag" skips the convention, so the export's own Out_of_annotation
+#                column decides for every such patient — 24086 in massimo2 is then
+#                cut by its flag instead of counted whole. That DISAGREES with
+#                arm_metrics() by design, which is why it is opt-in.
+arm_cells_in_annotation <- function(spec, cells, um_per_px = 0.325,
+                                    tier = c("auto", "union", "region"),
+                                    unannotated = c("convention", "flag")) {
+  tier        <- match.arg(tier)
+  unannotated <- match.arg(unannotated)
   if (is.null(cells) || nrow(cells) == 0) return(cells)
   pids <- unique(cells$patient_id)
 
   polys <- NULL
   if (requireNamespace("sf", quietly = TRUE)) {
-    polys <- arm_annotations(spec, "union", patient_ids = pids)
-    if (is.null(polys) || nrow(polys) == 0)
+    if (tier != "region")
+      polys <- arm_annotations(spec, "union", patient_ids = pids)
+    if (tier == "region" || (tier == "auto" && (is.null(polys) || nrow(polys) == 0)))
       polys <- arm_annotations(spec, "region", patient_ids = pids)
   } else {
     warning("arm_cells_in_annotation(): sf is not installed, so no polygon can be ",
@@ -729,8 +749,9 @@ arm_cells_in_annotation <- function(spec, cells, um_per_px = 0.325) {
     # successful parse, so a patient whose geojson exists but is unreadable is still
     # "annotated" and correctly falls through to the flag below — which is again what
     # arm_metrics() does.
-    unannotated <- !("has_annotation" %in% names(cp)) || !any(cp$has_annotation %in% TRUE)
-    if (unannotated && identical(spec$bare_region_is, "whole_slide") && !arm_flag_patient(pid))
+    no_annotation <- !("has_annotation" %in% names(cp)) || !any(cp$has_annotation %in% TRUE)
+    if (unannotated == "convention" && no_annotation &&
+        identical(spec$bare_region_is, "whole_slide") && !arm_flag_patient(pid))
       return(dplyr::mutate(cp, in_annotation = TRUE,
                            .in_annotation_source = "whole_slide"))
 

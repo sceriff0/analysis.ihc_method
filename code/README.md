@@ -14,6 +14,7 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 | `arm_cells.R` | the **arm cell source** — one reader for all three arms: region tier, whole-slide tier, metrics, provenance |
 | `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob each clinical page turns |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |
+| `deconv_scopes.R` | **which cells a deconvolution comparison counts** — the four cell scopes of the quanTIseq page (each arm's whole slide, each arm's annotation), the per-scope IHC fractions and the per-population scatter |
 | `scope_compare.R` | **whole slide vs `annotation_all` vs per-region** — one quantity at three nested scopes, and three ways to compare a single value against several |
 | `plot_theme.R` | the house figure style (see below) |
 | `pdf_export.R` | `export_pdf_figures(slug)` — collect a page's PDFs into `output/figures/<slug>/` |

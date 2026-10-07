@@ -27,7 +27,7 @@ navbar has one entry per part.
 | part | claim | pages |
 |---|---|---|
 | **1 · Clinical** | cells land in the right region, and FlowPath's phenotypes agree with the pathologist | `clinical_massimo1` / `_massimo2` / `_massimo1_inverted`, `clinical_membership_qc` |
-| **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_massimo1` / `_massimo2` / `_massimo1_inverted` |
+| **2 · Molecular** | bulk RNA, deconvolution and the invasive margin agree with the slide, and with the clinical hot/cold call | `molecular_massimo1` / `_massimo2` / `_massimo1_inverted`, `molecular_quantiseq` |
 | **3 · Registration** | the study slides were registered well enough to analyse, under a configuration chosen on real tissue | `registration_run_qc`, `registration_arms` |
 | **4 · Benchmarks** | the pipeline's cost and accuracy scale as claimed, measured on synthetic images and on the public ANHIR landmarks | `benchmark_registration`, `benchmark_anhir`, `benchmark_pipeline` |
 
@@ -80,6 +80,11 @@ pathologist's own polygons, region by region.
   and immuno-phenotype. Points in parts 1 and 2 are coloured by that same clinical
   call, so a readout that only tracks IHC in hot tumours is visible as a colour split
   rather than hidden inside a middling correlation.
+- [quanTIseq, whole slide vs each annotation](molecular_quantiseq.html) — one
+  method across both arms: the quanTIseq fraction of each population against the IHC
+  fraction over every phenotyped cell, and over the cells inside each arm's
+  pathologist annotation. One scatter per population and cell scope; a slide with no
+  polygon in an annotation set is cut by FlowPath's own inside/outside flag.
 
 ## Part 3 — Registration accuracy on the study run
 

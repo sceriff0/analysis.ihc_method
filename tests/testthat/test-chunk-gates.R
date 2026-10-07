@@ -73,6 +73,7 @@
 # in scope once the child is spliced in.
 PAGES <- c("clinical_massimo1", "clinical_massimo2", "clinical_massimo1_inverted",
            "molecular_massimo1", "molecular_massimo2", "molecular_massimo1_inverted",
+           "molecular_quantiseq",
            "clinical_membership_qc", "marker_qc", "paper_figures")
 
 for (page in PAGES) local({
