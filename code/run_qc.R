@@ -157,12 +157,31 @@ QC_ARTIFACTS <- c(seg_qc = "qc/registration",
 # This is a strict WIDENING of the old exact match — anything that joined before still
 # joins — and it is what stops §4 from silently plotting nothing when the two spellings
 # differ only by that prefix.
+#
+# A VALIS-path name can also be DOUBLED: the input file's stem followed by the channel
+# list, `DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A`, where the tiled path writes the list alone,
+# `DAPI_PDL1_ARID1A`. The stem is the acquisition's spelling — other order, other case,
+# `l1cam_PD1` for `PD1_wrongL1CAM` — so the two halves cannot be matched by content;
+# .undouble_name() keeps the second, which is the spelling both backends share.
 .slide_token <- function(x, patient_id = NULL) {
   s <- basename(as.character(x))
   s <- sub("\\.(ome\\.tiff?|tiff?|qptiff|svs|ndpi)$", "", s, ignore.case = TRUE)
-  if (is.null(patient_id) || !length(patient_id)) return(s)
+  if (is.null(patient_id) || !length(patient_id)) return(.undouble_name(s))
   pre <- paste0(as.character(patient_id), "_")   # recycled against s, one pid per row
-  ifelse(startsWith(s, pre), substring(s, nchar(pre) + 1L), s)
+  .undouble_name(ifelse(startsWith(s, pre), substring(s, nchar(pre) + 1L), s))
+}
+
+# `<stem>_<channels>` -> `<channels>`. Doubled means: an even number of `_` tokens, at
+# least four, whose second half opens with the same token as the first (the nuclear
+# channel leads both lists). Anything else is returned untouched.
+.undouble_name <- function(s) {
+  vapply(as.character(s), function(x) {
+    if (is.na(x)) return(x)
+    tk <- strsplit(x, "_", fixed = TRUE)[[1]]
+    n  <- length(tk)
+    if (n < 4 || n %% 2 != 0 || tolower(tk[n / 2 + 1]) != tolower(tk[1])) return(x)
+    paste(tk[(n / 2 + 1):n], collapse = "_")
+  }, character(1), USE.NAMES = FALSE)
 }
 
 # The CHANNEL PAIR one QC record scores, as a label shared ACROSS patients.

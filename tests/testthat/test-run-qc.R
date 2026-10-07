@@ -361,3 +361,16 @@ test_that("a blank micro stage means micro did not run, not that it gained nothi
   expect_equal(unique(long$error[long$stage == "non_rigid"]), 3)   # final, not duplicated
   expect_equal(unique(long$source_file), "final")
 })
+
+test_that("a doubled VALIS slide name collapses onto the tiled path's channel list", {
+  valis <- c("DAPI_ARID1A_PDL1_DAPI_PDL1_ARID1A", "DAPI_l1cam_PD1_DAPI_PD1_wrongL1CAM",
+             "DAPI_SMA11c_PANCK11c_DAPI_PANCK11C_SMA11C", "DAPI_FSP1_DAPI_FSP1")
+  tiled <- c("DAPI_PDL1_ARID1A", "DAPI_PD1_wrongL1CAM", "DAPI_PANCK11C_SMA11C", "DAPI_FSP1")
+  expect_equal(.slide_token(paste0("P1_", valis, ".ome.tiff"), "P1"), tiled)
+  # A name that is not doubled is left alone, the tiled spelling included.
+  expect_equal(.slide_token(tiled), tiled)
+  expect_equal(.slide_token(c("cycle2", "DAPI_CD4_CD8_FOXP3", NA)),
+               c("cycle2", "DAPI_CD4_CD8_FOXP3", NA))
+  expect_equal(.channel_pair("P1_DAPI_FSP1_DAPI_FSP1", "P1_DAPI_P53_CD3_DAPI_CD3_P53", "P1"),
+               "DAPI_FSP1 vs DAPI_CD3_P53")
+})
