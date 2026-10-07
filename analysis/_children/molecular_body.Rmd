@@ -328,7 +328,8 @@ rna_primary_markers <- c("CD45", "CD3", "CD8", "GZMB", "FOXP3",
 # One scatter-by-marker figure over `markers`. Split out of the chunk body because
 # both figures below are the same plot over a different marker set, and a second
 # copy of it is how the two would drift apart.
-plot_rna_concordance <- function(rna_paired, clin, markers, title) {
+plot_rna_concordance <- function(rna_paired, clin, markers, title,
+                                 subtitle = "points coloured by the clinical immuno-phenotype; the fit is over all patients") {
   # Colour by the clinical hot/cold call so a marker whose RNA-IHC agreement holds
   # only in one immune stratum is visible as such. left_join, not inner_join: a
   # patient with no immuno-phenotype must stay in the plot (grey) rather than
@@ -357,8 +358,7 @@ plot_rna_concordance <- function(rna_paired, clin, markers, title) {
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     labs(title = title,
-         subtitle = with_n("points coloured by the clinical immuno-phenotype; the fit is over all patients",
-                           df$patient_id, "patients"),
+         subtitle = with_n(subtitle, df$patient_id, "patients"),
          x = "FlowPath positive-cell fraction (unitless, 0-1)",
          y = "bulk RNA expression (log1p DESeq2-normalised counts)")
 }
@@ -378,6 +378,34 @@ if (nrow(rna_paired) > 0) {
   rna_other_markers <- setdiff(ihc_markers, rna_primary_markers)
   plot_rna_concordance(rna_paired, clin, rna_other_markers,
                        "FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)")
+}
+```
+
+#### One figure per marker, each on its own axes
+
+The same pairs as the two figures above — `ihc_posfrac` against `log1p(rna_expr)`,
+one point per patient, OLS fit — but **one figure per marker, with x and y scaled to
+that marker alone**. The shared-axis figures show how markers compare with each
+other; a marker positive in 2 % of cells is a vertical smear there, and whether its
+few points line up cannot be read. Here each marker fills its own panel, so the
+ranking behind its Spearman rho (in the title, from the table above) is visible. The
+price is that **axis ranges differ from figure to figure**: a steep-looking line
+here is not a large effect, and no two of these figures can be compared by eye.
+Markers are in the order of the two figures above; each is exported as its own PDF.
+
+```{r rna-concordance-plot-free, eval = have_arm, results = "asis", fig.width = fig_width("oneandhalf"), fig.height = 4.8}
+# `mk`, not `m`: test-chunk-gates.R reads a top-level loop variable as a binding,
+# and ungated chunks use `m` as a function argument.
+for (mk in intersect(c(rna_primary_markers, setdiff(ihc_markers, rna_primary_markers)),
+                    unique(rna_paired$marker))) {
+  rho <- rna_summary$rho[rna_summary$marker == mk]
+  # A single marker is a single facet, so the panel's scales are that marker's own.
+  print(plot_rna_concordance(
+    rna_paired, clin, mk,
+    title    = sprintf("%s: Spearman rho = %s", mk,
+                       if (length(rho) && is.finite(rho)) formatC(rho, format = "f", digits = 2) else "NA"),
+    subtitle = "axes scaled to this marker"))
+  cat("\n\n")
 }
 ```
 
