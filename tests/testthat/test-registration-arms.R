@@ -356,8 +356,20 @@ test_that("each main panel has a by-patient and a by-channel-pair supplement", {
     main <- figs[[c(residual_um = "01_final_residual_um_by_arm", dice = "02_final_dice_by_arm",
                     valis_error = "02b_final_valis_error_by_arm")[[
                       sub("^S[0-9]+_(.*)_by_.*$", "\\1", nm)]]]]
-    expect_equal(nrow(figs[[nm]]$data), nrow(main$data), info = nm)
-    expect_match(figs[[nm]]$labels$subtitle, "n = 2 patients, n = 2 channel pairs", info = nm)
+    # ...but only the shipped arm of each backend (STAGE_FIG_ARMS), not the whole sweep.
+    expect_equal(as.character(unique(figs[[nm]]$data$arm_dir)), "valis_high_micro2", info = nm)
+    expect_equal(nrow(figs[[nm]]$data),
+                 sum(main$data$arm_dir == "valis_high_micro2"), info = nm)
+    expect_match(figs[[nm]]$labels$subtitle, "n = 2 patients, n = 2 moving slides", info = nm)
+  }
+})
+
+test_that("the by-channel split labels a box with the moving slide alone", {
+  man  <- arm_manifest(arms_tree(movings = c("cycle2", "cycle3"), valis = TRUE))
+  figs <- build_arm_figs(read_arms_seg_qc(man), read_arms_valis(man), man)
+  for (nm in grep("_by_channel_pair$", names(figs), value = TRUE)) {
+    x <- as.character(rlang::quo_get_expr(figs[[nm]]$mapping$x))
+    expect_setequal(unique(figs[[nm]]$data[[x[length(x)]]]), c("cycle2", "cycle3"))
   }
 })
 
@@ -374,12 +386,12 @@ test_that("an ashlar arm is keyed as ashlar, not as plain valis", {
   expect_false(anyNA(k))
 })
 
-test_that("pair labels that no two patients share are flagged, not drawn silently", {
+test_that("moving-slide labels that no two patients share are flagged, not drawn silently", {
   man <- arm_manifest(arms_tree(modes = "high", depths = 0))
   seg <- read_arms_seg_qc(man)
   expect_no_warning(build_arm_figs(seg, tibble::tibble(), man))
   # A stem that embeds the patient id mid-name survives .slide_token()'s prefix strip.
-  seg$pair <- paste0("scan_", seg$patient_id, "_cycle2")
+  seg$slide_token <- paste0("scan_", seg$patient_id, "_cycle2")
   expect_warning(build_arm_figs(seg, tibble::tibble(), man), "shared between patients")
 })
 

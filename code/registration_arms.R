@@ -985,22 +985,28 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
                        ylab = "Matched-nucleus Dice (unitless, 0-1)"),
     valis_error = list(d = vfin, y = "error", what = "VALIS's own reported error",
                        ylab = if (nrow(vfin)) vfin$metric[1] else NA_character_))
-  # The by-pair split only works if a pair is spelled the same in every patient. When
-  # NO label is shared between patients the figure still draws — one point per box —
-  # and looks like a finding. It is a naming problem (see .channel_pair()), so say so.
+  # The by-slide split only works if a moving slide is spelled the same in every
+  # patient. When NO label is shared between patients the figure still draws — one
+  # point per box — and looks like a finding. It is a naming problem (see
+  # .slide_token()), so say so.
   if (dplyr::n_distinct(fin$patient_id) > 1 &&
-      all(tapply(fin$patient_id, fin$pair, dplyr::n_distinct) == 1))
-    warning("registration arms: no channel-pair label is shared between patients, so ",
-            "the by-channel-pair figures hold one patient per box. The slide names ",
+      all(tapply(fin$patient_id, fin$slide_token, dplyr::n_distinct) == 1))
+    warning("registration arms: no moving-slide label is shared between patients, so ",
+            "the by-moving-slide figures hold one patient per box. The slide names ",
             "probably embed the patient id somewhere other than a leading `<patient>_`.")
+  # Only the shipped arm of each backend (STAGE_FIG_ARMS), as in the stage figures:
+  # a panel per arm of the whole sweep is too many panels to read a split in.
+  split_arms <- .stage_fig_arms(seg, STAGE_FIG_ARMS)
   i <- 0
   for (nm in names(splits)) {
     sp <- splits[[nm]]
+    d  <- if ("arm_dir" %in% names(sp$d)) dplyr::filter(sp$d, arm_dir %in% split_arms)
+          else sp$d
     for (by in c("patient", "channel_pair")) {
       i <- i + 1
-      if (nrow(sp$d) == 0) next
+      if (nrow(d) == 0) next
       figs[[sprintf("S%d_%s_by_%s", i, nm, by)]] <-
-        .arm_split_fig(dplyr::mutate(sp$d, arm = .arm_f(arm)), sp$y, by, sp$what, sp$ylab)
+        .arm_split_fig(dplyr::mutate(d, arm = .arm_f(arm)), sp$y, by, sp$what, sp$ylab)
     }
   }
 
@@ -1010,19 +1016,23 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
 }
 
 # One supplementary split: the final-transform metric `y`, one panel per arm, grouped
-# by patient (each box = that patient's channel pairs) or by channel pair (each box =
-# that pair across patients).
+# by patient (each box = that patient's moving slides) or by moving slide (each box =
+# that slide's channel set across patients).
+#
+# The by-slide axis is labelled with the MOVING slide alone (`slide_token`), not the
+# `reference vs moving` pair: a patient has one reference, so the reference half
+# repeats on every tick and only crowds the axis.
 #
 # n goes in the subtitle, not on the ticks: label_n() counts from the whole vector, so
 # on a faceted axis it would print a patient's n pooled over every arm — a number that
 # describes no box on the page.
 .arm_split_fig <- function(d, y, by = c("patient", "channel_pair"), what, ylab) {
   by  <- match.arg(by)
-  col <- if (by == "patient") "patient_id" else "pair"
+  col <- if (by == "patient") "patient_id" else "slide_token"
   sub <- if (by == "patient")
-    "Each box is ONE PATIENT, pooled across its channel pairs; one point per pair."
+    "Each box is ONE PATIENT, pooled across its moving slides; one point per slide."
   else
-    "Each box is ONE CHANNEL PAIR, pooled across patients; one point per patient."
+    "Each box is ONE MOVING SLIDE (its channel set), pooled across patients; one point per patient."
   ggplot(d, aes(.data[[col]], .data[[y]])) +
     geom_boxplot(outlier.shape = NA, width = .5, colour = "grey35") +
     geom_jitter(aes(colour = .arm_kind(backend, micro_reg)), width = .12, height = 0,
@@ -1031,9 +1041,9 @@ build_arm_figs <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
     coord_flip() +
     facet_wrap(~ arm) +
     labs(title = paste0(what, " at each arm's final transform, by ",
-                        if (by == "patient") "patient" else "channel pair"),
-         subtitle = paste0(sub, " ", n_note(d$patient_id, "patients"), ", ",
-                           n_note(d$pair, "channel pairs"), "."),
+                        if (by == "patient") "patient" else "moving slide"),
+         subtitle = paste0(sub, "\n", n_note(d$patient_id, "patients"), ", ",
+                           n_note(d$slide_token, "moving slides"), "."),
          x = NULL, y = ylab, caption = ARM_CAPTION)
 }
 

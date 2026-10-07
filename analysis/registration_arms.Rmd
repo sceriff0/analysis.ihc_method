@@ -358,18 +358,21 @@ The three main-text panels (residual, Dice, VALIS's own error) pool **every chan
 pair of every patient** into one box per arm. That answers *which arm* and hides *why
 an arm is wide*. There are two possible reasons, and each split isolates one:
 
-- **by patient** — each box is one patient, pooled across its channel pairs. A wide
+- **by patient** — each box is one patient, pooled across its moving slides. A wide
   arm that is tight within every patient is a *between-patient* effect: tissue,
   section quality, acquisition.
-- **by channel pair** — each box is one pair, pooled across patients. A pair that sits
-  high in every patient is a *pair* effect: two rounds that share little structure to
-  register on.
+- **by moving slide** — each box is one moving slide's channel set, pooled across
+  patients. A slide that sits high in every patient is a *channel* effect: a round
+  that shares little structure with the reference to register on.
 
 These are the **same points as the main panels, regrouped** — nothing is
-re-summarised — and one panel per arm, because the split is a question asked *within*
-a configuration. A pair label is patient-free (`reference vs moving`, with the
-`<patient>_` prefix dropped), which is what lets one box collect the same pair from
-every patient.
+re-summarised — but drawn for **two arms only**, the shipped configuration of each
+backend (`STAGE_FIG_ARMS`: VALIS high / micro 2 and STARE high / stride 64), one
+panel each: the split is a question asked *within* a configuration, and a panel per
+arm of the whole sweep is too many to read it in. A box is labelled with the
+**moving slide alone** (`<patient>_` prefix dropped) — a patient has one reference,
+so naming it on every tick adds nothing — which is also what lets one box collect
+the same slide from every patient.
 
 ```{r figures-supp, results="asis", fig.width=fig_width("double"), fig.height=7.5}
 print_figs(names(figs)[is_supp])
