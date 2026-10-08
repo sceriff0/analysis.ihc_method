@@ -231,6 +231,7 @@ the rule that decided.
 scope_ihc <- lapply(stats::setNames(DECONV_SCOPES$scope, DECONV_SCOPES$scope),
                     function(s) deconv_scope_ihc(s, cells_by_arm[[deconv_scope(s)$arm]]))
 scope_frac <- bind_rows(map(scope_ihc, "fractions"))
+scope_leaf <- bind_rows(map(scope_ihc, "leaves"))
 scope_inv  <- bind_rows(map(scope_ihc, "inventory"))
 scope_lab  <- stats::setNames(DECONV_SCOPES$label, DECONV_SCOPES$scope)
 
@@ -324,8 +325,8 @@ ggplot(qs_rho, aes(scope, fct_rev(lineage), fill = rho)) +
 One tab per scope, and inside it one figure per population in the gate tree's
 order. Each point is a patient: x is the IHC fraction of all cells the scope keeps
 (FlowPath phenotypes from that scope's arm), y is the quanTIseq fraction from that
-patient's bulk RNA. Both are fractions of all cells, so the dashed grey line is
-x = y; the blue line is a least-squares fit drawn to show direction only. Points
+patient's bulk RNA. The blue line is a least-squares fit drawn to show direction
+only. Points
 are coloured by the clinical `Immuno-phenotype`. The title carries the population's
 gate, the subtitle the scope, its Spearman rho and its n. Each plot is exported as
 its own PDF.
@@ -337,6 +338,78 @@ for (s in DECONV_SCOPES$scope) {
   cat("\n\n### ", scope_lab[[s]], "\n\n", sep = "")
   for (lin in intersect(qs_lineages, unique(ds$lineage))) {
     print(plot_deconv_scope_pair(filter(ds, lineage == lin), s, lin, METHOD))
+    cat("\n\n")
+  }
+}
+```
+
+## Single phenotype labels
+
+Everything above compares **sums** of FlowPath phenotype labels: `CD8T` is
+`T cytotoxic` + `Activated T cytotoxic` + `CD8+ T reg`. This section takes each
+label on its own. `DECONV_LEAVES` (`code/deconv_scopes.R`) sets every label
+against the quanTIseq score of the most specific population that contains it, so
+several labels share one quanTIseq number: quanTIseq has a single CD8 fraction, the
+phenotyping tree has three CD8 labels, and the panels show which label that number
+follows. `Immune` is taken whole (not split by CD3 sign) and the four CD45− labels
+all face quanTIseq's `uncharacterized cell`, which is the only non-immune term it
+has.
+
+```{r leaf-map}
+DECONV_LEAVES |>
+  left_join(select(deconv_comparison_lineages, lineage, ihc_gate), by = "lineage") |>
+  knitr::kable(col.names = c("FlowPath phenotype label", "quanTIseq population on y",
+                             "that population's gate"),
+               caption = "Each phenotype label and the quanTIseq population it is correlated with.")
+```
+
+Per scope and patient, the label's fraction is the kept cells carrying exactly that
+`phenotype` label over all kept cells (`ihc_leaf_fraction()`; a label a patient
+lacks is 0). It is inner-joined on patient to the quanTIseq score of the label's
+population, and each cell of the table is the cross-patient Spearman rho with its n.
+Any phenotype label found in the cells but absent from the table above is named in
+the printed line.
+
+```{r leaf-concordance, eval = have_pairs}
+leaf_unmapped <- unique(unlist(map(scope_ihc, "unmapped")))
+cat("phenotype labels with no row in DECONV_LEAVES:",
+    if (length(leaf_unmapped)) paste(leaf_unmapped, collapse = ", ") else "none", "\n")
+
+leaf_paired <- scope_leaf |>
+  inner_join(qs_scores, by = c("patient_id", "lineage")) |>
+  filter(is.finite(score), is.finite(ihc_frac)) |>
+  left_join(clin, by = "patient_id") |>
+  mutate(leaf = factor(leaf, levels = DECONV_LEAVES$leaf))
+
+deconv_scope_concordance(leaf_paired, by = "leaf") |>
+  mutate(cell = ifelse(is.finite(rho), sprintf("%.2f (n = %d)", rho, n),
+                       sprintf("NA (n = %d)", n)),
+         scope = factor(scope_lab[scope], levels = DECONV_SCOPES$label)) |>
+  select(leaf, lineage, scope, cell) |>
+  pivot_wider(names_from = scope, values_from = cell, names_sort = TRUE) |>
+  arrange(leaf) |>
+  knitr::kable(col.names = c("phenotype label", "quanTIseq population",
+                             levels(factor(scope_lab[unique(leaf_paired$scope)],
+                                           levels = DECONV_SCOPES$label))),
+               caption = "Spearman rho, quanTIseq population score vs the fraction of cells carrying one phenotype label, per label and scope (n = patients).")
+```
+
+### One scatter per phenotype label {.tabset}
+
+One tab per scope, one figure per phenotype label. x is the fraction of the scope's
+cells carrying that label, y the quanTIseq score of the population named in the
+title; one point per patient, coloured by the clinical `Immuno-phenotype`, with a
+least-squares fit for direction. Labels that share a population share their y
+values, so only x differs between those figures.
+
+```{r leaf-scatter, eval = have_pairs, results = "asis", fig.width = fig_width("single"), fig.height = 3.4}
+for (s in DECONV_SCOPES$scope) {
+  ds <- filter(leaf_paired, scope == s)
+  if (!nrow(ds)) next
+  cat("\n\n#### ", scope_lab[[s]], "\n\n", sep = "")
+  for (lf in levels(droplevels(ds$leaf))) {
+    dl <- filter(ds, leaf == lf)
+    print(plot_deconv_scope_pair(dl, s, dl$lineage[1], METHOD, leaf = lf))
     cat("\n\n")
   }
 }

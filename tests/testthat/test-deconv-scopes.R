@@ -89,3 +89,43 @@ test_that("the scatter names its scope and states its n in patients", {
   expect_match(p$labels$title, "quanTIseq: CD8T")
   expect_silent(ggplot2::ggplot_build(p))
 })
+
+# --- Single phenotype labels ---------------------------------------------------
+test_that("every leaf faces a population whose IHC side actually contains it", {
+  # A leaf set against a population it is not part of would correlate two unrelated
+  # things and report a rho.
+  for (i in seq_len(nrow(DECONV_LEAVES))) {
+    row  <- deconv_comparison_lineages[deconv_comparison_lineages$lineage == DECONV_LEAVES$lineage[i], ]
+    toks <- sub("\\[.*$", "", trimws(strsplit(row$ihc_phenotypes, ";")[[1]]))
+    expect_true(pheno_join_key(DECONV_LEAVES$leaf[i]) %in% pheno_join_key(toks),
+                info = paste(DECONV_LEAVES$leaf[i], "is not a leaf of", DECONV_LEAVES$lineage[i]))
+  }
+  expect_equal(anyDuplicated(pheno_join_key(DECONV_LEAVES$leaf)), 0)
+})
+
+test_that("a leaf fraction counts that label alone, over the cells the scope keeps", {
+  ann <- suppressWarnings(deconv_scope_ihc("massimo2_annotation", .scope_cells(),
+                                           spec = .empty_spec("massimo2")))
+  f <- function(pid, leaf) ann$leaves$ihc_frac[ann$leaves$patient_id == pid & ann$leaves$leaf == leaf]
+  expect_equal(f("046", "T cytotoxic"), 2 / 4)
+  expect_equal(f("046", "Activated T cytotoxic"), 0)      # completed to 0
+  expect_equal(f("052", "Natural Killer"), 1 / 4)
+  expect_equal(unique(ann$leaves$lineage[ann$leaves$leaf == "CD8+ T reg"]), "CD8T")
+  expect_equal(ann$unmapped, character(0))
+})
+
+test_that("a label the leaf table does not list is reported, not dropped in silence", {
+  cells <- .scope_cells()
+  cells$phenotype[1] <- cells$phenotype_clean[1] <- "Plasma cell"
+  expect_equal(deconv_scope_ihc("massimo2_wholeslide", cells)$unmapped, "Plasma cell")
+})
+
+test_that("the leaf scatter names the label on x and the population on y", {
+  d <- tibble::tibble(patient_id = letters[1:4], score = c(.1, .2, .3, .4),
+                      ihc_frac = c(.1, .3, .2, .4))
+  p <- plot_deconv_scope_pair(d, "massimo1_wholeslide", "CD8T", leaf = "CD8+ T reg")
+  expect_match(p$labels$title, "CD8T vs phenotype 'CD8\\+ T reg'")
+  expect_match(p$labels$x, "'CD8\\+ T reg' fraction")
+  expect_match(p$labels$y, "quanTIseq CD8T score")
+  expect_false(any(vapply(p$layers, function(l) inherits(l$geom, "GeomAbline"), logical(1))))
+})

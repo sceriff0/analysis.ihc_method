@@ -59,6 +59,57 @@ DECONV_SCOPES <- tibble::tribble(
   "massimo2_annotation", "massimo2", "region", "Massimo2 — annotation",   "inside any annotation region"
 )
 
+# --- Single phenotype labels ---------------------------------------------------
+# The compared populations are SUMS of gate-tree leaves (CD8T = T cytotoxic +
+# Activated T cytotoxic + CD8+ T reg). This table is the other cut: each leaf on its
+# own, against the score of the most specific population that contains it. Several
+# leaves therefore share one y — the method has one CD8 number, the tree has three
+# CD8 leaves — and what the panels show is WHICH leaf that number follows.
+#
+# `Immune` is taken whole and set against Immune_other: the label is one leaf to the
+# phenotyper even though the tree reaches it from two branches, and splitting it by
+# CD3 sign would be a positivity cut, not a phenotype. The four CD45- leaves all face
+# NonImmune, quanTIseq's `uncharacterized cell`: it has no tumour or stroma term.
+# FlowPath's labels only — a label not listed is REPORTED by deconv_scope_ihc()
+# ($unmapped), never silently dropped.
+DECONV_LEAVES <- tibble::tribble(
+  ~leaf,                       ~lineage,
+  "T cytotoxic",               "CD8T",
+  "Activated T cytotoxic",     "CD8T",
+  "CD8+ T reg",                "CD8T",
+  "T helper",                  "CD4T",
+  "CD4+ Treg",                 "Treg",
+  "Natural Killer",            "NK",
+  "Activated Natural Killer",  "NK",
+  "Immune",                    "Immune_other",
+  "Stroma",                    "NonImmune",
+  "PANCK+Tumor",               "NonImmune",
+  "VIM+Tumor",                 "NonImmune",
+  "Unknown",                   "NonImmune"
+)
+
+# Per patient and leaf, over ALL cells in `cells`: n, n_all, ihc_frac = n / n_all.
+# Completed to 0 over every patient x leaf, like ihc_comparison_fraction().
+ihc_leaf_fraction <- function(cells) {
+  pid  <- slide_key(cells$patient_id)
+  key  <- pheno_join_key(cell_phenotype(cells))
+  pats <- sort(unique(pid))
+  count <- function(keep) as.numeric(table(factor(pid[keep], levels = pats)))
+  n_all <- count(rep(TRUE, length(pid)))
+  dplyr::bind_rows(lapply(seq_len(nrow(DECONV_LEAVES)), function(i) {
+    n <- count(key == pheno_join_key(DECONV_LEAVES$leaf[i]))
+    tibble::tibble(patient_id = pats, leaf = DECONV_LEAVES$leaf[i],
+                   lineage = DECONV_LEAVES$lineage[i], n = n, n_all = n_all,
+                   ihc_frac = n / n_all)
+  }))
+}
+
+# Phenotype labels in `cells` that DECONV_LEAVES does not list.
+deconv_unmapped_leaves <- function(cells) {
+  lab <- unique(as.character(cell_phenotype(cells)))
+  sort(lab[!pheno_join_key(lab) %in% pheno_join_key(DECONV_LEAVES$leaf)])
+}
+
 deconv_scope <- function(scope) {
   i <- match(scope, DECONV_SCOPES$scope)
   if (length(scope) != 1 || is.na(i))
@@ -106,29 +157,34 @@ deconv_scope_inventory <- function(scoped) {
 deconv_scope_ihc <- function(scope, cells, spec = NULL, um_per_px = 0.325) {
   scoped <- deconv_scope_cells(scope, cells, spec = spec, um_per_px = um_per_px)
   if (is.null(scoped) || nrow(scoped) == 0)
-    return(list(fractions = tibble::tibble(), inventory = tibble::tibble()))
+    return(list(fractions = tibble::tibble(), leaves = tibble::tibble(),
+                inventory = tibble::tibble(), unmapped = character(0)))
   kept <- scoped[scoped$in_scope %in% TRUE, , drop = FALSE]
   list(
     fractions = if (nrow(kept)) dplyr::mutate(ihc_comparison_fraction(kept),
                                               scope = scope, .before = 1)
                 else tibble::tibble(),
+    leaves    = if (nrow(kept)) dplyr::mutate(ihc_leaf_fraction(kept),
+                                              scope = scope, .before = 1)
+                else tibble::tibble(),
+    unmapped  = deconv_unmapped_leaves(kept),
     inventory = dplyr::mutate(deconv_scope_inventory(scoped), scope = scope, .before = 1))
 }
 
 # Spearman per (scope, method, population) over a paired frame carrying `score` and
-# `ihc_frac`; NA under 3 patients or a constant vector (paired_spearman).
-deconv_scope_concordance <- function(paired) {
+# `ihc_frac`; NA under 3 patients or a constant vector (paired_spearman). `by` adds
+# grouping columns — "leaf" for the single-label cut.
+deconv_scope_concordance <- function(paired, by = NULL) {
   paired |>
-    dplyr::group_by(scope, method, lineage) |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(c("scope", "method", "lineage", by)))) |>
     dplyr::group_modify(~ paired_spearman(.x$score, .x$ihc_frac)) |>
     dplyr::ungroup()
 }
 
 # One population in one scope: IHC fraction (x) against the method's score (y), one
 # point per patient, coloured by the clinical immuno-phenotype when `d` carries it.
-# The dashed line is x = y, drawn only for a method whose score is a fraction of the
-# same denominator as x — otherwise the two axes share no unit.
-plot_deconv_scope_pair <- function(d, scope, lineage, method = "quantiseq") {
+# `leaf` switches the x side to ONE phenotype label; y stays the population's score.
+plot_deconv_scope_pair <- function(d, scope, lineage, method = "quantiseq", leaf = NULL) {
   sc   <- deconv_scope(scope)
   row  <- deconv_comparison_lineages[match(lineage, deconv_comparison_lineages$lineage), ]
   st   <- paired_spearman(d$score, d$ihc_frac)
@@ -138,17 +194,19 @@ plot_deconv_scope_pair <- function(d, scope, lineage, method = "quantiseq") {
   d$immuno_phe <- hotcold_order(d$immuno_phe)
 
   ggplot(d, aes(ihc_frac, score)) +
-    { if (deconv_is_additive(method))
-        geom_abline(slope = 1, intercept = 0, linetype = "dashed", colour = REF_LINE) } +
     geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
     geom_point(aes(colour = immuno_phe), alpha = 0.75, size = 1.8) +
     scale_colour_manual(values = hotcold_cols(levels(d$immuno_phe)),
                         na.value = "grey70", name = "Immuno-phenotype") +
     expand_limits(x = 0, y = 0) +
-    labs(title = sprintf("%s: %s (%s)", method_label(method), lineage, row$ihc_gate),
+    labs(title = if (is.null(leaf))
+                   sprintf("%s: %s (%s)", method_label(method), lineage, row$ihc_gate)
+                 else sprintf("%s %s vs phenotype '%s'", method_label(method), lineage, leaf),
          subtitle = with_n(sprintf("%s; Spearman rho = %s", sc$label, rho),
                            d$patient_id, "patients"),
-         x = sprintf("IHC fraction of %s cells in scope (unitless, 0-1)",
+         x = sprintf("%s fraction of %s cells in scope (unitless, 0-1)",
+                     if (is.null(leaf)) "IHC" else paste0("'", leaf, "'"),
                      if (cd45) "CD45+" else "all"),
-         y = paste(method_label(method), "score (unitless)"))
+         y = paste(method_label(method), if (is.null(leaf)) "score" else paste(lineage, "score"),
+                   "(unitless)"))
 }

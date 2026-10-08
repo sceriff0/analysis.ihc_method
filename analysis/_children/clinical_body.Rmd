@@ -630,6 +630,33 @@ scope_aggregator_stats(scope_pairs) |>
 
 ## Immune infiltrate — IHC vs clinical immune phenotype
 
+**Yes, every figure in this section uses the annotations.** "Infiltrate" here means
+immune cells *inside the pathologist's tumour region*, not on the whole slide. Each
+patient contributes **one value per metric**, computed in four steps:
+
+1. **Cells.** The arm's single cells for that patient, one row per physical cell
+   (`mem$cells`; for `massimo1` the whole-slide export `FlowPath_csv_all/`, for the
+   other arms the region csvs pooled and de-duplicated).
+2. **Inside or outside.** All of the patient's annotation polygons in this arm are
+   dissolved into one **union** polygon, and a cell is *inside* when its centroid
+   falls within it (`sf` point-in-polygon; `arm_metrics(scope = "union")`). The
+   regions are pooled, not averaged: three regions give one set of inside cells.
+   Two exceptions, both named in the `source` column of the table below — a patient
+   with no polygon in an arm whose convention says so is counted **whole**
+   (`whole_slide`: `massimo2`'s 24086), and a csv-only patient is cut by FlowPath's
+   own `Out_of_annotation` flag (`flag`).
+3. **Fraction.** The cells inside that satisfy the metric, divided by **all cells
+   inside** (`n_inside`) — tumour, stroma and immune alike — so every value is a
+   share of the tumour region's cells, on 0..1.
+4. **Group.** Patients are grouped by the clinical `Immuno-phenotype`; each box is
+   the median and quartiles of that group's per-patient values and each point is
+   one patient. The immuno-phenotype is a clinical call from the CRF, made
+   independently of these cells.
+
+So a box that sits higher means a larger share of the cells *inside the annotated
+tumour* are of that type. Nothing outside the annotation enters any of these
+numbers; the whole-slide counterparts are on the molecular page.
+
 Per patient, over the **union** inside cells:
 
 ```
@@ -662,6 +689,19 @@ infiltrate <- ihc_tumor_union |>
   inner_join(clin, by = "patient_id")
 
 cat("patients with IHC infiltrate + clinical immune phenotype:", nrow(infiltrate), "\n")
+```
+
+The cells behind every box below, per patient: which rule decided membership
+(`source`: `sf` = inside the union polygon, `whole_slide` = no polygon and counted
+whole, `flag` = FlowPath's `Out_of_annotation`), how many cells are inside
+(`n_inside`, the denominator of every fraction in this section), and how many of
+them are CD45+. Read from the `union` metrics row of `membership_data(ARM)`.
+
+```{r infiltrate-cells, eval = have_arm}
+ihc_tumor_union |>
+  select(patient_id, source, n_inside, n_cd45_inside, cd45_over_inside) |>
+  knitr::kable(digits = 3, format.args = list(big.mark = ","),
+               caption = "Per patient: the cells inside the union tumour region that every infiltrate fraction is taken over.")
 ```
 
 Statistic: Spearman correlation between `cd45_over_inside` and the numeric `HOT score`.
@@ -706,7 +746,8 @@ infiltrate_subsets <- c("cd3cd45_over_inside", "gzmb_nk_over_inside",
 # One boxplot-by-phenotype figure over `metrics`; `transform` is applied to the
 # fraction so the same code draws the raw and the arcsin-sqrt panels, and `metrics`
 # so it draws the CD45+ figure and the subset figure.
-plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = identity) {
+plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = identity,
+                                      title = NULL) {
   if (!("immuno_phe" %in% names(infiltrate)) ||
       dplyr::n_distinct(na.omit(infiltrate$immuno_phe)) <= 1) return(invisible())
   metrics <- intersect(metrics, names(infiltrate))
@@ -732,8 +773,7 @@ plot_infiltrate_phenotype <- function(infiltrate, metrics, ylab, transform = ide
     # facet strip would only repeat it. With a single panel no patient can be present
     # in one facet and absent from another, so the n belongs on the ticks.
     p + scale_x_discrete(labels = label_n(df$immuno_phe)) +
-      labs(title = paste0(unname(flowpath_panel_label(metrics)),
-                          ""))
+      labs(title = title %||% unname(flowpath_panel_label(metrics)))
   } else {
     # Across facets a per-tick count would be wrong: a non-finite fraction drops a
     # different set of patients in each metric, so the n goes in the subtitle and
@@ -775,6 +815,78 @@ plot_infiltrate_phenotype(infiltrate, infiltrate_cd45,
 ```{r infiltrate-phenotype-subsets-arcsin, eval = have_arm}
 plot_infiltrate_phenotype(infiltrate, infiltrate_subsets,
                           "arcsin \u221afraction (radians)", transform = asin_sqrt)
+```
+
+### CD3, CD8, CD4 and FOXP3: marker, lineage and end phenotype, one boxplot each
+
+The T-cell compartment read three ways, each as its **own single boxplot** against
+`Immuno-phenotype` rather than a facet grid. All twelve are fractions of the same
+cells: the arm's cells inside the union tumour region
+(`arm_cells_in_annotation()`, the same polygon — or flag, or whole-slide
+convention — behind the `union` metrics row used above), one value per patient.
+
+```
+single marker     <M>+ fraction       = cells inside with <M>_sign positive / cells inside with <M> gated
+                                        M in CD3, CD8, CD4, FOXP3 — the phenotype label is NOT consulted
+lineage           frac_<lineage>      = cells inside whose phenotype maps to the lineage / cells inside
+                                        CD8T, CD4T, Treg — the classification of cell_lineage()
+                                        (CD8T = T cytotoxic + Activated T cytotoxic;
+                                         Treg = CD4+ Treg + CD8+ T reg; CD4T = T helper)
+end phenotype     frac(<label>)       = cells inside carrying exactly that phenotype label / cells inside
+                                        the five T-cell leaves of the gate tree
+```
+
+The three differ in what a cell must satisfy. A CD8+ **marker** cell only has to
+pass the CD8 gate; a CD8T **lineage** cell must have come down the whole
+CD45 → CD3 → CD8 branch; an **end phenotype** additionally fixes its GZMB / FOXP3
+state. So marker ≥ lineage ≥ any one of its end phenotypes, and the gap between two
+boxes of the same marker family is the cells the stricter definition excludes. The
+tick labels state each group's n; every figure has its own y range.
+
+```{r infiltrate-tcell-singles, eval = have_arm, results = "asis", fig.width = fig_width("single"), fig.height = fig_height("single")}
+cells_inside <- arm_cells_in_annotation(arm_spec(ARM), mem$cells)
+cells_inside <- cells_inside[cells_inside$in_annotation %in% TRUE, , drop = FALSE]
+
+# End phenotypes: counted on the punctuation-free key, never on the label string, so
+# FlowPath's "CD8+ T reg" and mirage's "CD8_Treg" are the same leaf.
+tcell_leaves <- c("T cytotoxic", "Activated T cytotoxic", "CD8+ T reg",
+                  "T helper", "CD4+ Treg")
+leaf_pid <- slide_key(cells_inside$patient_id)
+leaf_key <- pheno_join_key(cell_phenotype(cells_inside))
+leaf_frac <- tibble::tibble(patient_id = sort(unique(leaf_pid)))
+for (lf in tcell_leaves)
+  leaf_frac[[paste0("leaf_", pheno_join_key(lf))]] <-
+    as.numeric(tapply(leaf_key == pheno_join_key(lf), factor(leaf_pid, leaf_frac$patient_id), mean))
+
+tcell_markers <- c("CD3", "CD8", "CD4", "FOXP3")
+infiltrate_t <- infiltrate |>
+  select(patient_id, immuno_phe, frac_CD8T, frac_CD4T, frac_Treg) |>
+  left_join(select(ihc_marker_fraction(cells_inside, tcell_markers),
+                   patient_id, ends_with("_posfrac")), by = "patient_id") |>
+  left_join(leaf_frac, by = "patient_id")
+
+# One row per figure, in reading order: marker, then its lineage, then its leaves.
+tcell_panels <- tibble::tribble(
+  ~column,                                          ~title,
+  "CD3_posfrac",                                    "Marker: CD3+ cells",
+  "CD8_posfrac",                                    "Marker: CD8+ cells",
+  "frac_CD8T",                                      "Lineage: CD8 T",
+  paste0("leaf_", pheno_join_key(tcell_leaves[1])), "End phenotype: T cytotoxic",
+  paste0("leaf_", pheno_join_key(tcell_leaves[2])), "End phenotype: Activated T cytotoxic",
+  paste0("leaf_", pheno_join_key(tcell_leaves[3])), "End phenotype: CD8+ T reg",
+  "CD4_posfrac",                                    "Marker: CD4+ cells",
+  "frac_CD4T",                                      "Lineage: CD4 T",
+  paste0("leaf_", pheno_join_key(tcell_leaves[4])), "End phenotype: T helper",
+  "FOXP3_posfrac",                                  "Marker: FOXP3+ cells",
+  "frac_Treg",                                      "Lineage: Treg",
+  paste0("leaf_", pheno_join_key(tcell_leaves[5])), "End phenotype: CD4+ Treg")
+
+for (ti in seq_len(nrow(tcell_panels))) {
+  g <- plot_infiltrate_phenotype(infiltrate_t, tcell_panels$column[ti],
+                                 "Cell fraction inside \ntumour region",
+                                 title = tcell_panels$title[ti])
+  if (inherits(g, "ggplot")) { print(g); cat("\n\n") }
+}
 ```
 
 ### Tumour, CD45+ and PD-L1+ content by immuno-phenotype
