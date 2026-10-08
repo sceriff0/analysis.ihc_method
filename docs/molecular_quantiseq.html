@@ -1,0 +1,1956 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="sceriff0" />
+
+<meta name="date" content="2026-10-07" />
+
+<title>Molecular — quanTIseq vs IHC, whole slide and inside each annotation</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+<link href="site_libs/font-awesome-6.5.2/css/all.min.css" rel="stylesheet" />
+<link href="site_libs/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet" />
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">ihc_method</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="paper_figures.html">Paper figures</a>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    1 · Clinical
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="clinical_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="clinical_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="clinical_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="clinical_membership_qc.html">Annotation membership QC</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    2 · Molecular
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="molecular_massimo1.html">Massimo1 — selected regions</a>
+    </li>
+    <li>
+      <a href="molecular_massimo2.html">Massimo2 — all-slide export</a>
+    </li>
+    <li>
+      <a href="molecular_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
+    </li>
+    <li class="divider"></li>
+    <li>
+      <a href="molecular_quantiseq.html">quanTIseq — whole slide vs each annotation</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    3 · Registration
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="registration_run_qc.html">Run QC — the study samples</a>
+    </li>
+    <li>
+      <a href="registration_arms.html">Registration arms — choosing a configuration</a>
+    </li>
+  </ul>
+</li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    4 · Benchmarks
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="benchmark_registration.html">Registration accuracy — synthetic sweep</a>
+    </li>
+    <li>
+      <a href="benchmark_anhir.html">Registration accuracy — ANHIR challenge</a>
+    </li>
+    <li>
+      <a href="benchmark_pipeline.html">Pipeline benchmarks — resource, cost, segmentation</a>
+    </li>
+    <li>
+      <a href="run_resources.html">Run resources — what one run of the study samples cost</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="marker_qc.html">Marker QC</a>
+</li>
+<li>
+  <a href="data_loaded.html">Data loaded</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    About
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu">
+    <li>
+      <a href="about.html">About</a>
+    </li>
+    <li>
+      <a href="license.html">License</a>
+    </li>
+  </ul>
+</li>
+<li>
+  <a href="https://github.com/sceriff0/ihc_method">
+    <span class="fab fa-github"></span>
+     
+    Source code
+  </a>
+</li>
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+
+
+<h1 class="title toc-ignore">Molecular — quanTIseq vs IHC, whole slide
+and inside each annotation</h1>
+<h4 class="author">sceriff0</h4>
+<h4 class="date">2026-10-07</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-10-08
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>ihc_method/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20260630code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20260630)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20260630code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20260630)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree9819ca6538d49f8d8625115494a38a4e200add17targetblank9819ca6a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/9819ca6538d49f8d8625115494a38a4e200add17" target="_blank">9819ca6</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree9819ca6538d49f8d8625115494a38a4e200add17targetblank9819ca6a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/9819ca6538d49f8d8625115494a38a4e200add17" target="_blank">9819ca6</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    data/
+    Ignored:    fractions_latest.sif
+    Ignored:    output/additional_file_2_registration_arms.csv
+    Ignored:    output/additional_file_4_lineage_mapping.csv
+    Ignored:    output/deconv_celltype_map.csv
+    Ignored:    output/figures/
+    Ignored:    output/paired_deconv.rds
+    Ignored:    output/summary_patient.csv
+    Ignored:    output/summary_region.csv
+    Ignored:    renv/library/
+    Ignored:    renv/staging/
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown (<code>analysis/molecular_quantiseq.Rmd</code>)
+and HTML (<code>docs/molecular_quantiseq.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/09313c1f8ed560701e6c71e2cf3922c43fd1e596/analysis/molecular_quantiseq.Rmd" target="_blank">09313c1</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+<td>
+:sparkles: quanTIseq page: IHC fraction over each arm’s whole slide and
+annotation
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<blockquote>
+<p><strong>Arms: <code>massimo1</code> and <code>massimo2</code>, one
+method: quanTIseq.</strong> The per-arm molecular pages compare every
+deconvolution method against one arm’s whole slide. This page turns that
+around: one method, and every cell set the IHC fraction can be taken
+over — each arm’s whole slide, and the cells inside each arm’s
+pathologist annotation. The two arms’ annotations are different polygons
+over the same tissue, so panels are compared by PATIENT, never region by
+region.</p>
+</blockquote>
+<p>One question, asked once per population quanTIseq can estimate:
+<strong>does the quanTIseq fraction from bulk RNA track the fraction of
+cells the IHC panel counts, and does the answer depend on which cells
+are counted?</strong></p>
+<div id="shared-keys-the-id-bridge-and-the-hotcold-call"
+class="section level2">
+<h2>Shared keys: the id bridge and the hot/cold call</h2>
+<p>Bulk RNA is keyed by CRF id and IHC by slide id.
+<code>crf2slide</code> maps one to the other
+(<code>crf_to_slide_map()</code> over
+<code>data/clinical_data.xlsx</code>: <code>ID CRF PRESERVE</code> to
+<code>ID PATIENT</code>), and <code>clin</code> carries the clinical
+<code>Immuno-phenotype</code> used to colour every point below. The line
+printed is the number of clinical rows and how many carry each of the
+two immune columns.</p>
+<pre class="r"><code>crf2slide &lt;- crf_to_slide_map(clinical_data)
+
+clin &lt;- clinical_data |&gt;
+  mutate(patient_id = slide_key(`ID PATIENT`)) |&gt;
+  select(patient_id,
+         hot_score  = any_of(&quot;HOT score&quot;),
+         immuno_phe = any_of(&quot;Immuno-phenotype&quot;)) |&gt;
+  mutate(hot_score = suppressWarnings(as.numeric(hot_score)))
+
+cat(&quot;clinical rows:&quot;, nrow(clin),
+    &quot;| with a numeric HOT score:&quot;, sum(is.finite(clin$hot_score)),
+    &quot;| with an immuno-phenotype:&quot;, sum(!is.na(clin$immuno_phe)), &quot;\n&quot;)</code></pre>
+<pre><code>clinical rows: 9 | with a numeric HOT score: 8 | with an immuno-phenotype: 8 </code></pre>
+</div>
+<div id="quantiseq-on-the-bulk-rna" class="section level2">
+<h2>quanTIseq on the bulk RNA</h2>
+<p>quanTIseq is run by <code>immunedeconv::deconvolute()</code> on the
+gene-by-sample matrix from <code>data/counts.RData</code>, on the TPM
+scale when gene lengths were found and on the DESeq2-normalised scale
+otherwise (<code>expr_scales</code>, built in
+<code>code/load_data.R</code>; quanTIseq was fit on TPM, so the printed
+<code>scale</code> matters for absolute values and much less for the
+cross-patient ranking used here). The result is one fraction per cell
+type and sample, keyed into slide space with <code>crf2slide</code>;
+samples with no slide are dropped and counted in the printed line.</p>
+<pre class="r"><code>EXPR_SCALE &lt;- if (!is.null(expr_scales$tpm)) &quot;tpm&quot; else &quot;normalized&quot;
+expr_mat   &lt;- expr_scales[[EXPR_SCALE]]
+storage.mode(expr_mat) &lt;- &quot;double&quot;
+
+qs_long &lt;- NULL
+if (requireNamespace(&quot;immunedeconv&quot;, quietly = TRUE)) {
+  qs_long &lt;- tryCatch(
+    immunedeconv::deconvolute(expr_mat, METHOD) |&gt;
+      pivot_longer(-cell_type, names_to = &quot;sample&quot;, values_to = &quot;score&quot;) |&gt;
+      mutate(method     = METHOD,
+             crf_id     = norm_id(sample),
+             patient_id = unname(crf2slide[crf_id])),   # crf id -&gt; slide id
+    error = function(e) {
+      cat(&quot;**quanTIseq FAILED:**&quot;, conditionMessage(e), &quot;\n&quot;)
+      NULL
+    })
+} else {
+  # cat(), not message(): message = FALSE on this page would swallow it and leave a
+  # page with no figures and no reason.
+  cat(&quot;**immunedeconv not installed — quanTIseq skipped, so every comparison below&quot;,
+      &quot;is empty.** Install it with&quot;,
+      &quot;`remotes::install_github(\&quot;omnideconv/immunedeconv\&quot;)` and re-knit.\n&quot;)
+}
+
+n_unmapped &lt;- if (is.null(qs_long)) 0L else
+  n_distinct(qs_long$crf_id[is.na(qs_long$patient_id)])
+if (!is.null(qs_long)) qs_long &lt;- filter(qs_long, !is.na(patient_id))
+
+have_qs    &lt;- !is.null(qs_long) &amp;&amp; nrow(qs_long) &gt; 0
+have_pairs &lt;- have_qs &amp;&amp; have_cells
+# The populations quanTIseq can estimate, in the gate tree&#39;s order (macro -&gt;
+# intermediate -&gt; leaf -&gt; cross-cutting). Every table and figure below keeps it.
+# Bound here, ungated, because the IHC-only tables read it too.
+qs_lineages &lt;- if (have_qs)
+  intersect(deconv_comparison_lineages$lineage, deconv_contributions(qs_long)$lineage) else
+  character(0)
+cat(&quot;expression matrix:&quot;, nrow(expr_mat), &quot;genes x&quot;, ncol(expr_mat), &quot;samples&quot;,
+    &quot;| scale:&quot;, EXPR_SCALE,
+    &quot;| quanTIseq cell types:&quot;, if (have_qs) n_distinct(qs_long$cell_type) else 0L,
+    &quot;| patients with a slide:&quot;, if (have_qs) n_distinct(qs_long$patient_id) else 0L,
+    &quot;|&quot;, n_unmapped, &quot;RNA sample(s) had no slide crosswalk\n&quot;)</code></pre>
+<pre><code>expression matrix: 29744 genes x 8 samples | scale: normalized | quanTIseq cell types: 11 | patients with a slide: 8 | 0 RNA sample(s) had no slide crosswalk</code></pre>
+</div>
+<div
+id="which-quantiseq-cell-type-is-compared-with-which-ihc-population"
+class="section level2">
+<h2>Which quanTIseq cell type is compared with which IHC population</h2>
+<p>Each quanTIseq label is assigned to the IHC populations it can be
+compared with by <code>deconv_contributions()</code>
+(<code>code/validation_helpers.R</code>), the same rules the per-arm
+molecular pages print in full. A label either <strong>is</strong> a
+population (its direct match) or is <strong>summed into</strong> a
+composite; quanTIseq’s fractions are of all cells, so its labels may be
+added. The B-cell and myeloid labels have no direct match because the
+IHC panel has no B or myeloid marker — they are compared only as their
+sum, <code>Immune_other</code>.</p>
+<pre class="r"><code>qs_contrib &lt;- deconv_contributions(qs_long)
+qs_scores  &lt;- deconv_lineage_scores(qs_long)
+
+dash &lt;- function(x) ifelse(is.na(x) | x == &quot;&quot;, &quot;—&quot;, x)
+qs_long |&gt;
+  distinct(cell_type) |&gt;
+  left_join(
+    qs_contrib |&gt;
+      mutate(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage)) |&gt;
+      arrange(lineage) |&gt;
+      group_by(cell_type) |&gt;
+      summarise(first  = lineage[1],
+                is_pop = paste(lineage[route == &quot;direct&quot;], collapse = &quot;, &quot;),
+                summed = paste(lineage[route == &quot;sum&quot;],    collapse = &quot;, &quot;),
+                .groups = &quot;drop&quot;),
+    by = &quot;cell_type&quot;) |&gt;
+  arrange(first, cell_type) |&gt;
+  transmute(method = method_label(METHOD), cell_type,
+            is_pop = dash(is_pop), summed = dash(summed)) |&gt;
+  knitr::kable(col.names = c(&quot;method&quot;, &quot;cell type&quot;, &quot;is the population&quot;, &quot;summed into&quot;),
+               caption = &quot;quanTIseq cell types and the IHC populations each feeds.&quot;)</code></pre>
+<table>
+<caption>quanTIseq cell types and the IHC populations each
+feeds.</caption>
+<colgroup>
+<col width="11%" />
+<col width="32%" />
+<col width="20%" />
+<col width="36%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">method</th>
+<th align="left">cell type</th>
+<th align="left">is the population</th>
+<th align="left">summed into</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">B cell</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">quanTIseq</td>
+<td align="left">Macrophage M1</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">Macrophage M2</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">quanTIseq</td>
+<td align="left">Monocyte</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">Myeloid dendritic cell</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">quanTIseq</td>
+<td align="left">NK cell</td>
+<td align="left">NK</td>
+<td align="left">Immune_total, Cytotoxic</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">Neutrophil</td>
+<td align="left">—</td>
+<td align="left">Immune_total, Immune_other</td>
+</tr>
+<tr class="even">
+<td align="left">quanTIseq</td>
+<td align="left">T cell CD4+ (non-regulatory)</td>
+<td align="left">CD4T</td>
+<td align="left">Immune_total, T_total, CD4T_all</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">T cell CD8+</td>
+<td align="left">CD8T</td>
+<td align="left">Immune_total, T_total, Cytotoxic</td>
+</tr>
+<tr class="even">
+<td align="left">quanTIseq</td>
+<td align="left">T cell regulatory (Tregs)</td>
+<td align="left">Treg</td>
+<td align="left">Immune_total, T_total, CD4T_all</td>
+</tr>
+<tr class="odd">
+<td align="left">quanTIseq</td>
+<td align="left">uncharacterized cell</td>
+<td align="left">—</td>
+<td align="left">NonImmune</td>
+</tr>
+</tbody>
+</table>
+<p>The populations those labels add up to, each with its gate in the
+FlowPath phenotyping tree and the tree leaves counted for it on the IHC
+side (<code>deconv_comparison_lineages</code>). There is one scatter per
+row of this table in every scope below.</p>
+<pre class="r"><code>deconv_comparison_lineages |&gt;
+  filter(lineage %in% qs_lineages) |&gt;
+  select(lineage, level, ihc_gate, ihc_phenotypes) |&gt;
+  knitr::kable(col.names = c(&quot;population&quot;, &quot;level&quot;, &quot;IHC gate&quot;, &quot;IHC leaves summed&quot;),
+               caption = &quot;The populations compared on this page.&quot;)</code></pre>
+<table>
+<caption>The populations compared on this page.</caption>
+<colgroup>
+<col width="6%" />
+<col width="6%" />
+<col width="21%" />
+<col width="66%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">population</th>
+<th align="left">level</th>
+<th align="left">IHC gate</th>
+<th align="left">IHC leaves summed</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Immune_total</td>
+<td align="left">macro</td>
+<td align="left">CD45+</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; T
+helper; CD4+ Treg; Natural Killer; Activated Natural Killer; Immune;
+Myeloid; Macrophage_M2</td>
+</tr>
+<tr class="even">
+<td align="left">NonImmune</td>
+<td align="left">macro</td>
+<td align="left">CD45-</td>
+<td align="left">PANCK+Tumor; VIM+Tumor; Stroma; Unknown</td>
+</tr>
+<tr class="odd">
+<td align="left">T_total</td>
+<td align="left">intermediate</td>
+<td align="left">CD3+ (every T leaf, plus CD3+CD8-CD4- Immune)</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; T
+helper; CD4+ Treg; Immune[CD3+]</td>
+</tr>
+<tr class="even">
+<td align="left">NK</td>
+<td align="left">intermediate</td>
+<td align="left">CD3- CD56+ (any GZMB)</td>
+<td align="left">Natural Killer; Activated Natural Killer</td>
+</tr>
+<tr class="odd">
+<td align="left">Immune_other</td>
+<td align="left">intermediate</td>
+<td align="left">CD45+ CD3- CD56-</td>
+<td align="left">Immune[CD3-]; Myeloid; Macrophage_M2</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T_all</td>
+<td align="left">intermediate</td>
+<td align="left">CD3+ CD8- CD4+ (any FOXP3)</td>
+<td align="left">T helper; CD4+ Treg</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8T</td>
+<td align="left">leaf</td>
+<td align="left">CD3+ CD8+ (any GZMB, any FOXP3)</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T</td>
+<td align="left">leaf</td>
+<td align="left">CD3+ CD8- CD4+ FOXP3-</td>
+<td align="left">T helper</td>
+</tr>
+<tr class="odd">
+<td align="left">Treg</td>
+<td align="left">leaf</td>
+<td align="left">CD3+ CD8- CD4+ FOXP3+</td>
+<td align="left">CD4+ Treg</td>
+</tr>
+<tr class="even">
+<td align="left">Cytotoxic</td>
+<td align="left">cross-cutting</td>
+<td align="left">CD3+ CD8+ or CD3- CD56+</td>
+<td align="left">T cytotoxic; Activated T cytotoxic; CD8+ T reg; Natural
+Killer; Activated Natural Killer</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="which-cells-the-ihc-fraction-is-taken-over"
+class="section level2">
+<h2>Which cells the IHC fraction is taken over</h2>
+<p>The IHC fraction is computed four times, once per
+<strong>scope</strong> in <code>DECONV_SCOPES</code>
+(<code>code/deconv_scopes.R</code>). The table is that registry, with
+the number of cells each scope’s arm has on disk
+(<code>ihc_for(arm)</code>: one row per physical cell per patient —
+<code>data/massimo1/FlowPath_csv_all/</code> for <code>massimo1</code>,
+the pooled and de-duplicated <code>data/massimo2/csv/</code> for
+<code>massimo2</code>).</p>
+<pre class="r"><code>DECONV_SCOPES |&gt;
+  mutate(cells_loaded = vapply(arm, function(a) nrow(cells_by_arm[[a]]), integer(1)),
+         polygons = c(union = &quot;annotation_all/&quot;, region = &quot;annotation/ (dissolved)&quot;)[tier] |&gt;
+           replace_na(&quot;none&quot;)) |&gt;
+  select(label, arm, kept, polygons, cells_loaded) |&gt;
+  knitr::kable(col.names = c(&quot;scope&quot;, &quot;arm&quot;, &quot;cells kept&quot;, &quot;polygon set&quot;, &quot;cells in the arm&quot;),
+               format.args = list(big.mark = &quot;,&quot;),
+               caption = &quot;The four cell scopes. A scope whose arm has 0 cells on disk draws nothing below.&quot;)</code></pre>
+<table>
+<caption>The four cell scopes. A scope whose arm has 0 cells on disk
+draws nothing below.</caption>
+<colgroup>
+<col width="21%" />
+<col width="8%" />
+<col width="31%" />
+<col width="22%" />
+<col width="15%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">scope</th>
+<th align="left">arm</th>
+<th align="left">cells kept</th>
+<th align="left">polygon set</th>
+<th align="right">cells in the arm</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">massimo1</td>
+<td align="left">every phenotyped cell</td>
+<td align="left">none</td>
+<td align="right">2,209,825</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">massimo1</td>
+<td align="left">inside the annotation_all polygon</td>
+<td align="left">annotation_all/</td>
+<td align="right">2,209,825</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">massimo2</td>
+<td align="left">every phenotyped cell</td>
+<td align="left">none</td>
+<td align="right">2,209,825</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">massimo2</td>
+<td align="left">inside any annotation region</td>
+<td align="left">annotation/ (dissolved)</td>
+<td align="right">2,209,825</td>
+</tr>
+</tbody>
+</table>
+<p>Three things to hold on to when reading across scopes:</p>
+<ul>
+<li><strong>The two whole-slide scopes are different numbers.</strong>
+The arms gate the same slides at different thresholds, so the same slide
+has a different CD8T fraction in each.</li>
+<li><strong><code>massimo1</code> has one annotation scope.</strong> Its
+<code>annotation_all</code> polygon is the exact union of that patient’s
+<code>annotation_selected</code> regions, so a separate scope for the
+selected regions would redraw the same cells.</li>
+<li><strong>A slide with no polygon in a scope’s set is cut by
+FlowPath’s own inside/outside call</strong> — the
+<code>Out_of_annotation</code> column of that slide’s csv. This is the
+rule for this page only: the clinical pages count such a
+<code>massimo2</code> slide whole.</li>
+</ul>
+<p>For each scope, every cell of the arm is marked inside or outside: by
+point-in-polygon of its centroid against the scope’s polygon set
+(<code>sf</code>), or by the csv’s <code>Out_of_annotation</code> flag
+where the patient has no polygon in that set (<code>flag</code>); a
+whole-slide scope keeps every cell (<code>all_cells</code>). The table
+counts, per scope and patient, the cells the arm holds and the cells the
+scope keeps, and names the rule that decided.</p>
+<pre class="r"><code># One pass per scope: mark, count, and keep only the per-patient fractions — the
+# per-cell frames are several hundred thousand rows each and are not held.
+scope_ihc &lt;- lapply(stats::setNames(DECONV_SCOPES$scope, DECONV_SCOPES$scope),
+                    function(s) deconv_scope_ihc(s, cells_by_arm[[deconv_scope(s)$arm]]))
+scope_frac &lt;- bind_rows(map(scope_ihc, &quot;fractions&quot;))
+scope_inv  &lt;- bind_rows(map(scope_ihc, &quot;inventory&quot;))
+scope_lab  &lt;- stats::setNames(DECONV_SCOPES$label, DECONV_SCOPES$scope)
+
+scope_inv |&gt;
+  mutate(scope = scope_lab[scope]) |&gt;
+  knitr::kable(col.names = c(&quot;scope&quot;, &quot;patient&quot;, &quot;decided by&quot;, &quot;cells in the arm&quot;,
+                             &quot;cells kept&quot;, &quot;% kept&quot;),
+               format.args = list(big.mark = &quot;,&quot;),
+               caption = &quot;Cells behind each scope, per patient. `sf` = inside the scope&#39;s polygons, `flag` = the csv&#39;s own Out_of_annotation call (no polygon for that patient), `all_cells` = no restriction.&quot;)</code></pre>
+<table style="width:100%;">
+<caption>Cells behind each scope, per patient. <code>sf</code> = inside
+the scope’s polygons, <code>flag</code> = the csv’s own
+Out_of_annotation call (no polygon for that patient),
+<code>all_cells</code> = no restriction.</caption>
+<colgroup>
+<col width="29%" />
+<col width="10%" />
+<col width="14%" />
+<col width="22%" />
+<col width="14%" />
+<col width="9%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">scope</th>
+<th align="left">patient</th>
+<th align="left">decided by</th>
+<th align="right">cells in the arm</th>
+<th align="right">cells kept</th>
+<th align="right">% kept</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">046</td>
+<td align="left">all_cells</td>
+<td align="right">405,697</td>
+<td align="right">405,697</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">052</td>
+<td align="left">all_cells</td>
+<td align="right">378,194</td>
+<td align="right">378,194</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">10338</td>
+<td align="left">all_cells</td>
+<td align="right">235,328</td>
+<td align="right">235,328</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">15370</td>
+<td align="left">all_cells</td>
+<td align="right">79,603</td>
+<td align="right">79,603</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">15897</td>
+<td align="left">all_cells</td>
+<td align="right">202,652</td>
+<td align="right">202,652</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">24086</td>
+<td align="left">all_cells</td>
+<td align="right">283,631</td>
+<td align="right">283,631</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">366722</td>
+<td align="left">all_cells</td>
+<td align="right">241,921</td>
+<td align="right">241,921</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — whole slide</td>
+<td align="left">5456</td>
+<td align="left">all_cells</td>
+<td align="right">382,799</td>
+<td align="right">382,799</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">046</td>
+<td align="left">sf</td>
+<td align="right">405,697</td>
+<td align="right">31,156</td>
+<td align="right">7.7</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">052</td>
+<td align="left">sf</td>
+<td align="right">378,194</td>
+<td align="right">31,529</td>
+<td align="right">8.3</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">10338</td>
+<td align="left">sf</td>
+<td align="right">235,328</td>
+<td align="right">76,782</td>
+<td align="right">32.6</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">15370</td>
+<td align="left">flag</td>
+<td align="right">79,603</td>
+<td align="right">9,308</td>
+<td align="right">11.7</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">15897</td>
+<td align="left">sf</td>
+<td align="right">202,652</td>
+<td align="right">56,584</td>
+<td align="right">27.9</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">24086</td>
+<td align="left">sf</td>
+<td align="right">283,631</td>
+<td align="right">70,771</td>
+<td align="right">25.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">366722</td>
+<td align="left">flag</td>
+<td align="right">241,921</td>
+<td align="right">52,803</td>
+<td align="right">21.8</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo1 — annotation</td>
+<td align="left">5456</td>
+<td align="left">sf</td>
+<td align="right">382,799</td>
+<td align="right">53,926</td>
+<td align="right">14.1</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">046</td>
+<td align="left">all_cells</td>
+<td align="right">405,697</td>
+<td align="right">405,697</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">052</td>
+<td align="left">all_cells</td>
+<td align="right">378,194</td>
+<td align="right">378,194</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">10338</td>
+<td align="left">all_cells</td>
+<td align="right">235,328</td>
+<td align="right">235,328</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">15370</td>
+<td align="left">all_cells</td>
+<td align="right">79,603</td>
+<td align="right">79,603</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">15897</td>
+<td align="left">all_cells</td>
+<td align="right">202,652</td>
+<td align="right">202,652</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">24086</td>
+<td align="left">all_cells</td>
+<td align="right">283,631</td>
+<td align="right">283,631</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">366722</td>
+<td align="left">all_cells</td>
+<td align="right">241,921</td>
+<td align="right">241,921</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — whole slide</td>
+<td align="left">5456</td>
+<td align="left">all_cells</td>
+<td align="right">382,799</td>
+<td align="right">382,799</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">046</td>
+<td align="left">sf</td>
+<td align="right">405,697</td>
+<td align="right">322,187</td>
+<td align="right">79.4</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">052</td>
+<td align="left">sf</td>
+<td align="right">378,194</td>
+<td align="right">287,089</td>
+<td align="right">75.9</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">10338</td>
+<td align="left">sf</td>
+<td align="right">235,328</td>
+<td align="right">118,741</td>
+<td align="right">50.5</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">15370</td>
+<td align="left">flag</td>
+<td align="right">79,603</td>
+<td align="right">9,308</td>
+<td align="right">11.7</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">15897</td>
+<td align="left">sf</td>
+<td align="right">202,652</td>
+<td align="right">189,459</td>
+<td align="right">93.5</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">24086</td>
+<td align="left">flag</td>
+<td align="right">283,631</td>
+<td align="right">283,631</td>
+<td align="right">100.0</td>
+</tr>
+<tr class="odd">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">366722</td>
+<td align="left">flag</td>
+<td align="right">241,921</td>
+<td align="right">52,803</td>
+<td align="right">21.8</td>
+</tr>
+<tr class="even">
+<td align="left">Massimo2 — annotation</td>
+<td align="left">5456</td>
+<td align="left">sf</td>
+<td align="right">382,799</td>
+<td align="right">259,456</td>
+<td align="right">67.8</td>
+</tr>
+</tbody>
+</table>
+<p>Within each scope, <code>ihc_comparison_fraction()</code> counts the
+kept cells on each population’s tree leaves and divides by <strong>all
+kept cells</strong> of that patient — the denominator quanTIseq’s
+fractions share. The table is the median of that per-patient fraction,
+per population and scope, for the populations quanTIseq can estimate
+(every IHC population if quanTIseq did not run); it shows how far the
+annotation moves the IHC side before any RNA is involved.</p>
+<pre class="r"><code>scope_frac |&gt;
+  filter(!length(qs_lineages) | lineage %in% qs_lineages) |&gt;
+  mutate(lineage = factor(lineage, levels = deconv_comparison_lineages$lineage),
+         scope   = factor(scope_lab[scope], levels = DECONV_SCOPES$label)) |&gt;
+  group_by(lineage, scope) |&gt;
+  summarise(median_frac = median(frac_all), .groups = &quot;drop&quot;) |&gt;
+  pivot_wider(names_from = scope, values_from = median_frac, names_sort = TRUE) |&gt;
+  arrange(lineage) |&gt;
+  knitr::kable(digits = 4,
+               caption = &quot;IHC side: median per-patient fraction of all kept cells, per population and scope.&quot;)</code></pre>
+<table>
+<caption>IHC side: median per-patient fraction of all kept cells, per
+population and scope.</caption>
+<colgroup>
+<col width="12%" />
+<col width="22%" />
+<col width="21%" />
+<col width="22%" />
+<col width="21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">lineage</th>
+<th align="right">Massimo1 — whole slide</th>
+<th align="right">Massimo1 — annotation</th>
+<th align="right">Massimo2 — whole slide</th>
+<th align="right">Massimo2 — annotation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Immune_total</td>
+<td align="right">0.4726</td>
+<td align="right">0.3102</td>
+<td align="right">0.3486</td>
+<td align="right">0.3028</td>
+</tr>
+<tr class="even">
+<td align="left">NonImmune</td>
+<td align="right">0.5274</td>
+<td align="right">0.6898</td>
+<td align="right">0.6514</td>
+<td align="right">0.6972</td>
+</tr>
+<tr class="odd">
+<td align="left">T_total</td>
+<td align="right">0.2820</td>
+<td align="right">0.1868</td>
+<td align="right">0.2189</td>
+<td align="right">0.1436</td>
+</tr>
+<tr class="even">
+<td align="left">NK</td>
+<td align="right">0.0015</td>
+<td align="right">0.0013</td>
+<td align="right">0.0014</td>
+<td align="right">0.0016</td>
+</tr>
+<tr class="odd">
+<td align="left">Immune_other</td>
+<td align="right">0.1615</td>
+<td align="right">0.0922</td>
+<td align="right">0.1467</td>
+<td align="right">0.1202</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T_all</td>
+<td align="right">0.1236</td>
+<td align="right">0.0925</td>
+<td align="right">0.0942</td>
+<td align="right">0.0822</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8T</td>
+<td align="right">0.1332</td>
+<td align="right">0.0449</td>
+<td align="right">0.0818</td>
+<td align="right">0.0411</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T</td>
+<td align="right">0.0968</td>
+<td align="right">0.0735</td>
+<td align="right">0.0789</td>
+<td align="right">0.0699</td>
+</tr>
+<tr class="odd">
+<td align="left">Treg</td>
+<td align="right">0.0229</td>
+<td align="right">0.0201</td>
+<td align="right">0.0175</td>
+<td align="right">0.0126</td>
+</tr>
+<tr class="even">
+<td align="left">Cytotoxic</td>
+<td align="right">0.1405</td>
+<td align="right">0.0672</td>
+<td align="right">0.0900</td>
+<td align="right">0.0536</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="quantiseq-vs-ihc-per-population-and-scope"
+class="section level2">
+<h2>quanTIseq vs IHC, per population and scope</h2>
+<p>For each scope, the quanTIseq score of a population (the sum of the
+labels the mapping table assigns to it) is inner-joined on patient and
+population to that scope’s IHC fraction
+(<code>deconv_pair_with_ihc()</code>). Agreement is the cross-patient
+Spearman correlation (<code>paired_spearman()</code>: <code>NA</code>
+under 3 patients or when either side is constant). Each cell of the
+table is rho with the number of patients it was computed over.</p>
+<pre class="r"><code>qs_paired &lt;- scope_frac |&gt;
+  group_split(scope) |&gt;
+  map_dfr(function(f) deconv_pair_with_ihc(qs_scores, select(f, -scope)) |&gt;
+            mutate(scope = f$scope[1], .before = 1)) |&gt;
+  left_join(clin, by = &quot;patient_id&quot;)
+
+qs_rho &lt;- deconv_scope_concordance(qs_paired) |&gt;
+  mutate(lineage = factor(lineage, levels = qs_lineages),
+         scope   = factor(scope, levels = DECONV_SCOPES$scope))
+
+qs_rho |&gt;
+  mutate(cell = ifelse(is.finite(rho), sprintf(&quot;%.2f (n = %d)&quot;, rho, n),
+                       sprintf(&quot;NA (n = %d)&quot;, n)),
+         scope = factor(scope_lab[as.character(scope)], levels = DECONV_SCOPES$label)) |&gt;
+  select(lineage, scope, cell) |&gt;
+  pivot_wider(names_from = scope, values_from = cell, names_sort = TRUE) |&gt;
+  arrange(lineage) |&gt;
+  knitr::kable(caption = &quot;Spearman rho, quanTIseq score vs IHC fraction of all kept cells, per population and scope (n = patients).&quot;)</code></pre>
+<table>
+<caption>Spearman rho, quanTIseq score vs IHC fraction of all kept
+cells, per population and scope (n = patients).</caption>
+<colgroup>
+<col width="12%" />
+<col width="22%" />
+<col width="21%" />
+<col width="22%" />
+<col width="21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">lineage</th>
+<th align="left">Massimo1 — whole slide</th>
+<th align="left">Massimo1 — annotation</th>
+<th align="left">Massimo2 — whole slide</th>
+<th align="left">Massimo2 — annotation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Immune_total</td>
+<td align="left">0.45 (n = 8)</td>
+<td align="left">0.81 (n = 8)</td>
+<td align="left">0.62 (n = 8)</td>
+<td align="left">0.90 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">NonImmune</td>
+<td align="left">0.45 (n = 8)</td>
+<td align="left">0.81 (n = 8)</td>
+<td align="left">0.62 (n = 8)</td>
+<td align="left">0.90 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">T_total</td>
+<td align="left">0.31 (n = 8)</td>
+<td align="left">0.62 (n = 8)</td>
+<td align="left">0.21 (n = 8)</td>
+<td align="left">0.79 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">NK</td>
+<td align="left">-0.79 (n = 8)</td>
+<td align="left">-0.63 (n = 8)</td>
+<td align="left">-0.76 (n = 8)</td>
+<td align="left">-0.67 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">Immune_other</td>
+<td align="left">-0.02 (n = 8)</td>
+<td align="left">0.38 (n = 8)</td>
+<td align="left">0.12 (n = 8)</td>
+<td align="left">-0.02 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T_all</td>
+<td align="left">0.07 (n = 8)</td>
+<td align="left">0.60 (n = 8)</td>
+<td align="left">0.07 (n = 8)</td>
+<td align="left">0.64 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8T</td>
+<td align="left">0.63 (n = 8)</td>
+<td align="left">0.87 (n = 8)</td>
+<td align="left">0.35 (n = 8)</td>
+<td align="left">0.71 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">CD4T</td>
+<td align="left">-0.65 (n = 8)</td>
+<td align="left">-0.65 (n = 8)</td>
+<td align="left">-0.76 (n = 8)</td>
+<td align="left">-0.41 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">Treg</td>
+<td align="left">0.71 (n = 8)</td>
+<td align="left">0.83 (n = 8)</td>
+<td align="left">0.67 (n = 8)</td>
+<td align="left">0.62 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">Cytotoxic</td>
+<td align="left">0.00 (n = 8)</td>
+<td align="left">0.48 (n = 8)</td>
+<td align="left">-0.12 (n = 8)</td>
+<td align="left">0.26 (n = 8)</td>
+</tr>
+</tbody>
+</table>
+<p>The same rho values as a grid: one tile per population (rows, in the
+gate tree’s order) and scope (columns), coloured on a diverging scale
+centred at 0. Each column states the number of patients paired in that
+scope. With this few patients a tile is a description of the ranking,
+not a test.</p>
+<pre class="r"><code>scope_n &lt;- qs_paired |&gt;
+  group_by(scope) |&gt;
+  summarise(n = n_distinct(patient_id), .groups = &quot;drop&quot;)
+scope_axis &lt;- stats::setNames(
+  sprintf(&quot;%s\n(n = %d)&quot;, sub(&quot; — &quot;, &quot;\n&quot;, scope_lab[scope_n$scope]), scope_n$n),
+  scope_n$scope)
+
+ggplot(qs_rho, aes(scope, fct_rev(lineage), fill = rho)) +
+  geom_tile(colour = &quot;white&quot;, linewidth = 0.3) +
+  geom_text(aes(label = ifelse(is.na(rho), &quot;·&quot;, sprintf(&quot;%.2f&quot;, rho))),
+            size = pt_text(6.5)) +
+  scale_x_discrete(labels = scope_axis, position = &quot;top&quot;) +
+  scale_fill_div(midpoint = 0, limits = c(-1, 1), name = &quot;Spearman rho&quot;,
+                 guide = guide_cbar()) +
+  labs(title = &quot;quanTIseq vs IHC: agreement by population and cell scope&quot;,
+       subtitle = with_n(&quot;Spearman rho across patients, per scope&quot;,
+                         qs_paired$patient_id, &quot;patients&quot;),
+       x = NULL, y = NULL) +
+  theme_paper_tile()</code></pre>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-concordance-heatmap-1.png" alt="" width="864" style="display: block; margin: auto;" /></p>
+</div>
+<div id="one-scatter-per-population" class="section level2 tabset">
+<h2 class="tabset">One scatter per population</h2>
+<p>One tab per scope, and inside it one figure per population in the
+gate tree’s order. Each point is a patient: x is the IHC fraction of all
+cells the scope keeps (FlowPath phenotypes from that scope’s arm), y is
+the quanTIseq fraction from that patient’s bulk RNA. Both are fractions
+of all cells, so the dashed grey line is x = y; the blue line is a
+least-squares fit drawn to show direction only. Points are coloured by
+the clinical <code>Immuno-phenotype</code>. The title carries the
+population’s gate, the subtitle the scope, its Spearman rho and its
+n. Each plot is exported as its own PDF.</p>
+<pre class="r"><code>for (s in DECONV_SCOPES$scope) {
+  ds &lt;- filter(qs_paired, scope == s)
+  if (!nrow(ds)) next
+  cat(&quot;\n\n### &quot;, scope_lab[[s]], &quot;\n\n&quot;, sep = &quot;&quot;)
+  for (lin in intersect(qs_lineages, unique(ds$lineage))) {
+    print(plot_deconv_scope_pair(filter(ds, lineage == lin), s, lin, METHOD))
+    cat(&quot;\n\n&quot;)
+  }
+}</code></pre>
+<div id="massimo1-whole-slide" class="section level3">
+<h3>Massimo1 — whole slide</h3>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-2.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-3.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-4.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-5.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-6.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-7.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-8.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-9.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-10.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="massimo1-annotation" class="section level3">
+<h3>Massimo1 — annotation</h3>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-11.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-12.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-13.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-14.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-15.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-16.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-17.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-18.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-19.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-20.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="massimo2-whole-slide" class="section level3">
+<h3>Massimo2 — whole slide</h3>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-21.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-22.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-23.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-24.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-25.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-26.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-27.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-28.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-29.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-30.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="massimo2-annotation" class="section level3">
+<h3>Massimo2 — annotation</h3>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-31.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-32.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-33.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-34.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-35.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-36.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-37.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-38.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-39.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/quantiseq-scatter-40.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="notes" class="section level2">
+<h2>Notes</h2>
+<ul>
+<li>Every statistic is a rank correlation over a handful of patients.
+Read the grid for pattern across scopes, not for significance.</li>
+<li>The populations overlap (CD8T sits inside Cytotoxic, T_total and
+Immune_total), so their rho values are not independent.</li>
+<li><code>Immune_other</code> puts the sum of quanTIseq’s B, macrophage,
+monocyte, dendritic and neutrophil fractions against every CD45+ CD3−
+CD56− cell; <code>NonImmune</code> puts quanTIseq’s
+<code>uncharacterized cell</code> against every CD45− cell.</li>
+<li>An annotation scope changes the IHC side only. The bulk RNA is one
+sample per patient and is the same in all four scopes.</li>
+<li><code>massimo1_inverted</code> has no scope here: it re-classifies
+<code>massimo1</code>’s cells and borrows its polygons, so it is a third
+phenotyping rather than a third annotation.</li>
+</ul>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.3.2 (2023-10-31)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 9.5 (Blue Onyx)
+
+Matrix products: default
+BLAS/LAPACK: FlexiBLAS OPENBLAS;  LAPACK version 3.11.0
+
+locale:
+ [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+ [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+ [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+[10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+
+time zone: Europe/Rome
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices datasets  utils     methods  
+[8] base     
+
+other attached packages:
+ [1] data.table_1.18.4           fs_2.1.0                   
+ [3] readxl_1.5.0                DESeq2_1.42.1              
+ [5] SummarizedExperiment_1.32.0 Biobase_2.62.0             
+ [7] MatrixGenerics_1.14.0       matrixStats_1.5.0          
+ [9] GenomicRanges_1.54.1        GenomeInfoDb_1.38.8        
+[11] IRanges_2.36.0              S4Vectors_0.40.2           
+[13] BiocGenerics_0.48.1         sf_1.1-2                   
+[15] here_1.0.2                  forcats_1.0.1              
+[17] stringr_1.6.0               ggplot2_4.0.3              
+[19] purrr_1.2.2                 readr_2.2.0                
+[21] tidyr_1.3.2                 tibble_3.3.1               
+[23] dplyr_1.2.1                 workflowr_1.7.2            
+
+loaded via a namespace (and not attached):
+  [1] RColorBrewer_1.1-3      limSolve_2.0.3          rstudioapi_0.15.0      
+  [4] jsonlite_2.0.0          magrittr_2.0.5          farver_2.1.2           
+  [7] rmarkdown_2.31          zlibbioc_1.48.2         vctrs_0.7.3            
+ [10] memoise_2.0.1           RCurl_1.98-1.20         htmltools_0.5.9        
+ [13] S4Arrays_1.2.1          progress_1.2.3          curl_7.1.0             
+ [16] cellranger_1.1.0        SparseArray_1.2.4       sass_0.4.10            
+ [19] quantiseqr_1.8.0        KernSmooth_2.23-27      bslib_0.9.0            
+ [22] cachem_1.1.0            whisker_0.4.1           lifecycle_1.0.5        
+ [25] EPIC_1.1.7              ComICS_1.0.4            pkgconfig_2.0.3        
+ [28] Matrix_1.6-5            R6_2.6.1                fastmap_1.2.0          
+ [31] GenomeInfoDbData_1.2.11 digest_0.6.39           AnnotationDbi_1.62.2   
+ [34] ps_1.9.3                rprojroot_2.1.1         RSQLite_3.53.3         
+ [37] labeling_0.4.3          filelock_1.0.3          testit_1.1             
+ [40] mMCPcounter_1.1.0       httr_1.4.7              abind_1.4-8            
+ [43] mgcv_1.9-1              compiler_4.3.2          proxy_0.4-29           
+ [46] bit64_4.8.6             withr_3.0.3             S7_0.2.2               
+ [49] BiocParallel_1.36.0     DBI_1.3.0               biomaRt_2.56.1         
+ [52] MASS_7.3-60.0.1         rappdirs_0.3.3          DelayedArray_0.28.0    
+ [55] classInt_0.4-11         tools_4.3.2             units_1.0-1            
+ [58] otel_0.2.0              httpuv_1.6.12           quadprog_1.5-8         
+ [61] glue_1.8.1              callr_3.7.6             nlme_3.1-171           
+ [64] promises_1.5.0          grid_4.3.2              getPass_0.2-4          
+ [67] lpSolve_5.6.23          generics_0.1.4          sva_3.50.0             
+ [70] immunedeconv_2.1.4      gtable_0.3.6            tzdb_0.5.0             
+ [73] preprocessCore_1.62.1   class_7.3-24            hms_1.1.4              
+ [76] xml2_1.6.0              XVector_0.42.0          pillar_1.11.1          
+ [79] limma_3.56.2            genefilter_1.82.1       later_1.4.8            
+ [82] splines_4.3.2           BiocFileCache_2.8.0     lattice_0.23-1         
+ [85] renv_1.2.3              survival_3.8-11         bit_4.6.0              
+ [88] annotate_1.78.0         tidyselect_1.2.1        locfit_1.5-9.12        
+ [91] Biostrings_2.68.1       knitr_1.51              git2r_0.33.0           
+ [94] edgeR_3.42.4            xfun_0.58               stringi_1.8.7          
+ [97] yaml_2.3.12             evaluate_1.0.5          codetools_0.2-20       
+[100] data.tree_1.2.0         BiocManager_1.30.27     cli_3.6.6              
+[103] xtable_1.8-8            processx_3.9.0          jquerylib_0.1.4        
+[106] Rcpp_1.1.1-1.1          dbplyr_2.6.0            png_0.1-9              
+[109] XML_3.99-0.24           parallel_4.3.2          blob_1.3.0             
+[112] prettyunits_1.2.0       bitops_1.1-0            scales_1.4.0           
+[115] e1071_1.7-17            crayon_1.5.3            rlang_1.3.0            
+[118] KEGGREST_1.40.1        </code></pre>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

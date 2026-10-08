@@ -376,6 +376,10 @@ div.tocify {
     <li>
       <a href="molecular_massimo1_inverted.html">Massimo1 inverted — modified PANCK</a>
     </li>
+    <li class="divider"></li>
+    <li>
+      <a href="molecular_quantiseq.html">quanTIseq — whole slide vs each annotation</a>
+    </li>
   </ul>
 </li>
 <li class="dropdown">
@@ -485,7 +489,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-09-30
+<strong>Last updated:</strong> 2026-10-08
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -616,15 +620,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree71e63511bf6b0f801bab8a00140257af26f47a71targetblank71e6351a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree9819ca6538d49f8d8625115494a38a4e200add17targetblank9819ca6a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/71e63511bf6b0f801bab8a00140257af26f47a71" target="_blank">71e6351</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/9819ca6538d49f8d8625115494a38a4e200add17" target="_blank">9819ca6</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree71e63511bf6b0f801bab8a00140257af26f47a71targetblank71e6351a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree9819ca6538d49f8d8625115494a38a4e200add17targetblank9819ca6a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -634,7 +638,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/71e63511bf6b0f801bab8a00140257af26f47a71" target="_blank">71e6351</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/9819ca6538d49f8d8625115494a38a4e200add17" target="_blank">9819ca6</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -651,6 +655,7 @@ were generated:
 Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
+    Ignored:    analysis/figure/
     Ignored:    data/
     Ignored:    fractions_latest.sif
     Ignored:    output/additional_file_2_registration_arms.csv
@@ -712,13 +717,30 @@ Message
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/71e63511bf6b0f801bab8a00140257af26f47a71/docs/molecular_massimo1.html" target="_blank">71e6351</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/a24633599f8178f6b532f82d3881a49eda90bec0/docs/molecular_massimo1.html" target="_blank">a246335</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
-2026-09-30
+2026-10-07
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/3782959364b76cdccd8076ee78d98ba0bf517598/docs/molecular_massimo1.html" target="_blank">3782959</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
 </td>
 <td>
 :thread: knitting
@@ -1520,7 +1542,8 @@ rna_primary_markers &lt;- c(&quot;CD45&quot;, &quot;CD3&quot;, &quot;CD8&quot;, 
 # One scatter-by-marker figure over `markers`. Split out of the chunk body because
 # both figures below are the same plot over a different marker set, and a second
 # copy of it is how the two would drift apart.
-plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
+plot_rna_concordance &lt;- function(rna_paired, clin, markers, title,
+                                 subtitle = &quot;points coloured by the clinical immuno-phenotype; the fit is over all patients&quot;) {
   # Colour by the clinical hot/cold call so a marker whose RNA-IHC agreement holds
   # only in one immune stratum is visible as such. left_join, not inner_join: a
   # patient with no immuno-phenotype must stay in the plot (grey) rather than
@@ -1549,8 +1572,7 @@ plot_rna_concordance &lt;- function(rna_paired, clin, markers, title) {
     scale_colour_manual(values = hotcold_cols(levels(df$immuno_phe)),
                         na.value = &quot;grey70&quot;, name = &quot;Immuno-phenotype&quot;) +
     labs(title = title,
-         subtitle = with_n(&quot;points coloured by the clinical immuno-phenotype; the fit is over all patients&quot;,
-                           df$patient_id, &quot;patients&quot;),
+         subtitle = with_n(subtitle, df$patient_id, &quot;patients&quot;),
          x = &quot;FlowPath positive-cell fraction (unitless, 0-1)&quot;,
          y = &quot;bulk RNA expression (log1p DESeq2-normalised counts)&quot;)
 }</code></pre>
@@ -1684,6 +1706,53 @@ sceriff0
 </table>
 </div>
 </div>
+<div id="one-figure-per-marker-each-on-its-own-axes"
+class="section level4">
+<h4>One figure per marker, each on its own axes</h4>
+<p>The same pairs as the two figures above — <code>ihc_posfrac</code>
+against <code>log1p(rna_expr)</code>, one point per patient, OLS fit —
+but <strong>one figure per marker, with x and y scaled to that marker
+alone</strong>. The shared-axis figures show how markers compare with
+each other; a marker positive in 2 % of cells is a vertical smear there,
+and whether its few points line up cannot be read. Here each marker
+fills its own panel, so the ranking behind its Spearman rho (in the
+title, from the table above) is visible. The price is that <strong>axis
+ranges differ from figure to figure</strong>: a steep-looking line here
+is not a large effect, and no two of these figures can be compared by
+eye. Markers are in the order of the two figures above; each is exported
+as its own PDF.</p>
+<pre class="r"><code># `mk`, not `m`: test-chunk-gates.R reads a top-level loop variable as a binding,
+# and ungated chunks use `m` as a function argument.
+for (mk in intersect(c(rna_primary_markers, setdiff(ihc_markers, rna_primary_markers)),
+                    unique(rna_paired$marker))) {
+  rho &lt;- rna_summary$rho[rna_summary$marker == mk]
+  # A single marker is a single facet, so the panel&#39;s scales are that marker&#39;s own.
+  print(plot_rna_concordance(
+    rna_paired, clin, mk,
+    title    = sprintf(&quot;%s: Spearman rho = %s&quot;, mk,
+                       if (length(rho) &amp;&amp; is.finite(rho)) formatC(rho, format = &quot;f&quot;, digits = 2) else &quot;NA&quot;),
+    subtitle = &quot;axes scaled to this marker&quot;))
+  cat(&quot;\n\n&quot;)
+}</code></pre>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-1.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-2.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-3.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-4.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-5.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-6.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-7.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-8.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-9.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-10.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-11.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-12.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-13.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-14.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-15.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-16.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-17.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-18.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_massimo1.Rmd/rna-concordance-plot-free-19.png" alt="" width="547.2" style="display: block; margin: auto;" /></p>
 <p>Sensitivity: replace the hard-threshold positive fraction with the
 per-patient mean staining intensity (mean z-score over non-NA
 cells):</p>
@@ -1837,6 +1906,7 @@ if (nrow(paired_z) &gt; 0) {
 </tr>
 </tbody>
 </table>
+</div>
 </div>
 <div id="the-denominator-which-cells-the-ihc-fraction-is-taken-over"
 class="section level3">
@@ -3951,13 +4021,24 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-1.png" target="_blank">71e6351</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-1.png" target="_blank">a246335</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
-2026-09-30
+2026-10-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3782959364b76cdccd8076ee78d98ba0bf517598/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-1.png" target="_blank">3782959</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
 </td>
 </tr>
 <tr>
@@ -4000,13 +4081,24 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-2.png" target="_blank">71e6351</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-2.png" target="_blank">a246335</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
-2026-09-30
+2026-10-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3782959364b76cdccd8076ee78d98ba0bf517598/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-2.png" target="_blank">3782959</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
 </td>
 </tr>
 <tr>
@@ -4049,13 +4141,24 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-3.png" target="_blank">71e6351</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-3.png" target="_blank">a246335</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
-2026-09-30
+2026-10-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3782959364b76cdccd8076ee78d98ba0bf517598/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-3.png" target="_blank">3782959</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
 </td>
 </tr>
 <tr>
@@ -4098,13 +4201,24 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-4.png" target="_blank">71e6351</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-4.png" target="_blank">a246335</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
-2026-09-30
+2026-10-07
+</td>
+</tr>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3782959364b76cdccd8076ee78d98ba0bf517598/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-4.png" target="_blank">3782959</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
 </td>
 </tr>
 <tr>
@@ -4123,40 +4237,1002 @@ bolt3x
 </div>
 </div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-5.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-5">
+Past versions of deconv-concordance-plot-5.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-5" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-5.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="cibersortx" class="section level4">
 <h4>CIBERSORTx</h4>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-6.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-6">
+Past versions of deconv-concordance-plot-6.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-6" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-6.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-7.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-7">
+Past versions of deconv-concordance-plot-7.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-7" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-7.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-8.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-8">
+Past versions of deconv-concordance-plot-8.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-8" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-8.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-9.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-9">
+Past versions of deconv-concordance-plot-9.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-9" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-9.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-10.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-10">
+Past versions of deconv-concordance-plot-10.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-10" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-10.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-11.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-11">
+Past versions of deconv-concordance-plot-11.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-11" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-11.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-12.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-12">
+Past versions of deconv-concordance-plot-12.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-12" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-12.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-13.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-13">
+Past versions of deconv-concordance-plot-13.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-13" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-13.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="abis" class="section level4">
 <h4>ABIS</h4>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-14.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-14">
+Past versions of deconv-concordance-plot-14.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-14" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-14.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-15.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-15">
+Past versions of deconv-concordance-plot-15.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-15" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-15.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-16.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-16">
+Past versions of deconv-concordance-plot-16.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-16" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-16.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-17.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-17">
+Past versions of deconv-concordance-plot-17.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-17" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-17.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-18.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-18">
+Past versions of deconv-concordance-plot-18.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-18" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-18.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-19.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-19">
+Past versions of deconv-concordance-plot-19.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-19" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-19.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-20.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-20">
+Past versions of deconv-concordance-plot-20.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-20" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-20.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="quantiseq" class="section level4">
 <h4>quanTIseq</h4>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-21.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-21">
+Past versions of deconv-concordance-plot-21.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-21" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-21.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-22.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-22">
+Past versions of deconv-concordance-plot-22.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-22" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-22.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-23.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-23">
+Past versions of deconv-concordance-plot-23.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-23" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-23.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-24.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-24">
+Past versions of deconv-concordance-plot-24.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-24" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-24.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-25.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-25">
+Past versions of deconv-concordance-plot-25.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-25" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-25.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-26.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-26">
+Past versions of deconv-concordance-plot-26.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-26" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-26.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-27.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-27">
+Past versions of deconv-concordance-plot-27.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-27" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-27.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-28.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-28">
+Past versions of deconv-concordance-plot-28.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-28" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-28.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-29.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-29">
+Past versions of deconv-concordance-plot-29.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-29" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-29.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p><img src="figure/molecular_massimo1.Rmd/deconv-concordance-plot-30.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-deconv-concordance-plot-30">
+Past versions of deconv-concordance-plot-30.png
+</button>
+</p>
+<div id="fig-deconv-concordance-plot-30" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/a24633599f8178f6b532f82d3881a49eda90bec0/docs/figure/molecular_massimo1.Rmd/deconv-concordance-plot-30.png" target="_blank">a246335</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-07
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="cross-method-agreement-methods-vs-each-other-and-vs-ihc"
@@ -4239,13 +5315,13 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/71e63511bf6b0f801bab8a00140257af26f47a71/docs/figure/molecular_massimo1.Rmd/deconv-agreement-heatmap-1.png" target="_blank">71e6351</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/3782959364b76cdccd8076ee78d98ba0bf517598/docs/figure/molecular_massimo1.Rmd/deconv-agreement-heatmap-1.png" target="_blank">3782959</a>
 </td>
 <td>
 sceriff0
 </td>
 <td>
-2026-09-30
+2026-10-07
 </td>
 </tr>
 <tr>
