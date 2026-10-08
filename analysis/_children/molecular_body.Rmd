@@ -88,25 +88,59 @@ cat("clinical rows:", nrow(clin),
     "| with an immuno-phenotype:", sum(!is.na(clin$immuno_phe)), "\n")
 ```
 
+## The default cell set: inside the annotation
+
+**Parts 1 and 2 count IHC cells inside the pathologist's tumour annotation by
+default**, the same cell set the clinical page's infiltrate figures use. The bulk
+RNA was extracted from tumour material, so the cells inside the annotation are the
+matching quantity; the whole slide is kept as a labelled comparison in each part.
+Part 3 is the exception — an invasive margin is a band *around* the boundary, so it
+reads every cell.
+
+`arm_cells_in_annotation(arm_spec(ARM), ihc_data)` (`code/arm_cells.R`) marks each
+of the arm's cells inside or outside by point-in-polygon of its centroid against
+the patient's **union** polygon — `annotation_all/` for `massimo1` and
+`massimo1_inverted`, the dissolved region polygons for `massimo2` — the same polygon
+behind the clinical page's `union` metrics row. Where no polygon can be read it
+uses the export's own `Out_of_annotation` flag (`flag`), and where the arm states
+that an unannotated patient is annotated whole it keeps every cell (`whole_slide`,
+`massimo2` only). The table counts, per patient, the cells the arm holds, the cells
+inside, and the rule that decided.
+
+```{r default-cells, eval = have_arm}
+# Per-cell membership, computed ONCE for the whole page: the default cell set of
+# parts 1 and 2, and the four denominators of part 1, are all cuts of this frame.
+ihc_scoped <- arm_cells_in_annotation(arm_spec(ARM), ihc_data)
+ihc_inside <- filter(ihc_scoped, in_annotation %in% TRUE)
+
+knitr::kable(arm_in_annotation_inventory(ihc_scoped),
+             caption = paste0("Cells per patient (arm `", ARM, "`), and how many are ",
+                              "inside the annotation. `membership` names the rule: sf = ",
+                              "the union polygon, flag = the export's Out_of_annotation ",
+                              "column, whole_slide = the arm's stated convention for an ",
+                              "unannotated patient."))
+```
+
 ## Part 1 — Bulk RNA expression vs IHC marker positivity
 
 Marker by marker, across patients: does a marker's gene expression in bulk RNA track
 the fraction of cells the IHC gate calls positive for it? Points are coloured by the
 clinical immuno-phenotype so a marker that only agrees in hot tumours is visible.
 
-The comparison is drawn first over the **whole slide**, and then re-cut over three
-narrower denominators — inside the annotation, tumour cells only, and both at once —
-because the bulk RNA was extracted from tumour material and the whole-slide fraction
-is not the matching quantity. See *The denominator* below.
+The comparison is drawn first over the cells **inside the annotation** (the default
+cell set above), and then re-cut over three other denominators — the whole slide,
+tumour cells only, and tumour cells inside the annotation. See *The denominator*
+below, which also carries the whole-slide twin of every figure.
 
 
 ### Starting data and notation
 
 Every value below is derived from three inputs:
 
-- `ihc_data` — FlowPath single cells, deduplicated to **one copy per patient**
-  (whole slide, no annotation boundary). Carries per-marker `<marker>_sign` and
-  `<marker>_zscore` columns and `patient_id`.
+- `ihc_inside` — FlowPath single cells **inside the annotation**, one copy per
+  patient (the default cell set above; `ihc_data` is the same cells over the whole
+  slide). Carries per-marker `<marker>_sign` and `<marker>_zscore` columns and
+  `patient_id`.
 - `counts_data` — DESeq2-normalised **bulk RNA**, one row per RNA sample, one
   column per gene, plus the CRF-space sample id `Sample`.
 - `crf2slide` and `clin` — the id bridge and the hot/cold call, both built once in
@@ -115,7 +149,7 @@ Every value below is derived from three inputs:
 Notation and mappings used throughout:
 
 ```
-cells of a patient p = all of p's cells in `ihc_data`
+cells of a patient p = all of p's cells in `ihc_inside` (inside the annotation)
 marker-positive cell (marker <marker>) = marker_pos(cell, <marker>) is TRUE
   (is_pos accepts +, pos, positive, yes, true, 1)
 genes of a marker = marker_gene_map[<marker>]: a comma-separated gene list
@@ -216,19 +250,69 @@ marker_genes <- gene_rows |> filter(gene %in% unique(expr_long$gene))
 
 # Per patient, average expression across a marker's available genes, then map the
 # CRF sample id to the IHC slide id via the crosswalk.
-marker_expr <- expr_long |>
+# Kept in CRF space as well: the immuno-phenotype boxplots below need no slide, so
+# they draw every RNA sample, not only the ones that also have IHC.
+marker_expr_crf <- expr_long |>
   inner_join(marker_genes, by = "gene", relationship = "many-to-many") |>
   group_by(marker, crf_id) |>
-  summarise(rna_expr = mean(expr), .groups = "drop") |>
+  summarise(rna_expr = mean(expr), .groups = "drop")
+
+marker_expr <- marker_expr_crf |>
   mutate(patient_id = unname(crf2slide[crf_id])) |>   # crf id -> slide id
   filter(!is.na(patient_id)) |>
   select(marker, patient_id, rna_expr)
 ```
 
+### Bulk expression of each marker by clinical immuno-phenotype
+
+The bulk-RNA counterpart of the clinical page's *immune infiltrate by
+immuno-phenotype* boxplots, with the IHC fraction replaced by expression: **one
+figure per marker**. Each point is one RNA sample from `data/counts.RData`; y is
+`log1p` of `rna_expr`, the DESeq2-normalised count averaged over the marker's
+gene(s) (named in the subtitle), and samples are grouped by the `Immuno-phenotype`
+column of `data/clinical_data.xlsx`, ordered cold → intermediate → hot and joined
+on the CRF id. No IHC and no slide crosswalk is involved, so this uses **every RNA
+sample with a clinical immuno-phenotype** — more than the slide-matched patients of
+the concordance below — and is the same on all three arm pages. The box is the
+median and quartiles of the group; the tick label states the group's n. Each figure
+has its own y range. Each is exported as its own PDF.
+
+```{r rna-marker-by-phenotype, results = "asis", fig.width = fig_width("single"), fig.height = fig_height("single")}
+rna_by_phe <- marker_expr_crf |>
+  inner_join(clinical_data |>
+               mutate(crf_id = norm_id(`ID CRF PRESERVE`)) |>
+               select(crf_id, immuno_phe = any_of("Immuno-phenotype")),
+             by = "crf_id")
+if (!"immuno_phe" %in% names(rna_by_phe)) rna_by_phe$immuno_phe <- NA_character_
+rna_by_phe <- rna_by_phe |>
+  filter(!is.na(immuno_phe), is.finite(rna_expr)) |>
+  mutate(immuno_phe = hotcold_order(immuno_phe))
+
+if (n_distinct(rna_by_phe$immuno_phe) <= 1) {
+  cat("_Fewer than two immuno-phenotype groups among the RNA samples — no boxplots drawn._\n")
+} else {
+  marker_gene_txt <- tapply(marker_genes$gene, marker_genes$marker, paste, collapse = ", ")
+  for (bm in intersect(ihc_markers, unique(rna_by_phe$marker))) {
+    d <- filter(rna_by_phe, marker == bm)
+    print(
+      ggplot(d, aes(immuno_phe, log1p(rna_expr), colour = immuno_phe)) +
+        geom_boxplot(outlier.shape = NA) +
+        geom_jitter(width = 0.2, alpha = 0.6) +
+        scale_colour_manual(values = hotcold_cols(levels(d$immuno_phe)), guide = "none") +
+        scale_x_discrete(labels = label_n(d$immuno_phe)) +
+        labs(title = paste("Bulk RNA", bm, "by clinical immuno-phenotype"),
+             subtitle = paste("gene(s):", marker_gene_txt[[bm]]),
+             x = NULL, y = "log1p DESeq2-normalised counts") +
+        theme(axis.text.x = element_text(angle = 30, hjust = 1)))
+    cat("\n\n")
+  }
+}
+```
+
 ### Per-patient IHC positive-cell fraction
 
-`ihc_marker_fraction(ihc_data)` groups cells by `slide_key(patient_id)` and, for
-each marker, returns the whole-slide positive fraction (mean of `is_pos` over
+`ihc_marker_fraction(ihc_inside)` groups cells by `slide_key(patient_id)` and, for
+each marker, returns the inside-annotation positive fraction (mean of `is_pos` over
 non-NA sign values):
 
 ```
@@ -245,7 +329,7 @@ These `_posfrac` columns are reshaped long to `patient_id`, `marker`, and
 `ihc_posfrac`.
 
 ```{r rna-ihc-fraction, eval = have_arm}
-ihc_marker_frac <- ihc_marker_fraction(ihc_data) |>
+ihc_marker_frac <- ihc_marker_fraction(ihc_inside) |>
   select(patient_id, ends_with("_posfrac")) |>
   pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_posfrac") |>
   mutate(marker = sub("_posfrac$", "", marker))
@@ -362,12 +446,30 @@ plot_rna_concordance <- function(rna_paired, clin, markers, title,
          x = "FlowPath positive-cell fraction (unitless, 0-1)",
          y = "bulk RNA expression (log1p DESeq2-normalised counts)")
 }
+
+# One figure PER MARKER, each on its own axes, over a paired frame and the Spearman
+# table that goes with it (`marker`, `rho`). `cells` names the cell set in the
+# subtitle, so the annotation and whole-slide twins cannot be mistaken for each other.
+print_rna_concordance_free <- function(paired, summ, cells) {
+  for (mk in intersect(c(rna_primary_markers, setdiff(ihc_markers, rna_primary_markers)),
+                       unique(as.character(paired$marker)))) {
+    rho <- summ$rho[summ$marker == mk]
+    # A single marker is a single facet, so the panel's scales are that marker's own.
+    print(plot_rna_concordance(
+      paired, clin, mk,
+      title    = sprintf("%s: Spearman rho = %s", mk,
+                         if (length(rho) && is.finite(rho[1]))
+                           formatC(rho[1], format = "f", digits = 2) else "NA"),
+      subtitle = paste0("cells ", cells, "; axes scaled to this marker")))
+    cat("\n\n")
+  }
+}
 ```
 
 ```{r rna-concordance-plot, eval = have_arm, fig.height=7}
 if (nrow(rna_paired) > 0)
   plot_rna_concordance(rna_paired, clin, rna_primary_markers,
-                       "FlowPath marker+ fraction vs bulk-RNA expression")
+                       "Inside the annotation: marker+ fraction vs bulk-RNA expression")
 ```
 
 The remaining markers — everything in `marker_gene_map` the figure above does not
@@ -377,7 +479,7 @@ cover, in the order the map declares them:
 if (nrow(rna_paired) > 0) {
   rna_other_markers <- setdiff(ihc_markers, rna_primary_markers)
   plot_rna_concordance(rna_paired, clin, rna_other_markers,
-                       "FlowPath marker+ fraction vs bulk-RNA expression (remaining markers)")
+                       "Inside the annotation: marker+ fraction vs bulk-RNA expression (remaining markers)")
 }
 ```
 
@@ -394,19 +496,7 @@ here is not a large effect, and no two of these figures can be compared by eye.
 Markers are in the order of the two figures above; each is exported as its own PDF.
 
 ```{r rna-concordance-plot-free, eval = have_arm, results = "asis", fig.width = fig_width("oneandhalf"), fig.height = 4.8}
-# `mk`, not `m`: test-chunk-gates.R reads a top-level loop variable as a binding,
-# and ungated chunks use `m` as a function argument.
-for (mk in intersect(c(rna_primary_markers, setdiff(ihc_markers, rna_primary_markers)),
-                    unique(rna_paired$marker))) {
-  rho <- rna_summary$rho[rna_summary$marker == mk]
-  # A single marker is a single facet, so the panel's scales are that marker's own.
-  print(plot_rna_concordance(
-    rna_paired, clin, mk,
-    title    = sprintf("%s: Spearman rho = %s", mk,
-                       if (length(rho) && is.finite(rho)) formatC(rho, format = "f", digits = 2) else "NA"),
-    subtitle = "axes scaled to this marker"))
-  cat("\n\n")
-}
+print_rna_concordance_free(rna_paired, rna_summary, "inside the annotation")
 ```
 
 Sensitivity: replace the hard-threshold positive fraction with the per-patient
@@ -421,7 +511,7 @@ Then correlate `<marker>_z` against `rna_expr` per marker with the same statisti
 (Spearman correlation across patients).
 
 ```{r rna-zscore-sensitivity, eval = have_arm}
-ihc_z <- ihc_marker_fraction(ihc_data) |>
+ihc_z <- ihc_marker_fraction(ihc_inside) |>
   select(patient_id, ends_with("_z")) |>
   pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_z") |>
   mutate(marker = sub("_z$", "", marker))
@@ -443,16 +533,17 @@ if (nrow(paired_z) > 0) {
 
 ### The denominator: which cells the IHC fraction is taken over
 
-Everything above compares bulk RNA against a **whole-slide** positive fraction — every
-cell in the arm's export, no polygon consulted. But **the bulk RNA was extracted from
-tumour material**, so that comparison puts a tumour-restricted expression value against
-an IHC fraction diluted by whatever else is on the slide. Two independent restrictions
-close that gap, and they cross:
+Everything above compares bulk RNA against the positive fraction **inside the
+annotation** (`all_annotation` below). That is one of four cell sets the fraction
+can be taken over. **The bulk RNA was extracted from tumour material**, so the
+whole slide — every cell in the arm's export, no polygon consulted — dilutes the IHC
+side with whatever else is on the slide. Two independent restrictions, and they
+cross:
 
 |  | every cell | tumour-lineage cells only |
 |---|---|---|
-| **whole slide** | `all_wholeslide` (the comparison above) | `tumor_wholeslide` |
-| **inside annotation** | `all_annotation` | `tumor_annotation` |
+| **whole slide** | `all_wholeslide` | `tumor_wholeslide` |
+| **inside annotation** | `all_annotation` (the comparison above) | `tumor_annotation` |
 
 - **Spatially** — keep only cells inside the pathologist's boundary, which is the
   tissue the RNA block was cut from.
@@ -513,8 +604,7 @@ used above, so only the denominator changes:
 # denominator would run point-in-polygon four times over the same cells and, worse,
 # would let the four denominators drift apart if one call ever picked a different
 # polygon tier.
-ihc_scoped <- arm_cells_in_annotation(arm_spec(ARM), ihc_data)
-
+# `ihc_scoped` is the page's one membership frame (default-cells chunk above).
 # The tumour flag goes through cell_lineage(), never a string test on the label:
 # FlowPath writes "PANCK+Tumor" and mirage "PANCK_Tumor" for the same population,
 # and a grepl("Tumor") would also sweep in anything a future panel names that way.
@@ -529,12 +619,9 @@ denom_sets <- list(
   tumor_wholeslide = filter(ihc_scoped, .is_tumor),
   tumor_annotation = filter(ihc_scoped, .is_tumor, in_annotation %in% TRUE))
 
-knitr::kable(arm_in_annotation_inventory(ihc_scoped),
-             caption = paste0("Cells behind each denominator, per patient (arm `",
-                              ARM, "`). `membership` names the rule that decided ",
-                              "in_annotation: sf = the union polygon, flag = the ",
-                              "export's Out_of_annotation column, whole_slide = the ",
-                              "arm's stated convention for an unannotated patient."))
+cat("cells per denominator:",
+    paste(names(denom_sets), format(vapply(denom_sets, nrow, integer(1)), big.mark = ","),
+          sep = " = ", collapse = " | "), "\n")
 ```
 
 #### Marker-by-marker concordance under each denominator
@@ -562,13 +649,12 @@ denom_summary <- rna_paired_denom |>
   group_modify(~ paired_spearman(.x$ihc_posfrac, .x$rna_expr)) |>
   ungroup()
 
-# ONE marker ordering, best whole-slide correlation first, shared by the table and
-# the figure below. Sorting the WIDE table on a `rho_all_wholeslide` column instead
-# would tie both to a column pivot_wider only creates when that level is observed —
-# and the sort silently decides what a reader compares against.  `union` appends any
-# marker with no whole-slide row rather than dropping it.
+# ONE marker ordering, best DEFAULT (inside-annotation) correlation first, shared by
+# the table and the figure below. Sorting the WIDE table on a `rho_all_annotation`
+# column instead would tie both to a column pivot_wider only creates when that level
+# is observed. `union` appends any marker with no such row rather than dropping it.
 marker_order <- denom_summary |>
-  filter(denominator == "all_wholeslide", is.finite(rho)) |>
+  filter(denominator == "all_annotation", is.finite(rho)) |>
   arrange(desc(rho)) |>
   pull(marker) |>
   as.character() |>
@@ -582,7 +668,7 @@ denom_summary |>
   knitr::kable(digits = 3,
                caption = paste0("Spearman: IHC positive-cell fraction vs bulk-RNA ",
                                 "expression, under each denominator. Sorted by the ",
-                                "whole-slide value, so a marker the restrictions ",
+                                "inside-annotation value, so a marker the restrictions ",
                                 "move is read across its row."))
 ```
 
@@ -625,8 +711,8 @@ if (nrow(denom_summary) > 0) {
 ```
 
 The scatter for `tumor_annotation` — the denominator that matches the sequenced
-material most closely — drawn exactly as the whole-slide figures above, so the two
-are read side by side:
+material most closely — drawn exactly as the inside-annotation figures above, so
+the two are read side by side:
 
 ```{r rna-denominator-scatter, eval = have_arm, fig.height=7}
 tumor_ann_paired <- filter(rna_paired_denom, denominator == "tumor_annotation")
@@ -639,6 +725,35 @@ if (nrow(tumor_ann_paired) > 0)
 if (nrow(tumor_ann_paired) > 0)
   plot_rna_concordance(tumor_ann_paired, clin, setdiff(ihc_markers, rna_primary_markers),
                        "Tumour cells inside the annotation: remaining markers")
+```
+
+#### The whole-slide twin of every figure above
+
+The same figures as *Marker-by-marker concordance*, over `all_wholeslide`: every
+cell of the arm's export for that patient, no polygon consulted. `ihc_posfrac` is
+the marker-positive fraction of all of the patient's cells, against the same
+`log1p(rna_expr)`. First the two shared-axis grids, then one figure per marker on
+its own axes with its whole-slide Spearman rho (the `all_wholeslide` column of the
+table above) in the title.
+
+```{r rna-wholeslide-scatter, eval = have_arm, fig.height=7}
+whole_paired <- filter(rna_paired_denom, denominator == "all_wholeslide")
+if (nrow(whole_paired) > 0)
+  plot_rna_concordance(whole_paired, clin, rna_primary_markers,
+                       "Whole slide: marker+ fraction vs bulk-RNA expression")
+```
+
+```{r rna-wholeslide-scatter-rest, eval = have_arm, fig.height=7}
+if (nrow(whole_paired) > 0)
+  plot_rna_concordance(whole_paired, clin, setdiff(ihc_markers, rna_primary_markers),
+                       "Whole slide: remaining markers")
+```
+
+```{r rna-wholeslide-scatter-free, eval = have_arm, results = "asis", fig.width = fig_width("oneandhalf"), fig.height = 4.8}
+if (nrow(whole_paired) > 0)
+  print_rna_concordance_free(whole_paired,
+                             filter(denom_summary, denominator == "all_wholeslide"),
+                             "on the whole slide")
 ```
 
 ### Notes
@@ -656,7 +771,7 @@ if (nrow(tumor_ann_paired) > 0)
   `PDL1` -> `CD274`, `PD1` -> `PDCD1`, `FSP1` -> `S100A4`. `wrongL1CAM` is
   excluded by construction (not in `marker_gene_map`).
 - Correlations are cross-patient and small-n; every row carries its `n`.
-- The **z-score sensitivity above is whole-slide only**, deliberately: it is a check
+- The **z-score sensitivity above is inside-annotation only**, deliberately: it is a check
   on the hard threshold, and re-cutting the denominator at the same time would
   confound the two changes. The denominator ladder holds the threshold fixed and
   moves only the cell set.
@@ -680,8 +795,9 @@ below) — and coloured by the same hot/cold call as part 1.
 
 Every value below is derived from two inputs, bridged by the clinical table:
 
-- `ihc_data` — FlowPath single cells deduplicated to **one copy per patient**
-  (whole slide, no annotation boundary). Each cell's `phenotype_clean` is a leaf
+- `ihc_inside` — FlowPath single cells **inside the annotation**, one copy per
+  patient (the default cell set; the whole slide, `ihc_data`, is the comparison at
+  the end of this part). Each cell's `phenotype_clean` is a leaf
   of the gate tree; `ihc_comparison_fraction()` groups the leaves into the
   compared populations (and reads the CD3 sign for the one leaf, `Immune`, that
   the tree reaches from two branches).
@@ -1088,14 +1204,15 @@ if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
 
 ### IHC population fractions (reference)
 
-`ihc_comparison_fraction(ihc_data)` counts, per patient, the cells in each
+`ihc_comparison_fraction(ihc_inside)` counts, per patient, the cells **inside the
+annotation** in each
 population of Table 1, and divides by two denominators:
 
 ```
 n(patient, population) = cells of the patient on any of the population's IHC leaves
                          (for Immune[CD3+]: an Immune cell whose CD3 sign is positive)
-frac_all  = n / (all cells of the patient)
-frac_cd45 = n / (CD45+ cells of the patient = every cell on the CD45+ branch:
+frac_all  = n / (all cells of the patient inside the annotation)
+frac_cd45 = n / (CD45+ cells of the patient inside it = every cell on the CD45+ branch:
                  the T and NK leaves, and Immune from both branches)
 ihc_frac  = frac_cd45 for a method Table 3 marks CD45, else frac_all
 ```
@@ -1108,7 +1225,7 @@ is empty and T_total is the sum of the T leaves alone (the line below reports
 how many `Immune` cells were CD3+).
 
 ```{r deconv-ihc-lineages, eval = have_arm}
-ihc_cmp <- ihc_comparison_fraction(ihc_data)
+ihc_cmp <- ihc_comparison_fraction(ihc_inside)
 
 # The four-population view (fraction of all cells) that the cross-source agreement
 # below and the clinical pages share.
@@ -1116,10 +1233,10 @@ ihc_lin <- ihc_cmp |>
   filter(lineage %in% comparable_lineages) |>
   select(patient_id, lineage, ihc_frac = frac_all)
 
-immune_cd3 <- sum(pheno_join_key(cell_phenotype(ihc_data)) == "immune" &
-                    marker_pos(ihc_data, "CD3"))
+immune_cd3 <- sum(pheno_join_key(cell_phenotype(ihc_inside)) == "immune" &
+                    marker_pos(ihc_inside, "CD3"))
 cat("IHC patients:", dplyr::n_distinct(ihc_cmp$patient_id),
-    "| CD3 gated:", !is.na(marker_sign_col(ihc_data, "CD3")),
+    "| CD3 gated:", !is.na(marker_sign_col(ihc_inside, "CD3")),
     "| Immune cells that are CD3+ (counted in T_total):", immune_cd3, "\n")
 knitr::kable(
   ihc_cmp |>
@@ -1127,7 +1244,7 @@ knitr::kable(
     summarise(cells = sum(n), median_frac_all = median(frac_all),
               median_frac_cd45 = median(frac_cd45, na.rm = TRUE), .groups = "drop"),
   digits = 4,
-  caption = "IHC side, per population: total cells over the cohort, and the median per-patient fraction on each denominator.")
+  caption = "IHC side, inside the annotation, per population: total cells over the cohort, and the median per-patient fraction on each denominator.")
 ```
 
 ### Method vs IHC — per-population concordance
@@ -1186,7 +1303,7 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
 
 ### Scatter per method and population {.tabset}
 
-Scatter of `ihc_frac` (x) vs `score` (y), **one figure per method and population**:
+Scatter of `ihc_frac` inside the annotation (x) vs `score` (y), **one figure per method and population**:
 a tab per method, in the ranking's order so the best-agreeing method comes first,
 and inside it one plot per population in Table 1's order (macro → intermediate →
 leaf → cross-cutting). Each plot has its own axes, both starting at 0: x is the IHC
@@ -1202,15 +1319,15 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
   # a method that tracks IHC only in hot tumours shows up here as a colour-split
   # cloud rather than as a middling overall rho. left_join: a patient with no
   # immuno-phenotype stays in the plot (grey) rather than shrinking the fit.
-  df <- deconv_paired |>
-    left_join(clin, by = "patient_id") |>
-    mutate(immuno_phe = hotcold_order(immuno_phe))
   gate <- stats::setNames(deconv_comparison_lineages$ihc_gate, deconv_comparison_lineages$lineage)
   level <- stats::setNames(deconv_comparison_lineages$level, deconv_comparison_lineages$lineage)
 
-  plot_deconv_pair <- function(m, lin) {
+  # `df` / `summ` are a paired frame and its Spearman table; `cells` names the cell
+  # set on the x axis, so the annotation figures and their whole-slide twins below
+  # cannot be mistaken for each other.
+  plot_deconv_pair <- function(df, summ, m, lin, cells) {
     d   <- filter(df, method == m, lineage == lin)
-    rho <- deconv_summary$rho[deconv_summary$method == m & deconv_summary$lineage == lin]
+    rho <- summ$rho[summ$method == m & summ$lineage == lin]
     rho <- if (length(rho) && is.finite(rho)) formatC(rho, format = "f", digits = 2) else "NA"
     ggplot(d, aes(ihc_frac, score)) +
       geom_smooth(method = "lm", se = FALSE, colour = FIT_LINE, formula = y ~ x) +
@@ -1221,20 +1338,57 @@ if (!is.null(deconv_paired) && nrow(deconv_paired) > 0) {
       labs(title = sprintf("%s: %s (%s)", method_label(m), lin, gate[[lin]]),
            subtitle = with_n(sprintf("%s population; Spearman rho = %s", level[[lin]], rho),
                              d$patient_id, "patients"),
-           x = if (identical(deconv_ihc_denominator(m), "CD45"))
-                 "IHC fraction of CD45+ cells (unitless, 0-1)"
-               else "IHC fraction of all cells (unitless, 0-1)",
+           x = sprintf("IHC fraction of %s cells, %s (unitless, 0-1)",
+                       if (identical(deconv_ihc_denominator(m), "CD45")) "CD45+" else "all",
+                       cells),
            y = paste(method_label(m), "score (unitless)"))
   }
   # One tab per method (#### under the {.tabset} heading), one plot per population.
-  for (m in method_rank$method) {
-    cat("\n\n#### ", method_label(m), "\n\n", sep = "")
-    for (lin in intersect(deconv_comparison_lineages$lineage, unique(df$lineage[df$method == m]))) {
-      print(plot_deconv_pair(m, lin))
-      cat("\n\n")
+  print_deconv_pairs <- function(paired, summ, cells) {
+    df <- paired |>
+      left_join(clin, by = "patient_id") |>
+      mutate(immuno_phe = hotcold_order(immuno_phe))
+    for (dm in method_rank$method) {
+      cat("\n\n#### ", method_label(dm), "\n\n", sep = "")
+      for (lin in intersect(deconv_comparison_lineages$lineage, unique(df$lineage[df$method == dm]))) {
+        print(plot_deconv_pair(df, summ, dm, lin, cells))
+        cat("\n\n")
+      }
     }
   }
+  print_deconv_pairs(deconv_paired, deconv_summary, "inside annotation")
 }
+```
+
+### The whole-slide twin {.tabset}
+
+The same comparison with the IHC side taken over **every cell of the slide**
+instead of the cells inside the annotation: `ihc_comparison_fraction(ihc_data)`,
+paired to the same deconvolution scores, with its own Spearman table. Then the same
+scatters, one tab per method (in the inside-annotation ranking's order) and one
+figure per population; x is the whole-slide IHC fraction on that method's
+denominator. Reading a population's rho here against the table above shows what the
+annotation restriction changes.
+
+```{r deconv-concordance-whole, eval = have_arm}
+deconv_paired_whole <- NULL
+if (!is.null(deconv_long) && nrow(deconv_long) > 0) {
+  deconv_paired_whole <- deconv_lineage_scores(deconv_long) |>
+    deconv_pair_with_ihc(ihc_comparison_fraction(ihc_data))
+  deconv_summary_whole <- deconv_paired_whole |>
+    group_by(method, lineage) |>
+    group_modify(~ paired_spearman(.x$score, .x$ihc_frac)) |>
+    ungroup() |>
+    arrange(factor(lineage, levels = deconv_comparison_lineages$lineage), desc(rho)) |>
+    mutate(ihc_denominator = deconv_ihc_denominator(method), .after = lineage)
+  knitr::kable(deconv_summary_whole, digits = 3,
+               caption = "Whole slide: Spearman IHC vs deconvolution, per method and population.")
+}
+```
+
+```{r deconv-concordance-plot-whole, eval = have_arm, results = "asis", fig.width = fig_width("single"), fig.height = 3.4}
+if (!is.null(deconv_paired_whole) && nrow(deconv_paired_whole) > 0)
+  print_deconv_pairs(deconv_paired_whole, deconv_summary_whole, "whole slide")
 ```
 
 ### Cross-method agreement (methods vs each other and vs IHC)
@@ -1366,6 +1520,9 @@ if (!is.null(agr) && nrow(agr) > 0) {
 # so leaving this chunk open made it fail with "object 'deconv_paired' not found"
 # whenever the arm had no cells — the defensive !is.null() test cannot help when the
 # name was never bound at all.
+#
+# `deconv_paired` is the INSIDE-ANNOTATION pairing since 2026-10-08 (it was whole
+# slide before), so Figure 5(c) changes with it.
 #
 # Hand `deconv_paired` to the figure-assembly page rather than making it recompute.
 # Deconvolution needs immunedeconv, counts.RData and several minutes; the paper
