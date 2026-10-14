@@ -620,15 +620,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree31219dfb1120435da22225a563c4bd49859cf634targetblank31219dfa">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtreec4f7e3c078d87809656c00f12e497caec93370e8targetblankc4f7e3ca">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/31219dfb1120435da22225a563c4bd49859cf634" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/c4f7e3c078d87809656c00f12e497caec93370e8" target="_blank">c4f7e3c</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtree31219dfb1120435da22225a563c4bd49859cf634targetblank31219dfa"
+id="strongRepositoryversionstrongahrefhttpsgithubcomsceriff0analysisihcmethodtreec4f7e3c078d87809656c00f12e497caec93370e8targetblankc4f7e3ca"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -638,7 +638,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/sceriff0/analysis.ihc_method/tree/31219dfb1120435da22225a563c4bd49859cf634" target="_blank">31219df</a>.
+<a href="https://github.com/sceriff0/analysis.ihc_method/tree/c4f7e3c078d87809656c00f12e497caec93370e8" target="_blank">c4f7e3c</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -716,7 +716,7 @@ Message
 html
 </td>
 <td>
-<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/31219dfb1120435da22225a563c4bd49859cf634/docs/molecular_quantiseq.html" target="_blank">31219df</a>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/c4f7e3c078d87809656c00f12e497caec93370e8/docs/molecular_quantiseq.html" target="_blank">c4f7e3c</a>
 </td>
 <td>
 sceriff0
@@ -726,6 +726,41 @@ sceriff0
 </td>
 <td>
 :thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/sceriff0/analysis.ihc_method/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/molecular_quantiseq.html" target="_blank">f83e67e</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-08
+</td>
+<td>
+:thread: knitting
+</td>
+</tr>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f881ba6133ff5c1fe34cd28a1188c352dc3e5253/analysis/molecular_quantiseq.Rmd" target="_blank">f881ba6</a>
+</td>
+<td>
+sceriff0
+</td>
+<td>
+2026-10-08
+</td>
+<td>
+:sparkles: quanTIseq per phenotype label; clinical T-cell boxplots and
+infiltrate explanation
 </td>
 </tr>
 <tr>
@@ -1155,6 +1190,7 @@ scope keeps, and names the rule that decided.</p>
 scope_ihc &lt;- lapply(stats::setNames(DECONV_SCOPES$scope, DECONV_SCOPES$scope),
                     function(s) deconv_scope_ihc(s, cells_by_arm[[deconv_scope(s)$arm]]))
 scope_frac &lt;- bind_rows(map(scope_ihc, &quot;fractions&quot;))
+scope_leaf &lt;- bind_rows(map(scope_ihc, &quot;leaves&quot;))
 scope_inv  &lt;- bind_rows(map(scope_ihc, &quot;inventory&quot;))
 scope_lab  &lt;- stats::setNames(DECONV_SCOPES$label, DECONV_SCOPES$scope)
 
@@ -1725,7 +1761,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-concordance-heatmap-1.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-concordance-heatmap-1.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -1744,8 +1780,7 @@ sceriff0
 <p>One tab per scope, and inside it one figure per population in the
 gate tree’s order. Each point is a patient: x is the IHC fraction of all
 cells the scope keeps (FlowPath phenotypes from that scope’s arm), y is
-the quanTIseq fraction from that patient’s bulk RNA. Both are fractions
-of all cells, so the dashed grey line is x = y; the blue line is a
+the quanTIseq fraction from that patient’s bulk RNA. The blue line is a
 least-squares fit drawn to show direction only. Points are coloured by
 the clinical <code>Immuno-phenotype</code>. The title carries the
 population’s gate, the subtitle the scope, its Spearman rho and its
@@ -1786,7 +1821,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-1.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-1.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -1824,7 +1859,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-2.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-2.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -1862,7 +1897,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-3.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-3.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -1900,7 +1935,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-4.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-4.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -1938,7 +1973,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-5.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-5.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -1976,7 +2011,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-6.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-6.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2014,7 +2049,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-7.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-7.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2052,7 +2087,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-8.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-8.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2090,7 +2125,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-9.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-9.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2128,7 +2163,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-10.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-10.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2169,7 +2204,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-11.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-11.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2207,7 +2242,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-12.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-12.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2245,7 +2280,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-13.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-13.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2283,7 +2318,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-14.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-14.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2321,7 +2356,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-15.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-15.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2359,7 +2394,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-16.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-16.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2397,7 +2432,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-17.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-17.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2435,7 +2470,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-18.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-18.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2473,7 +2508,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-19.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-19.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2511,7 +2546,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-20.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-20.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2552,7 +2587,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-21.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-21.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2590,7 +2625,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-22.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-22.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2628,7 +2663,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-23.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-23.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2666,7 +2701,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-24.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-24.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2704,7 +2739,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-25.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-25.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2742,7 +2777,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-26.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-26.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2780,7 +2815,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-27.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-27.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2818,7 +2853,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-28.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-28.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2856,7 +2891,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-29.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-29.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2894,7 +2929,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-30.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-30.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2935,7 +2970,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-31.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-31.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -2973,7 +3008,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-32.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-32.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3011,7 +3046,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-33.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-33.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3049,7 +3084,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-34.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-34.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3087,7 +3122,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-35.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-35.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3125,7 +3160,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-36.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-36.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3163,7 +3198,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-37.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-37.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3201,7 +3236,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-38.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-38.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3239,7 +3274,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-39.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-39.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3277,7 +3312,7 @@ Date
 <tbody>
 <tr>
 <td>
-<a href="https://github.com/sceriff0/analysis.ihc_method/blob/31219dfb1120435da22225a563c4bd49859cf634/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-40.png" target="_blank">31219df</a>
+<a href="https://github.com/sceriff0/analysis.ihc_method/blob/f83e67ec75e8016e95098a86ca703a410999f6d2/docs/figure/molecular_quantiseq.Rmd/quantiseq-scatter-40.png" target="_blank">f83e67e</a>
 </td>
 <td>
 sceriff0
@@ -3289,6 +3324,332 @@ sceriff0
 </tbody>
 </table>
 </div>
+</div>
+</div>
+</div>
+<div id="single-phenotype-labels" class="section level2">
+<h2>Single phenotype labels</h2>
+<p>Everything above compares <strong>sums</strong> of FlowPath phenotype
+labels: <code>CD8T</code> is <code>T cytotoxic</code> +
+<code>Activated T cytotoxic</code> + <code>CD8+ T reg</code>. This
+section takes each label on its own. <code>DECONV_LEAVES</code>
+(<code>code/deconv_scopes.R</code>) sets every label against the
+quanTIseq score of the most specific population that contains it, so
+several labels share one quanTIseq number: quanTIseq has a single CD8
+fraction, the phenotyping tree has three CD8 labels, and the panels show
+which label that number follows. <code>Immune</code> is taken whole (not
+split by CD3 sign) and the four CD45− labels all face quanTIseq’s
+<code>uncharacterized cell</code>, which is the only non-immune term it
+has.</p>
+<pre class="r"><code>DECONV_LEAVES |&gt;
+  left_join(select(deconv_comparison_lineages, lineage, ihc_gate), by = &quot;lineage&quot;) |&gt;
+  knitr::kable(col.names = c(&quot;FlowPath phenotype label&quot;, &quot;quanTIseq population on y&quot;,
+                             &quot;that population&#39;s gate&quot;),
+               caption = &quot;Each phenotype label and the quanTIseq population it is correlated with.&quot;)</code></pre>
+<table>
+<caption>Each phenotype label and the quanTIseq population it is
+correlated with.</caption>
+<colgroup>
+<col width="30%" />
+<col width="31%" />
+<col width="38%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">FlowPath phenotype label</th>
+<th align="left">quanTIseq population on y</th>
+<th align="left">that population’s gate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">T cytotoxic</td>
+<td align="left">CD8T</td>
+<td align="left">CD3+ CD8+ (any GZMB, any FOXP3)</td>
+</tr>
+<tr class="even">
+<td align="left">Activated T cytotoxic</td>
+<td align="left">CD8T</td>
+<td align="left">CD3+ CD8+ (any GZMB, any FOXP3)</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8+ T reg</td>
+<td align="left">CD8T</td>
+<td align="left">CD3+ CD8+ (any GZMB, any FOXP3)</td>
+</tr>
+<tr class="even">
+<td align="left">T helper</td>
+<td align="left">CD4T</td>
+<td align="left">CD3+ CD8- CD4+ FOXP3-</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4+ Treg</td>
+<td align="left">Treg</td>
+<td align="left">CD3+ CD8- CD4+ FOXP3+</td>
+</tr>
+<tr class="even">
+<td align="left">Natural Killer</td>
+<td align="left">NK</td>
+<td align="left">CD3- CD56+ (any GZMB)</td>
+</tr>
+<tr class="odd">
+<td align="left">Activated Natural Killer</td>
+<td align="left">NK</td>
+<td align="left">CD3- CD56+ (any GZMB)</td>
+</tr>
+<tr class="even">
+<td align="left">Immune</td>
+<td align="left">Immune_other</td>
+<td align="left">CD45+ CD3- CD56-</td>
+</tr>
+<tr class="odd">
+<td align="left">Stroma</td>
+<td align="left">NonImmune</td>
+<td align="left">CD45-</td>
+</tr>
+<tr class="even">
+<td align="left">PANCK+Tumor</td>
+<td align="left">NonImmune</td>
+<td align="left">CD45-</td>
+</tr>
+<tr class="odd">
+<td align="left">VIM+Tumor</td>
+<td align="left">NonImmune</td>
+<td align="left">CD45-</td>
+</tr>
+<tr class="even">
+<td align="left">Unknown</td>
+<td align="left">NonImmune</td>
+<td align="left">CD45-</td>
+</tr>
+</tbody>
+</table>
+<p>Per scope and patient, the label’s fraction is the kept cells
+carrying exactly that <code>phenotype</code> label over all kept cells
+(<code>ihc_leaf_fraction()</code>; a label a patient lacks is 0). It is
+inner-joined on patient to the quanTIseq score of the label’s
+population, and each cell of the table is the cross-patient Spearman rho
+with its n. Any phenotype label found in the cells but absent from the
+table above is named in the printed line.</p>
+<pre class="r"><code>leaf_unmapped &lt;- unique(unlist(map(scope_ihc, &quot;unmapped&quot;)))
+cat(&quot;phenotype labels with no row in DECONV_LEAVES:&quot;,
+    if (length(leaf_unmapped)) paste(leaf_unmapped, collapse = &quot;, &quot;) else &quot;none&quot;, &quot;\n&quot;)</code></pre>
+<pre><code>phenotype labels with no row in DECONV_LEAVES: none </code></pre>
+<pre class="r"><code>leaf_paired &lt;- scope_leaf |&gt;
+  inner_join(qs_scores, by = c(&quot;patient_id&quot;, &quot;lineage&quot;)) |&gt;
+  filter(is.finite(score), is.finite(ihc_frac)) |&gt;
+  left_join(clin, by = &quot;patient_id&quot;) |&gt;
+  mutate(leaf = factor(leaf, levels = DECONV_LEAVES$leaf))
+
+deconv_scope_concordance(leaf_paired, by = &quot;leaf&quot;) |&gt;
+  mutate(cell = ifelse(is.finite(rho), sprintf(&quot;%.2f (n = %d)&quot;, rho, n),
+                       sprintf(&quot;NA (n = %d)&quot;, n)),
+         scope = factor(scope_lab[scope], levels = DECONV_SCOPES$label)) |&gt;
+  select(leaf, lineage, scope, cell) |&gt;
+  pivot_wider(names_from = scope, values_from = cell, names_sort = TRUE) |&gt;
+  arrange(leaf) |&gt;
+  knitr::kable(col.names = c(&quot;phenotype label&quot;, &quot;quanTIseq population&quot;,
+                             levels(factor(scope_lab[unique(leaf_paired$scope)],
+                                           levels = DECONV_SCOPES$label))),
+               caption = &quot;Spearman rho, quanTIseq population score vs the fraction of cells carrying one phenotype label, per label and scope (n = patients).&quot;)</code></pre>
+<table style="width:100%;">
+<caption>Spearman rho, quanTIseq population score vs the fraction of
+cells carrying one phenotype label, per label and scope (n =
+patients).</caption>
+<colgroup>
+<col width="18%" />
+<col width="15%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+<col width="16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">phenotype label</th>
+<th align="left">quanTIseq population</th>
+<th align="left">Massimo1 — whole slide</th>
+<th align="left">Massimo1 — annotation</th>
+<th align="left">Massimo2 — whole slide</th>
+<th align="left">Massimo2 — annotation</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">T cytotoxic</td>
+<td align="left">CD8T</td>
+<td align="left">0.63 (n = 8)</td>
+<td align="left">0.87 (n = 8)</td>
+<td align="left">0.46 (n = 8)</td>
+<td align="left">0.71 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">Activated T cytotoxic</td>
+<td align="left">CD8T</td>
+<td align="left">0.11 (n = 8)</td>
+<td align="left">0.46 (n = 8)</td>
+<td align="left">0.05 (n = 8)</td>
+<td align="left">0.30 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">CD8+ T reg</td>
+<td align="left">CD8T</td>
+<td align="left">0.52 (n = 8)</td>
+<td align="left">0.85 (n = 8)</td>
+<td align="left">0.38 (n = 8)</td>
+<td align="left">0.71 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">T helper</td>
+<td align="left">CD4T</td>
+<td align="left">-0.65 (n = 8)</td>
+<td align="left">-0.65 (n = 8)</td>
+<td align="left">-0.76 (n = 8)</td>
+<td align="left">-0.41 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">CD4+ Treg</td>
+<td align="left">Treg</td>
+<td align="left">0.71 (n = 8)</td>
+<td align="left">0.83 (n = 8)</td>
+<td align="left">0.67 (n = 8)</td>
+<td align="left">0.62 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">Natural Killer</td>
+<td align="left">NK</td>
+<td align="left">-0.71 (n = 8)</td>
+<td align="left">-0.63 (n = 8)</td>
+<td align="left">-0.76 (n = 8)</td>
+<td align="left">-0.67 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">Activated Natural Killer</td>
+<td align="left">NK</td>
+<td align="left">-0.74 (n = 8)</td>
+<td align="left">-0.73 (n = 8)</td>
+<td align="left">-0.74 (n = 8)</td>
+<td align="left">-0.76 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">Immune</td>
+<td align="left">Immune_other</td>
+<td align="left">0.14 (n = 8)</td>
+<td align="left">0.69 (n = 8)</td>
+<td align="left">0.24 (n = 8)</td>
+<td align="left">0.14 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">Stroma</td>
+<td align="left">NonImmune</td>
+<td align="left">0.12 (n = 8)</td>
+<td align="left">0.02 (n = 8)</td>
+<td align="left">0.14 (n = 8)</td>
+<td align="left">0.17 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">PANCK+Tumor</td>
+<td align="left">NonImmune</td>
+<td align="left">0.38 (n = 8)</td>
+<td align="left">0.71 (n = 8)</td>
+<td align="left">0.52 (n = 8)</td>
+<td align="left">0.83 (n = 8)</td>
+</tr>
+<tr class="odd">
+<td align="left">VIM+Tumor</td>
+<td align="left">NonImmune</td>
+<td align="left">-0.14 (n = 8)</td>
+<td align="left">0.17 (n = 8)</td>
+<td align="left">-0.12 (n = 8)</td>
+<td align="left">-0.12 (n = 8)</td>
+</tr>
+<tr class="even">
+<td align="left">Unknown</td>
+<td align="left">NonImmune</td>
+<td align="left">-0.29 (n = 8)</td>
+<td align="left">0.43 (n = 8)</td>
+<td align="left">-0.38 (n = 8)</td>
+<td align="left">0.14 (n = 8)</td>
+</tr>
+</tbody>
+</table>
+<div id="one-scatter-per-phenotype-label" class="section level3 tabset">
+<h3 class="tabset">One scatter per phenotype label</h3>
+<p>One tab per scope, one figure per phenotype label. x is the fraction
+of the scope’s cells carrying that label, y the quanTIseq score of the
+population named in the title; one point per patient, coloured by the
+clinical <code>Immuno-phenotype</code>, with a least-squares fit for
+direction. Labels that share a population share their y values, so only
+x differs between those figures.</p>
+<pre class="r"><code>for (s in DECONV_SCOPES$scope) {
+  ds &lt;- filter(leaf_paired, scope == s)
+  if (!nrow(ds)) next
+  cat(&quot;\n\n#### &quot;, scope_lab[[s]], &quot;\n\n&quot;, sep = &quot;&quot;)
+  for (lf in levels(droplevels(ds$leaf))) {
+    dl &lt;- filter(ds, leaf == lf)
+    print(plot_deconv_scope_pair(dl, s, dl$lineage[1], METHOD, leaf = lf))
+    cat(&quot;\n\n&quot;)
+  }
+}</code></pre>
+<div id="massimo1-whole-slide-1" class="section level4">
+<h4>Massimo1 — whole slide</h4>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-1.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-2.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-3.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-4.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-5.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-6.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-7.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-8.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-9.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-10.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-11.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-12.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="massimo1-annotation-1" class="section level4">
+<h4>Massimo1 — annotation</h4>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-13.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-14.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-15.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-16.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-17.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-18.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-19.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-20.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-21.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-22.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-23.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-24.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="massimo2-whole-slide-1" class="section level4">
+<h4>Massimo2 — whole slide</h4>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-25.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-26.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-27.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-28.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-29.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-30.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-31.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-32.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-33.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-34.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-35.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-36.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+</div>
+<div id="massimo2-annotation-1" class="section level4">
+<h4>Massimo2 — annotation</h4>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-37.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-38.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-39.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-40.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-41.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-42.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-43.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-44.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-45.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-46.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-47.png" alt="" width="408" style="display: block; margin: auto;" /></p>
+<p><img src="figure/molecular_quantiseq.Rmd/leaf-scatter-48.png" alt="" width="408" style="display: block; margin: auto;" /></p>
 </div>
 </div>
 </div>
