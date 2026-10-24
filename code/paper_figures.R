@@ -599,7 +599,7 @@ deconv_population_table <- function(deconv_long, method) {
 # relationship the method does not report. Colour is the hotscore group, as in Fig
 # 6(b), so a population whose agreement is carried by the hot/cold split is visible.
 paper_deconv_facets <- function(paired, method, groups = NULL, lineages = NULL,
-                                ncol = NULL, y_lab = NULL) {
+                                ncol = NULL, y_lab = NULL, x_lab = NULL) {
   stopifnot(all(c("method", "lineage", "ihc_frac", "score", "patient_id") %in% names(paired)))
   df <- dplyr::filter(paired, tolower(.data$method) == tolower(!!method),
                       is.finite(.data$ihc_frac), is.finite(.data$score))
@@ -647,7 +647,7 @@ paper_deconv_facets <- function(paired, method, groups = NULL, lineages = NULL,
                labeller = ggplot2::as_labeller(DECONV_POPULATION_LABELS)) +
     scale_colour_manual(values = if (length(lv)) hotcold_cols(lv) else character(0),
                         na.value = "grey70", name = "Hotscore group") +
-    labs(x = paste0("FlowPath, ", den, " (inside annotation)"),
+    labs(x = x_lab %||% paste0("FlowPath, ", den, " (inside annotation)"),
          y = y_lab %||% paste(method_label(method),
                               if (deconv_is_additive(method)) "fraction" else "score (arbitrary units)"),
          subtitle = with_n(NULL, df$patient_id, "patients"))

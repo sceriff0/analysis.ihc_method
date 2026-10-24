@@ -527,6 +527,71 @@ phenotyping tree in `deconv_comparison_lineages` (Table 1 on the molecular
 pages). Note Treg is CD4+ Treg only; the tree's CD8+ T regs count as CD8T. That
 answers the legend's `[author to supply: full list of populations plotted]`.
 
+## 5(c) alternatives — one panel per population, MCP-counter and quanTIseq
+
+The same cached pairs as 5(c), drawn **one population per figure** so each lands as
+its own PDF (`fig5c-<method>-<population>.pdf`) and can be picked individually.
+Each panel has its own axes: MCP-counter reports a score per cell type in arbitrary
+units, comparable across patients but not across cell types, so a shared axis like
+5(c)'s would be meaningless for it. The number is Spearman rho (a ranking claim),
+with no fit line. Colour is (b)'s hotscore group.
+
+MCP-counter has no CD4 or Treg signature, so those two exist only for quanTIseq.
+Its B-cell, monocyte, macrophage, dendritic-cell and neutrophil scores are not drawn:
+the tree pools those cells as Immune (other), and MCP scores cannot be summed to
+match a pool. Its endothelial score has no gate. Both methods ran on the
+DESeq2-normalised counts. That is fine for MCP-counter, because gene length cancels
+in a comparison across samples. quanTIseq expects TPM, so its absolute fractions
+are biased.
+
+```{r fig5c-singles, results="asis"}
+# One chunk per (method, population), spliced with knit_child(text=) so the chunk
+# LABEL names the PDF and current_input() stays this page (see CLAUDE.md). A
+# population the cache does not carry is skipped rather than drawn empty.
+FIG5C_SINGLES <- list(
+  mcp_counter = c("T_total", "CD8T", "NK", "Cytotoxic", "Stroma"),
+  quantiseq   = c("T_total", "CD8T", "CD4T", "Treg", "NK", "Cytotoxic"))
+if (have_helpers && file.exists(paired_path)) {
+  paired_cache <- readRDS(paired_path)
+  single_stats <- list()
+  for (m in names(FIG5C_SINGLES)) {
+    have <- unique(paired_cache$lineage[tolower(paired_cache$method) == m])
+    pops <- intersect(FIG5C_SINGLES[[m]], have)
+    if (!length(pops)) {
+      cat("\n_No `", m, "` rows in `output/paired_deconv.rds` — re-knit the molecular page._\n",
+          sep = "")
+      next
+    }
+    for (pop in pops) {
+      chunk <- c(
+        sprintf("```{r fig5c-%s-%s, fig.width = panel_width(60), fig.height = panel_height(60)}",
+                gsub("_", "", m), pop),
+        sprintf(paste0("p1 <- paper_deconv_facets(paired_cache, \"%s\", groups = groups, lineages = \"%s\", ",
+                       "x_lab = \"FlowPath, %% of cells\", y_lab = \"%s\") + ",
+                       "theme(legend.position = \"bottom\")"),
+                m, pop, if (m == "mcp_counter") "MCP-counter score (a.u.)" else "quanTIseq fraction"),
+        sprintf(paste0("if (!is.null(p1)) { print(p1); single_stats[[length(single_stats) + 1]] <- ",
+                       "dplyr::mutate(attr(p1, \"stats\"), method = method_label(\"%s\")) }"), m),
+        "```")
+      cat(knitr::knit_child(text = chunk, envir = environment(), quiet = TRUE), sep = "\n")
+    }
+  }
+} else {
+  cat("_Needs `output/paired_deconv.rds` — see 5(c) above._\n")
+}
+```
+
+```{r fig5c-singles-table}
+if (exists("single_stats") && length(single_stats))
+  knitr::kable(dplyr::bind_rows(single_stats) |>
+                 dplyr::mutate(population = DECONV_POPULATION_LABELS[as.character(lineage)]) |>
+                 dplyr::select(method, population, n, rho),
+               digits = 2, caption = paste(
+                 "Spearman rho behind each single panel above (n = patients).",
+                 "With this few cases one patient moves rho by about 0.3,",
+                 "so a gap smaller than that between methods is a tie."))
+```
+
 ---
 
 # Additional files
