@@ -401,3 +401,71 @@ test_that("the marker row colours by the hotscore groups and keeps ungrouped cas
   expect_equal(sum(is.na(p$data$group)), 2)
   expect_equal(nrow(p$data), 8)
 })
+
+# --- Suppl. S10 alternatives: MCP-counter and a per-population layout -----------
+# immunedeconv's MCP-counter labels, as the package emits them.
+MCP_TYPES <- c("T cell", "T cell CD8+", "cytotoxicity score", "NK cell", "B cell",
+               "Monocyte", "Macrophage/Monocyte", "Myeloid dendritic cell",
+               "Neutrophil", "Endothelial cell", "Cancer associated fibroblast")
+
+.deconv_long <- function(method = "mcp_counter", types = MCP_TYPES, pids = .m8()$patient_id) {
+  set.seed(5)
+  tidyr::expand_grid(cell_type = types, patient_id = pids) |>
+    dplyr::mutate(method = method, score = runif(dplyr::n(), 0, 50))
+}
+.ihc_cmp <- function(pids = .m8()$patient_id) {
+  set.seed(6)
+  tidyr::expand_grid(patient_id = pids, lineage = deconv_comparison_lineages$lineage) |>
+    dplyr::mutate(n = 10, n_all = 100, n_cd45 = 40, frac_all = runif(dplyr::n(), 0, .3),
+                  frac_cd45 = frac_all * 2.5)
+}
+
+test_that("MCP-counter is compared on exactly five populations, one label each", {
+  tab <- deconv_population_table(.deconv_long(), "mcp_counter")
+  cmp <- dplyr::filter(tab, !is.na(lineage))
+  expect_setequal(cmp$lineage, c("T_total", "CD8T", "Cytotoxic", "NK", "Stroma"))
+  expect_equal(anyDuplicated(cmp$lineage), 0)
+  # Scores do not add, so B / myeloid labels cannot stand for Immune (other) ...
+  expect_true(all(is.na(tab$lineage[tab$cell_type %in% c("B cell", "Monocyte", "Neutrophil")])))
+  # ... and every uncompared label says why rather than vanishing.
+  expect_false(any(is.na(tab$why[is.na(tab$lineage)])))
+  expect_equal(tab$ihc_gate[tab$cell_type == "T cell"], "CD3+ (every T leaf, plus CD3+CD8-CD4- Immune)")
+})
+
+test_that("the per-population panel draws one free-scaled facet per population, no fit", {
+  paired <- deconv_lineage_scores(.deconv_long()) |> deconv_pair_with_ihc(.ihc_cmp())
+  p <- paper_deconv_facets(paired, "mcp_counter", groups = .g8(),
+                           lineages = c("CD8T", "NK", "T_total"))
+  expect_s3_class(p, "ggplot")
+  expect_equal(levels(p$data$lineage), c("CD8T", "NK", "T_total"))
+  expect_false(any(vapply(p$layers, function(l) inherits(l$stat, "StatSmooth"), logical(1))))
+  expect_equal(p$facet$params$free, list(x = TRUE, y = TRUE))
+  st <- attr(p, "stats")
+  x  <- dplyr::filter(paired, lineage == "NK")
+  expect_equal(st$rho[st$lineage == "NK"],
+               cor(x$ihc_frac, x$score, method = "spearman"), tolerance = 1e-9)
+  expect_match(p$labels$y, "MCP-counter")
+  expect_match(p$labels$x, "%")
+})
+
+test_that("the per-population panel keeps only populations the method resolves", {
+  paired <- deconv_lineage_scores(.deconv_long()) |> deconv_pair_with_ihc(.ihc_cmp())
+  # MCP has no Treg; asking for it must not draw an empty facet.
+  p <- paper_deconv_facets(paired, "mcp_counter", lineages = c("Treg", "CD8T"))
+  expect_equal(levels(p$data$lineage), "CD8T")
+})
+
+test_that("the rho summary has one point per method x population, with its n", {
+  qs <- c("T cell CD8+", "T cell CD4+ (non-regulatory)", "T cell regulatory (Tregs)",
+          "NK cell", "B cell", "uncharacterized cell")
+  paired <- dplyr::bind_rows(
+    deconv_lineage_scores(.deconv_long()) |> deconv_pair_with_ihc(.ihc_cmp()),
+    deconv_lineage_scores(.deconv_long("quantiseq", qs)) |> deconv_pair_with_ihc(.ihc_cmp()))
+  p  <- paper_deconv_rho_summary(paired, methods = c("quantiseq", "mcp_counter"),
+                                 lineages = c("CD8T", "NK", "Treg"))
+  st <- attr(p, "stats")
+  # MCP has no Treg: 3 quanTIseq rows + 2 MCP rows.
+  expect_equal(nrow(st), 5)
+  expect_true(all(st$n == 8))
+  expect_true(all(abs(st$rho) <= 1))
+})

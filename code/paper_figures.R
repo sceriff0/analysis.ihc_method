@@ -538,6 +538,164 @@ paper_deconv_scatter <- function(paired, method = "quantiseq", groups = NULL,
   p
 }
 
+# --- Suppl. S10 alternatives: any method, one panel per population ------------
+# The populations a deconvolution comparison can name, in reading order (pan-T,
+# then the T leaves, NK, the cross-cutting cytotoxic set, stroma, then the sums),
+# and what a reader should see in a strip. Keys are deconv_comparison_lineages'.
+DECONV_POPULATION_ORDER <- c("T_total", "CD8T", "CD4T", "CD4T_all", "Treg", "NK",
+                             "Cytotoxic", "Stroma", "Immune_other", "Immune_total",
+                             "NonImmune")
+DECONV_POPULATION_LABELS <- c(
+  T_total = "T cells (CD3+)", CD8T = "CD8 T", CD4T = "CD4 T (FOXP3-)",
+  CD4T_all = "CD4 T (any FOXP3)", Treg = "Treg (CD4+ FOXP3+)", NK = "NK",
+  Cytotoxic = "Cytotoxic (CD8 T + NK)", Stroma = "Stroma (SMA+)",
+  Immune_other = "Immune (other)", Immune_total = "Immune (CD45+)",
+  NonImmune = "Non-immune (CD45-)")
+
+# Every cell type a method reported, and the imaging population it is compared
+# against — or, for one that is not compared, WHY. `deconv_long` needs method and
+# cell_type. Built from deconv_contributions(), the function that does the pairing,
+# so the table cannot describe a mapping the figures do not use.
+deconv_population_table <- function(deconv_long, method) {
+  dl <- dplyr::filter(deconv_long, .data$method == !!method)
+  types <- unique(dl$cell_type)
+  contrib <- deconv_contributions(dplyr::distinct(dl, method, cell_type))
+  base <- deconv_to_lineage(types)
+  why_not <- function(ct, b) {
+    l <- tolower(ct)
+    if (!is.na(b) && b == "Immune_other")
+      return(if (deconv_is_additive(method))
+               "summed into Immune (other) only"
+             else "no single imaging population: the tree pools B and myeloid cells as Immune (other), and this method's scores cannot be summed")
+    if (grepl("endothelial", l)) return("no endothelial gate in the tree")
+    if (grepl("uncharacterized", l)) return("the non-immune remainder; compared only as a sum")
+    if (grepl("plasma", l)) return("plasma cells are CD45-dim on tissue; left out")
+    "no matching imaging population"
+  }
+  mapped <- dplyr::left_join(contrib, dplyr::select(deconv_comparison_lineages, lineage, ihc_gate),
+                             by = "lineage") |>
+    dplyr::transmute(cell_type, lineage, route, ihc_gate, why = NA_character_)
+  unmapped <- setdiff(types, mapped$cell_type)
+  dplyr::bind_rows(
+    mapped,
+    tibble::tibble(cell_type = unmapped, lineage = NA_character_, route = NA_character_,
+                   ihc_gate = NA_character_,
+                   why = mapply(why_not, unmapped, base[match(unmapped, types)],
+                                USE.NAMES = FALSE))) |>
+    dplyr::arrange(is.na(.data$lineage),
+                   match(.data$lineage, DECONV_POPULATION_ORDER), .data$cell_type)
+}
+
+# One panel per population, imaging on x and the method's estimate on y, each on
+# its OWN axes. The layout for a method whose numbers are not comparable across
+# cell types (MCP-counter, xCell, TIMER: per-signature scores in arbitrary units):
+# a shared y axis would place a T-cell score and an NK score on one scale they do
+# not share. It works for a fraction method too, at the cost of hiding that the
+# populations sit at different abundances — which is what paper_deconv_scatter()'s
+# single panel shows instead.
+#
+# The claim is RANKING, so the number in each panel is Spearman rho and no fit line
+# is drawn: a least-squares line through arbitrary units would suggest a scale
+# relationship the method does not report. Colour is the hotscore group, as in Fig
+# 6(b), so a population whose agreement is carried by the hot/cold split is visible.
+paper_deconv_facets <- function(paired, method, groups = NULL, lineages = NULL,
+                                ncol = NULL, y_lab = NULL) {
+  stopifnot(all(c("method", "lineage", "ihc_frac", "score", "patient_id") %in% names(paired)))
+  df <- dplyr::filter(paired, tolower(.data$method) == tolower(!!method),
+                      is.finite(.data$ihc_frac), is.finite(.data$score))
+  have <- intersect(DECONV_POPULATION_ORDER, unique(df$lineage))
+  keep <- if (is.null(lineages)) have else intersect(lineages, have)
+  if (!length(keep)) {
+    warning("paper_deconv_facets(): no population of ", paste(lineages, collapse = ", "),
+            " for '", method, "' — have: ", paste(have, collapse = ", "))
+    return(NULL)
+  }
+  df <- df |>
+    dplyr::filter(.data$lineage %in% keep) |>
+    dplyr::mutate(lineage = factor(.data$lineage, levels = keep), x = 100 * .data$ihc_frac)
+  if (!is.null(groups) && nrow(groups)) {
+    df <- df |>
+      dplyr::mutate(.pid = slide_key(.data$patient_id)) |>
+      dplyr::left_join(dplyr::transmute(groups, .pid = slide_key(patient_id), group),
+                       by = ".pid") |>
+      dplyr::select(-".pid") |>
+      dplyr::mutate(group = hotcold_order(.data$group))
+  } else {
+    df$group <- factor(NA_character_)
+  }
+
+  stats <- df |>
+    dplyr::group_by(.data$lineage) |>
+    dplyr::summarise(
+      n   = dplyr::n(),
+      rho = if (dplyr::n() >= 3 && stats::sd(x) > 0 && stats::sd(score) > 0)
+              stats::cor(x, score, method = "spearman") else NA_real_,
+      x_lab = min(x), y_lab = max(score) + 0.18 * diff(range(c(0, score))),
+      .groups = "drop") |>
+    dplyr::mutate(label = ifelse(is.finite(.data$rho),
+                                 paste0("rho = ", formatC(.data$rho, format = "f", digits = 2)),
+                                 "rho = NA"))
+
+  den <- if (deconv_ihc_denominator(method) == "CD45") "% of CD45+ cells" else "% of all cells"
+  lv  <- levels(df$group)
+  p <- ggplot(df, aes(.data$x, .data$score)) +
+    geom_point(aes(colour = .data$group), size = 2.2, alpha = .9) +
+    geom_text(data = stats, aes(x = .data$x_lab, y = .data$y_lab, label = .data$label),
+              hjust = 0, vjust = 1, size = pt_text(7), colour = "grey20",
+              inherit.aes = FALSE) +
+    facet_wrap(~ lineage, scales = "free", ncol = ncol %||% length(keep),
+               labeller = ggplot2::as_labeller(DECONV_POPULATION_LABELS)) +
+    scale_colour_manual(values = if (length(lv)) hotcold_cols(lv) else character(0),
+                        na.value = "grey70", name = "Hotscore group") +
+    labs(x = paste0("FlowPath, ", den, " (inside annotation)"),
+         y = y_lab %||% paste(method_label(method),
+                              if (deconv_is_additive(method)) "fraction" else "score (arbitrary units)"),
+         subtitle = with_n(NULL, df$patient_id, "patients"))
+  attr(p, "stats") <- dplyr::select(stats, "lineage", "n", "rho")
+  p
+}
+
+# Spearman rho per (method, population), as a dot per pair on one -1..1 axis: the
+# side-by-side a reader needs to choose between methods. n is printed beside each
+# dot, because with eight cases a rho of 0.7 and one of 0.4 are not distinguishable
+# and the reader should see how few points stand behind each.
+paper_deconv_rho_summary <- function(paired, methods, lineages = NULL) {
+  df <- dplyr::filter(paired, .data$method %in% methods,
+                      is.finite(.data$ihc_frac), is.finite(.data$score))
+  if (!is.null(lineages)) df <- dplyr::filter(df, .data$lineage %in% lineages)
+  stats <- df |>
+    dplyr::group_by(.data$method, .data$lineage) |>
+    dplyr::summarise(
+      n   = dplyr::n(),
+      rho = if (dplyr::n() >= 3 && stats::sd(ihc_frac) > 0 && stats::sd(score) > 0)
+              stats::cor(ihc_frac, score, method = "spearman") else NA_real_,
+      .groups = "drop") |>
+    dplyr::filter(is.finite(.data$rho))
+  if (!nrow(stats)) {
+    warning("paper_deconv_rho_summary(): no finite rho")
+    return(NULL)
+  }
+  pops <- intersect(DECONV_POPULATION_ORDER, unique(stats$lineage))
+  labs_m <- stats::setNames(method_label(methods), methods)
+  stats <- dplyr::mutate(stats,
+                         lineage = factor(.data$lineage, levels = rev(pops)),
+                         method  = factor(.data$method, levels = methods))
+  shapes <- stats::setNames(c(16, 17, 15, 18, 1, 2)[seq_along(methods)], methods)
+  pd <- position_dodge(width = .55)
+  p <- ggplot(stats, aes(.data$rho, .data$lineage, shape = .data$method)) +
+    geom_vline(xintercept = 0, colour = "grey75", linewidth = pt_line(0.5)) +
+    geom_point(size = 2.4, position = pd) +
+    geom_text(aes(label = paste0("n=", .data$n)), position = pd, hjust = -0.35,
+              size = pt_text(6), colour = "grey35", show.legend = FALSE) +
+    scale_x_continuous(limits = c(-1, 1.15), breaks = c(-1, -.5, 0, .5, 1)) +
+    scale_y_discrete(labels = DECONV_POPULATION_LABELS) +
+    scale_shape_manual(values = shapes, labels = labs_m, name = NULL) +
+    labs(x = "Spearman rho, FlowPath fraction vs deconvolution", y = NULL)
+  attr(p, "stats") <- dplyr::mutate(stats, lineage = as.character(.data$lineage),
+                                    method = as.character(.data$method))
+  p
+}
+
 # method_label() lives in validation_helpers.R, beside deconv_to_lineage(): the
 # molecular pages title one figure per method with it.
 

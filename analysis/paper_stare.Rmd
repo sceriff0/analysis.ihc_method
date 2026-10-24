@@ -230,17 +230,22 @@ EXPR_SCALE <- if (!is.null(expr_scales$tpm)) "tpm" else "normalized"
 expr_mat   <- expr_scales[[EXPR_SCALE]]
 storage.mode(expr_mat) <- "double"
 
-qs_long <- immunedeconv::deconvolute(expr_mat, "quantiseq") |>
-  pivot_longer(-cell_type, names_to = "sample", values_to = "score") |>
-  mutate(method = "quantiseq", crf_id = norm_id(sample),
-         patient_id = unname(crf2slide[crf_id])) |>
+# quanTIseq and MCP-counter in ONE run on the same matrix, so the two S10 variants
+# below differ only in the method.
+DECONV_METHODS <- c("quantiseq", "mcp_counter")
+deconv_long <- map_dfr(DECONV_METHODS, function(m)
+  immunedeconv::deconvolute(expr_mat, m) |>
+    pivot_longer(-cell_type, names_to = "sample", values_to = "score") |>
+    mutate(method = m)) |>
+  mutate(crf_id = norm_id(sample), patient_id = unname(crf2slide[crf_id])) |>
   filter(!is.na(patient_id))
 
 qs_pair_for <- function(fr)
-  deconv_lineage_scores(qs_long) |> deconv_pair_with_ihc(ihc_comparison_fraction(fr$inside))
+  deconv_lineage_scores(deconv_long) |> deconv_pair_with_ihc(ihc_comparison_fraction(fr$inside))
 qs_paired <- qs_pair_for(main)
-cat("quanTIseq on the", EXPR_SCALE, "scale |", n_distinct(qs_paired$patient_id),
-    "patients paired\n")
+cat("deconvolution on the", EXPR_SCALE, "scale |",
+    paste(DECONV_METHODS, collapse = " + "), "|",
+    n_distinct(qs_paired$patient_id), "patients paired\n")
 ```
 
 ```{r figS10, eval = have_qs, fig.width = fig_width("oneandhalf"), fig.height = panel_height(90)}
@@ -257,6 +262,72 @@ knitr::kable(
     group_modify(~ paired_spearman(.x$ihc_frac, .x$score)) |>
     ungroup(),
   digits = 3, caption = "Suppl. S10: Spearman rho per population, FlowPath vs quanTIseq.")
+```
+
+## Suppl. S10, alternative — MCP-counter
+
+MCP-counter fits the data as it is better than quanTIseq does. Each of its scores
+is the mean log expression of one cell type's marker genes. A gene's length is the
+same in every sample, so on the log scale it shifts every patient's score by the
+same amount and the ranking across patients is unchanged. DESeq2-normalised counts
+are therefore a valid input, which they are not for quanTIseq. The cost: its scores
+are **arbitrary units per cell type**, comparable between patients but not between
+populations, so it supports only a ranking claim (Spearman) and needs one panel per
+population.
+
+**Which populations it has.** Every cell type MCP-counter reports, and the FlowPath
+population it is compared against (or why it is not):
+
+```{r mcp-populations, eval = have_qs}
+knitr::kable(
+  deconv_population_table(deconv_long, "mcp_counter") |>
+    transmute(`MCP-counter cell type` = cell_type,
+              `imaging population`    = ifelse(is.na(lineage), "—",
+                                               DECONV_POPULATION_LABELS[lineage]),
+              `FlowPath gate`         = coalesce(ihc_gate, ""),
+              `not compared because`  = coalesce(why, "")),
+  caption = "MCP-counter's cell types against the FlowPath gating tree.")
+```
+
+**Layout A — one panel per population.** x is the FlowPath population as % of all
+inside cells, y is the MCP-counter score, colour is the hotscore group, and each
+panel prints its Spearman rho. No fit line is drawn, because a least-squares line
+through arbitrary units would suggest a scale the method does not report.
+
+```{r figS10-mcp, eval = have_qs, fig.width = fig_width("double"), fig.height = panel_height(52)}
+pS10_mcp <- paper_deconv_facets(qs_paired, "mcp_counter", groups = groups)
+print(pS10_mcp)
+```
+
+The same layout for quanTIseq, so the two methods can be compared panel for panel
+(quanTIseq's y is a fraction of all cells):
+
+```{r figS10-qs-facets, eval = have_qs, fig.width = fig_width("double"), fig.height = panel_height(52)}
+print(paper_deconv_facets(qs_paired, "quantiseq", groups = groups,
+                          lineages = c("CD8T", "CD4T", "Treg", "NK")))
+```
+
+**Layout B — agreement per population, both methods on one axis.** Each dot is the
+Spearman rho between FlowPath and one method for one population, with the number of
+patients beside it. With eight cases a rho moves about ±0.3 with a single patient,
+so read differences between dots smaller than that as no difference.
+
+```{r figS10-rho, eval = have_qs, fig.width = fig_width("oneandhalf"), fig.height = panel_height(70)}
+# The populations a method choice turns on. quanTIseq's composites (CD4 any FOXP3,
+# CD45+, CD45-) are sums of the leaves above and would repeat them.
+S10_POPULATIONS <- c("T_total", "CD8T", "CD4T", "Treg", "NK", "Cytotoxic", "Stroma")
+pS10_rho <- paper_deconv_rho_summary(qs_paired, methods = DECONV_METHODS,
+                                     lineages = S10_POPULATIONS)
+print(pS10_rho)
+```
+
+```{r figS10-rho-table, eval = have_qs}
+knitr::kable(attr(pS10_rho, "stats") |>
+               mutate(method = method_label(method),
+                      population = DECONV_POPULATION_LABELS[lineage]) |>
+               select(method, population, n, rho) |>
+               arrange(population, method),
+             digits = 2, caption = "Layout B's numbers.")
 ```
 
 ## Supplementary — the same panels on Massimo1's gating
@@ -334,7 +405,7 @@ write_csv(left_join(transmute(main$union, patient_id, cd45_pct = 100 * cd45_over
 write_csv(filter(rna_paired, marker %in% FIG6_MARKERS) |>
             mutate(ihc_pct = 100 * ihc_posfrac, log1p_rna = log1p(rna_expr)),
           file.path(out, "fig6b_marker_vs_rna.csv"))
-if (exists("qs_paired")) write_csv(qs_paired, file.path(out, "figS10_quantiseq_pairs.csv"))
+if (exists("qs_paired")) write_csv(qs_paired, file.path(out, "figS10_deconv_pairs.csv"))
 cat("written:", paste(list.files(out), collapse = ", "), "\n")
 ```
 
