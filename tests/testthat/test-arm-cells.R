@@ -522,7 +522,8 @@ test_that("every arm reads the csv-only patients from data/flowpath, cut by thei
   .massimo1_tree(d, regions = list(`046` = 1L), n = 100, n_all = 200, inverted = "046")
   .flowpath_csvs(d)
 
-  for (arm in ARM_MODES) {
+  # The STARE arms ship their own copies under stare/ and are tested below.
+  for (arm in grep("^stare_", ARM_MODES, value = TRUE, invert = TRUE)) {
     spec  <- arm_spec(arm, data_dir = d)
     cells <- suppressMessages(arm_cells(spec))
     # Keyed as slide_key() keys the clinical sheet, whatever the file is called:
@@ -583,4 +584,57 @@ test_that("a csv-only patient whose data/flowpath file is missing warns, naming 
   expect_warning(cells <- arm_cells(spec), "36672_2\\.csv")
   expect_false("366722" %in% cells$patient_id)
   expect_equal(nrow(dplyr::filter(cells, patient_id == "15370")), 200)
+})
+
+# =============================================================================
+# The STARE arms: one whole-slide csv per patient, no polygons, cut by the flag
+# =============================================================================
+# The share's own layout: stare/Massimo<k>/<pid>.csv per gating session, and the
+# two csv-only patients at the top, one of them under its misspelled name.
+.stare_tree <- function(data_dir, pids = c("046", "24086"), n = 200) {
+  root <- file.path(data_dir, "stare")
+  for (k in 1:2) for (pid in pids)
+    .cells_csv(file.path(root, paste0("Massimo", k), paste0(pid, ".csv")), n)
+  .cells_csv(file.path(root, "15370.csv"), 80)
+  .cells_csv(file.path(root, "36766_2.csv"), 40)
+  root
+}
+
+test_that("every STARE patient is ONE region, ANNOTATION_1, membership from its flag", {
+  d <- .tmp_data(); .stare_tree(d)
+  for (arm in c("stare_massimo1", "stare_massimo2")) {
+    cells <- suppressMessages(arm_cells(arm_spec(arm, data_dir = d)))
+    expect_setequal(unique(cells$patient_id), c("046", "24086", "15370", "366722"))
+    expect_equal(unique(cells$annotation), "ANNOTATION_1", label = arm)
+    expect_equal(unique(cells$.membership_source), "flag", label = arm)
+    expect_false(any(cells$has_annotation), label = arm)
+    # 36766_2.csv is the clinical sheet's 36672-2, keyed 366722 — not 367662.
+    expect_equal(nrow(dplyr::filter(cells, patient_id == "366722")), 40, label = arm)
+    expect_false("367662" %in% cells$patient_id)
+  }
+})
+
+test_that("STARE metrics cut every patient by its flag, never count it whole", {
+  # The trap: arm_metrics() counts a polygon-less patient WHOLE unless something
+  # says its flag decides. In the STARE arms that is every patient, so a missing
+  # rule would put whole-slide numbers under an "inside the annotation" label.
+  d <- .tmp_data(); .stare_tree(d)
+  spec  <- arm_spec("stare_massimo2", data_dir = d)
+  cells <- suppressMessages(arm_cells(spec))
+  for (scope in c("per_annotation", "union")) {
+    m <- suppressWarnings(suppressMessages(arm_metrics(spec, cells, NULL, scope)))
+    expect_equal(unique(m$source), "flag", label = scope)
+    # .cells_csv flags one cell in four as outside: 150 of 200 are in.
+    expect_equal(m$n_inside[m$patient_id == "046"], 150, label = scope)
+    expect_false(any(m$annotation == "whole_slide"), label = scope)
+  }
+})
+
+test_that("STARE per-cell membership is the flag, and matches the metrics row", {
+  d <- .tmp_data(); .stare_tree(d)
+  spec  <- arm_spec("stare_massimo1", data_dir = d)
+  cells <- suppressMessages(arm_cells(spec))
+  inn   <- suppressWarnings(arm_cells_in_annotation(spec, cells))
+  expect_equal(unique(inn$.in_annotation_source), "flag")
+  expect_equal(sum(inn$in_annotation[inn$patient_id == "046"]), 150)
 })

@@ -20,6 +20,9 @@
 #                                                             not re-draw them
 #   massimo2            csv/<pid>/<pid>_<A|B|C>.csv          annotation/
 #                                                              <pid>/<pid>_<A|B|C>.geojson
+#   stare_massimo1      stare/Massimo1/<pid>.csv             none — each csv is the
+#   stare_massimo2      stare/Massimo2/<pid>.csv               WHOLE slide, cut by its
+#                       stare/<file>.csv (csv-only patients)   own Out_of_annotation flag
 #   (every arm)         data/flowpath/<file>.csv             none — the csv-only
 #                       for FLAG_MEMBERSHIP_FILES only        patients, cut by their flag
 #
@@ -68,11 +71,14 @@ suppressPackageStartupMessages({
 #   nested_bare    <root>/<pid>/<pid>.ext           the patient's single file
 #   flat_digit     <root>/<pid>_a<k>.ext            no directory: stem is the key
 #   flat_letter    <root>/<pid>_<A|B|C>.ext         the same, letter-suffixed
+#   flat_bare      <root>/<pid>.ext                 the stem IS the patient, whole
 #
 # No arm uses `flat_letter` today. It is here because the axis is nested/flat x
 # letter/digit/bare and a registry that describes five of six cases invites the sixth
 # to be re-implemented somewhere else — which is exactly how validation_helpers.R
 # ended up with a second copy of this parser. .annotation_key() delegates here.
+# `flat_bare` was that sixth case until the STARE export arrived and used it. It
+# never splits the stem, so STARE's `36766_2.csv` stays one patient stem.
 #
 # `annotation` comes back as ANNOTATION_<k>, or NA for a bare file — the CALLER
 # decides what a bare file means, because it differs by tier: a bare csv in
@@ -80,7 +86,7 @@ suppressPackageStartupMessages({
 # massimo1's `_all` tier is that patient's union polygon. Deciding here would
 # force one of those two readings onto the other.
 ARM_NAME_PATTERNS <- c("nested_letter", "nested_digit", "nested_bare",
-                       "flat_digit", "flat_letter")
+                       "flat_digit", "flat_letter", "flat_bare")
 
 # "A" -> 1, by alphabet position, not by file order: "C" is region 3 whether or
 # not "B" was ever exported.
@@ -92,6 +98,8 @@ arm_parse_name <- function(path, pattern = ARM_NAME_PATTERNS) {
   parent  <- fs::path_file(fs::path_dir(path))
 
   none <- function(pid) list(patient = pid, annotation = NA_character_)
+
+  if (pattern == "flat_bare") return(none(stem))
 
   if (pattern == "flat_digit") {
     m <- regmatches(stem, regexec("^(.*)_a([0-9]+)$", stem))[[1]]
@@ -139,8 +147,10 @@ arm_parse_name <- function(path, pattern = ARM_NAME_PATTERNS) {
 # rather than inferred: it says what a region-tier file with no region suffix
 # means. In massimo2 that is a patient with no annotation drawn at all, whose
 # whole slide counts as one region ("whole_slide" — the layout's own stated
-# convention). No other arm has such a file, so the field is NA for them and a
-# stray bare csv is a warning instead of a silent extra region.
+# convention). The STARE arms state "flag": every one of their csvs is bare, and
+# each is that patient's ONE region, ANNOTATION_1, cut by the export's own
+# Out_of_annotation column. The other arms have no such file, so the field is NA
+# for them and a stray bare csv is a warning instead of a silent extra region.
 ARM_SPECS <- list(
   massimo1 = list(
     arm            = "massimo1",
@@ -193,6 +203,47 @@ ARM_SPECS <- list(
     union_csv      = NULL,
     union_poly     = NULL,
     bare_region_is = "whole_slide"
+  ),
+  # THE STARE ARMS: THE SAME TWO GATING SESSIONS ON STARE-REGISTERED SLIDES.
+  #
+  # The 2026.10.23_STARE share re-runs the cohort through MIRAGE with STARE in place
+  # of VALIS and re-exports Massimo1's and Massimo2's FlowPath gating over it. It is
+  # the study's MAIN data from then on. Its shape differs from the arms above in
+  # one way that matters: every csv is ONE PATIENT'S WHOLE SLIDE, and no polygon is
+  # shipped. The in/out call made in FlowPath travels inside the csv as
+  # Out_of_annotation, exactly as it does for the csv-only patients below, so
+  # `bare_region_is = "flag"` makes every patient one of those: ANNOTATION_1,
+  # membership from the flag, `source = "flag"`.
+  #
+  # Both arms share the `stare/` root, as massimo1_inverted shares massimo1's: one
+  # copy of the share supplies both trees and the csv-only patients at its top level.
+  # They are still two arms with their own mode strings, because the two gating
+  # sessions are two phenotypings of the same cells and a figure must say which.
+  stare_massimo1 = list(
+    arm            = "stare_massimo1",
+    root           = "stare",
+    label          = "STARE registration, Massimo1 gating, whole slide cut by the export flag",
+    region_csv     = list(dir = "Massimo1", pattern = "flat_bare",
+                          classification = "normal"),
+    region_poly    = NULL,
+    union_csv      = NULL,
+    union_poly     = NULL,
+    bare_region_is = "flag",
+    flag_csv_dir   = ".",
+    flag_csv_files = "STARE_FLAG_FILES"
+  ),
+  stare_massimo2 = list(
+    arm            = "stare_massimo2",
+    root           = "stare",
+    label          = "STARE registration, Massimo2 gating, whole slide cut by the export flag",
+    region_csv     = list(dir = "Massimo2", pattern = "flat_bare",
+                          classification = "normal"),
+    region_poly    = NULL,
+    union_csv      = NULL,
+    union_poly     = NULL,
+    bare_region_is = "flag",
+    flag_csv_dir   = ".",
+    flag_csv_files = "STARE_FLAG_FILES"
   )
 )
 
@@ -227,6 +278,17 @@ FLAG_MEMBERSHIP_DIR   <- "flowpath"
 FLAG_MEMBERSHIP_FILES <- c(`15370`   = "153070.csv",
                            `36672_2` = "36672_2.csv")
 FLAG_MEMBERSHIP_PATIENTS <- names(FLAG_MEMBERSHIP_FILES)
+
+# The STARE share ships the same two patients at its top level, under its own
+# names. ONE OF THEM IS MISSPELLED THERE: the share writes `36766_2`, while the
+# clinical sheet, the RNA crosswalk and every earlier export write 36672-2 (key
+# 366722). Confirmed as the same case (2026-10-24); the manuscript's supplement
+# carries the same "[[TBD: reconcile identifier]]". So, as for 153070.csv above,
+# the file is NAMED and mapped to the patient rather than parsed — parsed, it would
+# key 367662 and lose its clinical row and its bulk sample without any error.
+# An arm reads these instead of FLAG_MEMBERSHIP_FILES when its spec names them.
+STARE_FLAG_FILES <- c(`15370`   = "15370.csv",
+                      `36672_2` = "36766_2.csv")
 
 # Is this a csv-only patient? Matched on the same key slide_key() would give it —
 # digits only, so the file "36672_2", a clinical "36672-2" and the key "366722"
@@ -274,19 +336,44 @@ arm_spec <- function(arm = ARM_MODES, data_dir = here::here("data")) {
                  "region_poly", "union_csv", "union_poly"))
     if (!is.null(spec[[tier]]))
       spec[[tier]]$path <- .arm_resolve_dir(root, spec[[tier]]$dir)
-  # Shared by every arm, so it hangs off data/ rather than the arm's own root.
-  spec$flag_csv <- list(dir = FLAG_MEMBERSHIP_DIR,
-                        path = .arm_resolve_dir(data_dir, FLAG_MEMBERSHIP_DIR),
-                        classification = "normal")
+  # Shared by every annotated arm, so it hangs off data/ rather than the arm's own
+  # root. An arm that ships its own copies (the STARE share) names a directory
+  # under its root and the registry constant mapping patient -> file.
+  if (is.null(spec$flag_csv_dir)) {
+    spec$flag_csv <- list(dir = FLAG_MEMBERSHIP_DIR,
+                          path = .arm_resolve_dir(data_dir, FLAG_MEMBERSHIP_DIR),
+                          files = FLAG_MEMBERSHIP_FILES,
+                          classification = "normal")
+  } else {
+    spec$flag_csv <- list(dir = file.path(spec$root, spec$flag_csv_dir),
+                          path = if (identical(spec$flag_csv_dir, ".")) root
+                                 else .arm_resolve_dir(root, spec$flag_csv_dir),
+                          files = get(spec$flag_csv_files),
+                          classification = "normal")
+  }
   spec
 }
 
 # The csv-only patients' files, one row per registry entry whether or not it is on
 # disk: a missing file has to be reportable by name, not merely absent.
 arm_flag_files <- function(spec) {
-  path <- file.path(spec$flag_csv$path, unname(FLAG_MEMBERSHIP_FILES))
-  tibble::tibble(patient_id = FLAG_MEMBERSHIP_PATIENTS, path = path,
+  files <- if (is.null(spec$flag_csv$files)) FLAG_MEMBERSHIP_FILES else spec$flag_csv$files
+  path  <- file.path(spec$flag_csv$path, unname(files))
+  tibble::tibble(patient_id = names(files), path = path,
                  exists = file.exists(path))
+}
+
+# What a region-tier csv with no region suffix stands for in this arm: the
+# annotation label it is filed under, or NA when the arm has no rule for one. The
+# ONE reading of `bare_region_is`, shared by arm_cells.R and validation_helpers.R so
+# the reader and the membership QC cannot file the same bare file differently.
+arm_bare_annotation <- function(spec) {
+  rule <- spec$bare_region_is
+  if (is.null(rule) || is.na(rule)) return(NA_character_)
+  switch(rule,
+         whole_slide = "whole_slide",
+         flag        = "ANNOTATION_1",
+         NA_character_)
 }
 
 # Does this arm ship a dedicated whole-slide tier, or must the union be derived by

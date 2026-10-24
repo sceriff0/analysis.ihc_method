@@ -124,7 +124,7 @@ source(here::here("code", "arms.R"))
     bare <- is.na(meta$annotation)
   }
   if (any(bare)) {
-    if (is.na(spec$bare_region_is)) {
+    if (is.na(arm_bare_annotation(spec))) {
       warning("arm ", spec$arm, ": ", sum(bare), " region csv(s) carry no region suffix (",
               paste(fs::path_file(meta$path[bare]), collapse = ", "),
               ") and this arm has no rule for one — dropping them")
@@ -141,7 +141,9 @@ source(here::here("code", "arms.R"))
                 "bare file, the regions win")
         meta <- meta[!(bare & meta$patient_id %in% meta$patient_id[!bare]), , drop = FALSE]
       }
-      meta$annotation[is.na(meta$annotation)] <- spec$bare_region_is
+      # "whole_slide" for massimo2, ANNOTATION_1 for the STARE arms (whose every
+      # file is bare, and is cut by its own flag below).
+      meta$annotation[is.na(meta$annotation)] <- arm_bare_annotation(spec)
     }
   }
   if (nrow(meta) == 0) return(tibble::tibble())
@@ -395,6 +397,15 @@ arm_promote_unregioned <- function(spec, cells, polys, union_cells, union_polys)
   list(cells = cells, polys = polys)
 }
 
+# --- Who is cut by the export flag rather than by a polygon ------------------
+# A csv-only patient in any arm, and EVERY patient of an arm whose bare files are
+# flag-cut by its own statement (the STARE arms). Named once, because arm_metrics()
+# and arm_cells_in_annotation() must agree on it or a metrics row and a per-cell
+# verdict would count the same patient two different ways.
+arm_cut_by_flag <- function(spec, patient_id) {
+  identical(spec$bare_region_is, "flag") | arm_flag_patient(patient_id)
+}
+
 # --- Provenance --------------------------------------------------------------
 # What was actually read, one row per (patient, region), for the report to print.
 # `n_inside` is left to the metrics frame — this table answers "did my data
@@ -498,8 +509,10 @@ arm_metrics <- function(spec, cells, annots, scope = c("per_annotation", "union"
 
     # -- whole-slide patient: no polygon by the arm's own convention, so every cell
     # -- counts and there is no area to divide by. NA densities, as the flag modes.
-    # -- A csv-only patient (arms.R) never takes this branch: its flag decides below.
-    if (!any(cp$has_annotation) && !arm_flag_patient(pid)) {
+    # -- A patient cut by its flag (arm_cut_by_flag) never takes this branch: in the
+    # -- STARE arms that is EVERY patient, and counting them whole here would put
+    # -- whole-slide numbers under an "inside the annotation" label.
+    if (!any(cp$has_annotation) && !arm_cut_by_flag(spec, pid)) {
       return(region_ratios_area(cp, 0, um_per_px) |>
                dplyr::mutate(patient_id = pid, annotation = "whole_slide",
                              source = "whole_slide", .before = 1))
@@ -751,7 +764,7 @@ arm_cells_in_annotation <- function(spec, cells, um_per_px = 0.325,
     # arm_metrics() does.
     no_annotation <- !("has_annotation" %in% names(cp)) || !any(cp$has_annotation %in% TRUE)
     if (unannotated == "convention" && no_annotation &&
-        identical(spec$bare_region_is, "whole_slide") && !arm_flag_patient(pid))
+        identical(spec$bare_region_is, "whole_slide") && !arm_cut_by_flag(spec, pid))
       return(dplyr::mutate(cp, in_annotation = TRUE,
                            .in_annotation_source = "whole_slide"))
 

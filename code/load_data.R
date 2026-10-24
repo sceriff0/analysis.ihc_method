@@ -12,9 +12,8 @@
 #                           $raw, $normalized, $tpm (NULL without gene lengths),
 #                           plus $library_size and $length_source — see
 #                           expression_scales.R for where lengths are looked for
-#   ihc_massimo1            single cells, one row per cell per patient, ARM 1
-#   ihc_massimo2            the same for ARM 2
-#   ihc_massimo1_inverted   the same for ARM 3
+#   ihc_for(arm)            single cells, one row per cell per patient, for ONE
+#                           arm — loaded on first use and cached, see below
 #
 # NOTHING HERE IS NAMED `ihc_data` OR `neoplastic_data` ANY MORE, and that is the
 # point. Three arms phenotype the same slides three ways; a bare name would let a
@@ -165,12 +164,19 @@ neoplastic_massimo1 <- tribble(
 # than branching. massimo1_inverted deliberately shares arm 1's scores: it is the
 # same tissue, the same polygons, and only the CLASSIFICATION of the cells differs —
 # and a pathologist's percentage is a property of the tissue, not of the classifier.
+#
+# The STARE arms have NO pathologist table, and asking for one is an error rather
+# than an empty frame: their export ships no polygons, so there is no region a
+# percentage could be scored against, and an empty table would render the
+# concordance panels as "no data" instead of "not applicable".
 neoplastic_for <- function(arm = ARM_MODES) {
   arm <- match.arg(arm)
   switch(arm,
          massimo1          = neoplastic_massimo1,
          massimo1_inverted = neoplastic_massimo1,
-         massimo2          = neoplastic_massimo2)
+         massimo2          = neoplastic_massimo2,
+         stop("neoplastic_for(\"", arm, "\"): this arm ships no polygons, so no ",
+              "pathologist region score applies to it", call. = FALSE))
 }
 
 # The same matrix on its three scales, restricted to the samples the clinical table
@@ -199,6 +205,8 @@ counts_data <-  counts(dds, normalized = TRUE) |>
 #                      site would be computed over an inflated denominator while
 #                      still looking plausible.
 #   massimo1_inverted  the same as massimo2, on arm 1's regions.
+#   stare_massimo1/2   one whole-slide csv per patient, so the pool IS the slide:
+#                      nothing repeats and the de-duplication is a no-op.
 #
 # THAT ASYMMETRY IS A FREE TEST, and load_arm_cells() takes it. massimo1 is the only
 # arm publishing both a whole-slide export AND region files, so it is the only place
@@ -226,6 +234,11 @@ load_arm_cells <- function(arm = ARM_MODES) {
       hint <- paste0("\n  data/all_slide/ still exists — that IS this arm's export, ",
                      "under the name it had before the arms were split. Rename or ",
                      "symlink it:  ln -s all_slide data/massimo2")
+    # The STARE share's csv/ directory IS the arm root: it holds Massimo1/,
+    # Massimo2/ and the two csv-only patients side by side.
+    if (identical(spec$root, "stare"))
+      hint <- paste0("\n  the STARE root is the share's csv/ directory itself:  ",
+                     "ln -s <ATTEND>/2026.10.23_STARE/csv data/stare")
     warning("load_arm_cells(\"", arm, "\"): no cells under ", spec$root_path,
             "\n  expected the region csvs at ", spec$region_csv$path,
             "\n  symlink the export:  ln -s <share>/", sub("massimo", "Massimo", spec$root),
@@ -252,16 +265,19 @@ load_arm_cells <- function(arm = ARM_MODES) {
   out
 }
 
-ihc_massimo1          <- load_arm_cells("massimo1")
-ihc_massimo2          <- load_arm_cells("massimo2")
-ihc_massimo1_inverted <- load_arm_cells("massimo1_inverted")
-
 # The arm -> cell-set lookup, so a page that declares ARM once at the top gets both
 # its cells and its pathologist table from that one constant.
+#
+# LOADED ON FIRST USE, NOT AT SOURCE TIME. Every page sources this file, and it used
+# to read all three arms whichever one the page named. With the STARE arms that
+# became five whole-slide cell sets (hundreds of thousands of cells per patient)
+# held in memory to draw one arm's figures. Each arm is read the first time a page
+# asks for it and cached for the rest of the session, so a page pays for the arms
+# it names and a second call costs nothing.
+.ihc_cache <- new.env(parent = emptyenv())
 ihc_for <- function(arm = ARM_MODES) {
   arm <- match.arg(arm)
-  switch(arm,
-         massimo1          = ihc_massimo1,
-         massimo1_inverted = ihc_massimo1_inverted,
-         massimo2          = ihc_massimo2)
+  if (!exists(arm, envir = .ihc_cache, inherits = FALSE))
+    assign(arm, load_arm_cells(arm), envir = .ihc_cache)
+  get(arm, envir = .ihc_cache, inherits = FALSE)
 }

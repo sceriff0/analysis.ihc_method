@@ -1,0 +1,343 @@
+---
+title: "Paper figures — STARE data (Fig 6, Suppl. S10)"
+author: "sceriff0"
+date: "2026-10-24"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(tibble)
+  library(tidyr)
+  library(readr)
+  library(purrr)
+  library(ggplot2)
+  library(here)
+  library(readxl)     # the clinical table is .xlsx
+})
+
+# The house style is sourced HERE, unconditionally and before opts_chunk$set:
+# the figure defaults below call fig_width().
+source(here("code", "plot_theme.R"))           # house figure style + fig_width()/label_n()
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      fig.width = fig_width("double"), fig.height = fig_height("double"),
+                      dev = c("png", "pdf"))   # PNG for the site, PDF exported to output/
+source(here("code", "pdf_export.R"))
+
+SLUG <- "paper_stare"
+# WHICH ARMS THIS PAGE IS ABOUT. The STARE share carries the same two FlowPath gating
+# sessions as before, re-run on STARE-registered slides (code/arms.R). The MAIN
+# panels are Massimo2's gating; Massimo1's is the supplementary twin. They are never
+# pooled: two gatings of the same cells, stacked, would count every cell twice.
+ARM      <- "stare_massimo2"
+ARM_SUPP <- "stare_massimo1"
+
+# load_data.R brings dds, clinical_data, counts_data, expr_scales and ihc_for(). It
+# stops when data/counts.RData or data/clinical_data.xlsx is missing, so it is
+# caught here and the page says which input it lacks instead of failing to knit.
+load_error <- NULL
+have_data <- tryCatch({
+  invisible(capture.output(suppressMessages(source(here("code", "load_data.R")))))
+  source(here("code", "validation_helpers.R"))
+  source(here("code", "paper_figures.R"))
+  TRUE
+}, error = function(e) { load_error <<- conditionMessage(e); FALSE })
+
+# Each arm's cells are read once (ihc_for caches them) and every panel below is a
+# cut of them. The gates are defined HERE so every gated chunk knows its input.
+have_main <- have_data && nrow(ihc_for(ARM)) > 0
+# The supplement reuses the main section's groups, RNA bridge and frame builder,
+# so it is gated on the main arm too.
+have_supp <- have_main && nrow(ihc_for(ARM_SUPP)) > 0
+have_qs   <- have_main && requireNamespace("immunedeconv", quietly = TRUE)
+```
+
+This page builds every manuscript panel this repository feeds from the
+**STARE data**, the study's main data since the 2026-10-23 export, in one place:
+
+| panel | what it shows | built by |
+|---|---|---|
+| Fig 6(a), right | CD45⁺ cells, % of all cells, hot vs cold | `paper_immune_fraction_hotcold()` |
+| Fig 6(b), bottom row | CD45⁺, CD3⁺, CD8⁺, CD4⁺, FOXP3⁺ % against bulk RNA of the matching gene(s) | `paper_rna_marker_scatter()` |
+| Suppl. Fig S10 | FlowPath population fraction against quanTIseq | `paper_deconv_scatter()` |
+
+The images in Fig 6(a) left and 6(b) top are microscope crops and are not made here.
+
+**Where the cells come from.** `data/stare/` is the share's
+`2026.10.23_STARE/csv/` directory: `Massimo1/<patient>.csv` and
+`Massimo2/<patient>.csv` hold one FlowPath export per patient per gating session,
+each covering the **whole slide**, and the two later patients sit at the top level
+(`15370.csv`, `36766_2.csv`). No polygon is shipped. Which cells are inside the
+tumour annotation is FlowPath's own call, carried in each file's
+`Out_of_annotation` column, and every count on this page is over the cells it
+marks inside. `36766_2.csv` is read as patient **36672-2**, the clinical sheet's
+spelling (`STARE_FLAG_FILES` in `code/arms.R`).
+
+```{r load-status, results = "asis"}
+if (!have_data) {
+  cat("**Inputs missing — nothing below is computed.** `code/load_data.R` stopped with:\n\n",
+      "```\n", load_error, "\n```\n\n",
+      "It needs `data/counts.RData` and `data/clinical_data.xlsx`.\n", sep = "")
+} else {
+  for (a in c(ARM, ARM_SUPP)) {
+    st <- arm_tier_status(arm_spec(a))
+    cat("- **`", a, "`**: ", nrow(ihc_for(a)), " cells read from `data/",
+        arm_spec(a)$root, "/", arm_spec(a)$region_csv$dir, "/` and the csv-only files at `data/",
+        arm_spec(a)$root, "/`", if (!any(st$exists)) " — **directory not found**" else "",
+        "\n", sep = "")
+  }
+  if (!have_main)
+    cat("\n**No cells for `", ARM, "`.** Link the share:\n\n",
+        "```sh\nln -s /hpcnfs/techunits/imaging/work/ATTEND/2026.10.23_STARE/csv data/stare\n```\n",
+        sep = "")
+}
+```
+
+## Cells inside the annotation
+
+Per patient: the cells in the export, how many `Out_of_annotation` marks inside,
+and the rule that decided (`flag` for every STARE patient). Everything below
+reads only the inside cells. The table makes a patient with almost nothing inside,
+or 100% inside, visible before it turns up as an outlier in a figure.
+
+```{r frames, eval = have_main}
+# One frame set per arm: per-cell membership, the inside cells, and the union
+# metrics row per patient (cd45_over_inside etc. — region_ratios_area() over the
+# inside cells). arm_metrics() and arm_cells_in_annotation() both route STARE
+# patients through arm_cut_by_flag(), so the two agree on every patient.
+stare_frames <- function(arm) {
+  spec   <- arm_spec(arm)
+  cells  <- ihc_for(arm)
+  scoped <- arm_cells_in_annotation(spec, cells)
+  list(arm    = arm,
+       scoped = scoped,
+       inside = filter(scoped, in_annotation %in% TRUE),
+       union  = arm_metrics(spec, cells, NULL, "union"))
+}
+main <- stare_frames(ARM)
+
+knitr::kable(arm_in_annotation_inventory(main$scoped),
+             caption = paste0("`", ARM, "`: cells per patient and how many the export ",
+                              "flags inside the annotation."))
+```
+
+## The hot/cold axis
+
+Hot and cold are the top and bottom **four** patients by the clinical `HOT score`
+(`data/clinical_data.xlsx`), ranked among the patients with STARE cells. It is one
+ranking, built once by `paper_hotcold_groups(k = 4)`, and every panel below groups
+or colours by it. Fig 6 shows four cases a side; with eight patients, that puts
+every patient in a group.
+
+```{r hotcold, eval = have_main}
+groups <- paper_hotcold_groups(clinical_data, patient_ids = main$union$patient_id,
+                               source = "hot_score", k = 4)
+knitr::kable(arrange(groups, group, desc(hot_score)),
+             caption = "Hotscore groups, highest score first within each group.")
+```
+
+## Fig 6(a) — CD45⁺ cells, hot vs cold
+
+y is `cd45_over_inside × 100`: CD45⁺ cells over all cells inside the annotation,
+per patient, from the `stare_massimo2` exports. A cell counts as CD45⁺ when its
+FlowPath phenotype falls in an immune lineage (`cell_lineage()`). The box shows
+the group's median and quartiles, with every patient drawn on top. P is the
+exact two-sided Wilcoxon rank-sum test. With four cases a side, a complete
+separation gives the smallest P the design can reach, 2/70 = 0.029, so P = 0.029
+means "the groups do not overlap" and nothing stronger.
+
+```{r fig6a, eval = have_main, fig.width = panel_width(50), fig.height = panel_height(62)}
+p6a <- paper_immune_fraction_hotcold(main$union, groups, test = "wilcoxon", percent = TRUE)
+print(p6a)
+```
+
+```{r fig6a-numbers, eval = have_main}
+knitr::kable(
+  main$union |>
+    transmute(patient_id, cd45_pct = 100 * cd45_over_inside, n_inside) |>
+    left_join(select(groups, patient_id, group, hot_score), by = "patient_id") |>
+    arrange(group, desc(cd45_pct)),
+  digits = 1,
+  caption = sprintf("Fig 6(a) values. Wilcoxon P = %.4f (%s).",
+                    attr(p6a, "test")$p,
+                    if (attr(p6a, "test")$exact) "exact" else "normal approximation, ties"))
+```
+
+## Fig 6(b), bottom row — imaging against bulk RNA
+
+For each marker, y is the percentage of inside cells that FlowPath calls positive
+for it (`ihc_marker_fraction()`: `marker_pos()`, an explicit positive sign, over all
+inside cells). x is `log1p` of the bulk RNA expression from `data/counts.RData`,
+DESeq2-normalised and averaged over the marker's gene(s) (the strip under each
+marker lists them), matched to the slide through the clinical CRF crosswalk
+(`crf_to_slide_map()`). r is Pearson's correlation on the axes as drawn, and
+the line is its least-squares fit. Points are coloured by the hotscore group
+above. The Spearman column in the table is the rank check on r: with eight
+cases, one point can move r a long way.
+
+```{r rna-paired, eval = have_main}
+crf2slide <- crf_to_slide_map(clinical_data)
+rna       <- rna_marker_expression(counts_data, crf2slide)
+
+rna_pair_for <- function(fr) {
+  ihc_marker_fraction(fr$inside) |>
+    select(patient_id, ends_with("_posfrac")) |>
+    pivot_longer(-patient_id, names_to = "marker", values_to = "ihc_posfrac") |>
+    mutate(marker = sub("_posfrac$", "", marker)) |>
+    inner_join(rna$expr, by = c("marker", "patient_id"))
+}
+rna_paired <- rna_pair_for(main)
+FIG6_MARKERS <- c("CD45", "CD3", "CD8", "CD4", "FOXP3")
+
+cat("patients with both STARE cells and bulk RNA:",
+    n_distinct(rna_paired$patient_id), "\n")
+if (length(rna$missing_genes))
+  cat("mapped genes absent from the RNA matrix:", paste(rna$missing_genes, collapse = ", "), "\n")
+```
+
+```{r fig6b, eval = have_main, fig.width = fig_width("double"), fig.height = panel_height(52)}
+p6b <- paper_rna_marker_scatter(rna_paired, groups, markers = FIG6_MARKERS,
+                                genes = rna$genes)
+print(p6b)
+```
+
+```{r fig6b-stats, eval = have_main}
+knitr::kable(attr(p6b, "stats"), digits = 2,
+             caption = "Fig 6(b): Pearson r (as printed in each panel) and Spearman rho, per marker.")
+```
+
+## Suppl. Fig S10 — FlowPath populations against quanTIseq
+
+x is the share of all inside cells that FlowPath assigns to each population
+(`ihc_comparison_fraction()`, gated as in Fig 5(a): CD8 T, CD4 T, Treg, NK). y is
+quanTIseq's estimate for the matching cell type, from immunedeconv run on the
+bulk RNA. Colour is the population and shape is the hotscore group. No fit line
+is drawn, because the two axes have different denominators (cells counted vs. a
+mixture estimate), so only the ranking is comparable.
+
+**Expression scale.** quanTIseq asks for TPM. `data/counts.RData` carries no gene
+lengths, so TPM cannot be derived from it, and this run uses the DESeq2-normalised
+counts. Absolute fractions are therefore approximate, though the ranking across
+patients, which is what the panel shows, is robust to that. Writing
+`data/gene_lengths.tsv` (columns `gene`, `length`) switches the run to TPM with
+no other change (`code/expression_scales.R`).
+
+```{r quantiseq, eval = have_qs}
+EXPR_SCALE <- if (!is.null(expr_scales$tpm)) "tpm" else "normalized"
+expr_mat   <- expr_scales[[EXPR_SCALE]]
+storage.mode(expr_mat) <- "double"
+
+qs_long <- immunedeconv::deconvolute(expr_mat, "quantiseq") |>
+  pivot_longer(-cell_type, names_to = "sample", values_to = "score") |>
+  mutate(method = "quantiseq", crf_id = norm_id(sample),
+         patient_id = unname(crf2slide[crf_id])) |>
+  filter(!is.na(patient_id))
+
+qs_pair_for <- function(fr)
+  deconv_lineage_scores(qs_long) |> deconv_pair_with_ihc(ihc_comparison_fraction(fr$inside))
+qs_paired <- qs_pair_for(main)
+cat("quanTIseq on the", EXPR_SCALE, "scale |", n_distinct(qs_paired$patient_id),
+    "patients paired\n")
+```
+
+```{r figS10, eval = have_qs, fig.width = fig_width("oneandhalf"), fig.height = panel_height(90)}
+pS10 <- paper_deconv_scatter(qs_paired, method = "quantiseq", groups = groups,
+                             x_lab = "FlowPath fraction of all cells (inside annotation)")
+print(pS10)
+```
+
+```{r figS10-stats, eval = have_qs}
+knitr::kable(
+  qs_paired |>
+    filter(lineage %in% comparable_lineages) |>
+    group_by(lineage) |>
+    group_modify(~ paired_spearman(.x$ihc_frac, .x$score)) |>
+    ungroup(),
+  digits = 3, caption = "Suppl. S10: Spearman rho per population, FlowPath vs quanTIseq.")
+```
+
+## Supplementary — the same panels on Massimo1's gating
+
+The same three panels from `stare_massimo1`, the other gating session over the
+same STARE cells, with the same hotscore groups. Comparing these with the panels
+above shows how much the figure depends on where the gates were set. The two
+arms are matched **by patient**. Their regions are not compared, because both cut
+the same whole slide using their own flag.
+
+```{r supp-frames, eval = have_supp}
+supp <- stare_frames(ARM_SUPP)
+knitr::kable(arm_in_annotation_inventory(supp$scoped),
+             caption = paste0("`", ARM_SUPP, "`: cells per patient and how many are inside."))
+```
+
+```{r supp-fig6a, eval = have_supp, fig.width = panel_width(50), fig.height = panel_height(62)}
+print(paper_immune_fraction_hotcold(supp$union, groups, test = "wilcoxon", percent = TRUE) +
+        labs(title = "Massimo1 gating"))
+```
+
+```{r supp-fig6b, eval = have_supp, fig.width = fig_width("double"), fig.height = panel_height(52)}
+p6b_supp <- paper_rna_marker_scatter(rna_pair_for(supp), groups, markers = FIG6_MARKERS,
+                                     genes = rna$genes) +
+  labs(title = "Massimo1 gating")
+print(p6b_supp)
+```
+
+```{r supp-figS10, eval = have_supp, fig.width = fig_width("oneandhalf"), fig.height = panel_height(90)}
+if (have_qs) {
+  print(paper_deconv_scatter(qs_pair_for(supp), method = "quantiseq", groups = groups,
+                             x_lab = "FlowPath fraction of all cells (inside annotation)") +
+          labs(title = "Massimo1 gating"))
+} else {
+  cat("immunedeconv is not installed — no quanTIseq panel.\n")
+}
+```
+
+Per patient, each marker's positive fraction under the two gatings, side by side.
+A large difference here tells you the marker's gate, not the biology, decides
+the panel.
+
+```{r supp-gating-agreement, eval = have_supp}
+gate_cmp <- full_join(
+  rna_paired |> distinct(marker, patient_id, massimo2 = 100 * ihc_posfrac),
+  rna_pair_for(supp) |> distinct(marker, patient_id, massimo1 = 100 * ihc_posfrac),
+  by = c("marker", "patient_id")) |>
+  filter(marker %in% FIG6_MARKERS) |>
+  mutate(diff = massimo2 - massimo1)
+knitr::kable(
+  gate_cmp |>
+    group_by(marker) |>
+    summarise(n = n(), median_m2 = median(massimo2, na.rm = TRUE),
+              median_m1 = median(massimo1, na.rm = TRUE),
+              max_abs_diff = max(abs(diff), na.rm = TRUE),
+              spearman = suppressWarnings(cor(massimo2, massimo1, method = "spearman",
+                                              use = "complete.obs")),
+              .groups = "drop") |>
+    arrange(match(marker, FIG6_MARKERS)),
+  digits = 2,
+  caption = "Positive % per marker under each gating (medians over patients) and their per-patient agreement.")
+```
+
+## Exported numbers
+
+Each plotted value is also written to `output/paper_stare/`, so a panel can be
+redrawn or checked in Affinity without re-knitting.
+
+```{r export-numbers, eval = have_main}
+out <- here("output", "paper_stare")
+dir.create(out, recursive = TRUE, showWarnings = FALSE)
+write_csv(left_join(transmute(main$union, patient_id, cd45_pct = 100 * cd45_over_inside),
+                    groups, by = "patient_id"),
+          file.path(out, "fig6a_cd45_hotcold.csv"))
+write_csv(filter(rna_paired, marker %in% FIG6_MARKERS) |>
+            mutate(ihc_pct = 100 * ihc_posfrac, log1p_rna = log1p(rna_expr)),
+          file.path(out, "fig6b_marker_vs_rna.csv"))
+if (exists("qs_paired")) write_csv(qs_paired, file.path(out, "figS10_quantiseq_pairs.csv"))
+cat("written:", paste(list.files(out), collapse = ", "), "\n")
+```
+
+```{r export-pdfs, include=FALSE}
+export_pdf_figures(SLUG)
+```

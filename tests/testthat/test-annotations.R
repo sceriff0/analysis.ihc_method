@@ -166,10 +166,11 @@ test_that("an unsupported geometry names the file it came from", {
   expect_error(read_polygon_geojson(f), "line\\.geojson")
 })
 
-test_that("the surviving membership modes are the three arms plus mirage", {
+test_that("the surviving membership modes are the five arms plus mirage", {
   source(here::here("code", "membership.R"))
   expect_setequal(MEMBERSHIP_MODES,
-                  c("massimo1", "massimo1_inverted", "massimo2", "mirage"))
+                  c("massimo1", "massimo1_inverted", "massimo2",
+                    "stare_massimo1", "stare_massimo2", "mirage"))
   # The removed modes must not be silently accepted by match.arg's partial matching.
   expect_error(membership_data("flag", tibble::tibble()), "should be one of")
   expect_error(membership_data("geojson", tibble::tibble()), "should be one of")

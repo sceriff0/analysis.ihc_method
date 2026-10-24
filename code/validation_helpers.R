@@ -174,6 +174,38 @@ marker_gene_map <- tibble::tribble(
 # Markers carrying a `<marker>_sign` column in ihc_data (wrongL1CAM excluded).
 ihc_markers <- marker_gene_map$marker
 
+# Bulk expression per (marker, sample): the mean over the marker's genes that the
+# matrix actually has, from the wide `counts_data` load_data.R builds (one row per
+# Sample, one column per gene). Returns
+#   expr_crf       marker, crf_id, rna_expr — every RNA sample, CRF space
+#   expr           marker, patient_id, rna_expr — the samples with a slide, slide space
+#   genes          named chr, marker -> the genes actually averaged ("CD3D, CD3E")
+#   missing_genes  mapped genes the matrix does not carry
+# A marker with SOME genes missing is averaged over the rest rather than dropped,
+# and `genes` says which, so a strip label can show what was really measured.
+rna_marker_expression <- function(counts_data, crf2slide, map = marker_gene_map) {
+  gene_rows <- do.call(rbind, Map(function(m, g)
+    data.frame(marker = m, gene = trimws(strsplit(g, ",")[[1]]), stringsAsFactors = FALSE),
+    map$marker, map$genes))
+  have      <- setdiff(names(counts_data), "Sample")
+  present   <- gene_rows[gene_rows$gene %in% have, , drop = FALSE]
+  expr_crf  <- counts_data |>
+    dplyr::select(Sample, dplyr::all_of(unique(present$gene))) |>
+    dplyr::mutate(crf_id = norm_id(Sample)) |>
+    tidyr::pivot_longer(-c(Sample, crf_id), names_to = "gene", values_to = "expr") |>
+    dplyr::inner_join(present, by = "gene", relationship = "many-to-many") |>
+    dplyr::group_by(marker, crf_id) |>
+    dplyr::summarise(rna_expr = mean(expr), .groups = "drop")
+  list(
+    expr_crf      = expr_crf,
+    expr          = expr_crf |>
+      dplyr::mutate(patient_id = unname(crf2slide[crf_id])) |>
+      dplyr::filter(!is.na(patient_id)) |>
+      dplyr::select(marker, patient_id, rna_expr),
+    genes         = tapply(present$gene, present$marker, paste, collapse = ", "),
+    missing_genes = setdiff(gene_rows$gene, have))
+}
+
 # --- GeoJSON reading (sf) ----------------------------------------------------
 # Parse a QuPath-style annotation geojson into an sf polygon. Handles a bare
 # Feature, a FeatureCollection, or a raw geometry; closes open rings; dissolves
@@ -568,7 +600,7 @@ annotation_membership_qc <- function(spec, annots, um_per_px = 0.325) {
   purrr::map_dfr(as.character(files), function(path) {
     key  <- arm_parse_name(path, tier$pattern)
     pid  <- slide_key(key$patient)
-    ann  <- if (is.na(key$annotation)) spec$bare_region_is else key$annotation
+    ann  <- if (is.na(key$annotation)) arm_bare_annotation(spec) else key$annotation
     if (is.na(ann))
       return(tibble::tibble(patient_id = pid, annotation = NA_character_,
                             note = "csv carries no region suffix and this arm has no rule for one"))

@@ -6,11 +6,11 @@ Shared R sourced by the analyses in `analysis/`, plus standalone scripts.
 
 | file | owns |
 |---|---|
-| `load_data.R` | the raw loaders (`dds`, `clinical_data`, `counts_data`, and the **per-arm** `neoplastic_massimo1/2` + `ihc_massimo1/2/1_inverted`) |
+| `load_data.R` | the raw loaders (`dds`, `clinical_data`, `counts_data`, the **per-arm** `neoplastic_massimo1/2`, and `ihc_for(arm)`, which reads an arm's cells on first use and caches them) |
 | `cell_tables.R` | the **single-cell export schema** — one vocabulary over three upstream formats |
 | `validation_helpers.R` | the derived quantities (region ratios, composition, marker/lineage fractions, invasive margin, agreement stats) |
 | `mirage_cells.R` | the mirage cell source — `phenotypes.csv` + `morphology.csv` joined per patient |
-| `arms.R` | the **arm registry** — which files belong to which arm, how a filename names its region, and `FLAG_MEMBERSHIP_FILES`, the csv-only patients every arm reads from `data/flowpath/` and cuts by FlowPath's own in/out flag |
+| `arms.R` | the **arm registry** — which files belong to which arm, how a filename names its region, and `FLAG_MEMBERSHIP_FILES`, the csv-only patients every annotated arm reads from `data/flowpath/` and cuts by FlowPath's own in/out flag. The two **STARE arms** (`stare_massimo1/2`, the main data since 2026-10-23) read `data/stare/`: one whole-slide csv per patient, every patient cut by that flag, with `STARE_FLAG_FILES` mapping the share's `36766_2.csv` to patient 36672-2 |
 | `arm_cells.R` | the **arm cell source** — one reader for all three arms: region tier, whole-slide tier, metrics, provenance |
 | `membership.R` | **where the cells come from and which are inside a tumour annotation** — `membership_data(mode)`, the one knob each clinical page turns |
 | `aggregation_compare.R` | the annotation-aggregation sensitivity grid |

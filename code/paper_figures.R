@@ -269,23 +269,34 @@ region_label <- function(annotation) {
 # With three cases a side the points ARE the evidence, so they are never hidden
 # behind the box — the box is scaffolding for the eye, not the result.
 #
-# NO TEST IS RUN AND NO COEFFICIENT IS PRINTED. That is the legend's claim, and it
-# has to be true of the object, not just of the caption: `paired_spearman()` is
-# deliberately not called here. The rest of the site reports rho freely; this panel
-# is the one place that must not.
+# BY DEFAULT NO TEST IS RUN AND NO COEFFICIENT IS PRINTED. That was the Fig 5
+# legend's claim, with three cases a side, and it has to be true of the object, not
+# just of the caption: `paired_spearman()` is deliberately not called here.
+#
+# `test = "wilcoxon"` is the Fig 6(a) form, four cases a side: the exact two-sided
+# rank-sum P, printed over a bracket and returned as attr(p, "test"). Four a side is
+# the smallest design in which a perfect separation can reach P < 0.05 (2/70 =
+# 0.029) — so that P is the FLOOR of the test, and a reader should know it says "the
+# groups do not overlap", not more. `percent = TRUE` draws 0-100 rather than 0-1.
 paper_immune_fraction_hotcold <- function(metrics, groups,
                                           value_col = "cd45_over_inside",
                                           group_col = "group",
-                                          y_lab = "mIF CD45+ / all cells (unitless, 0-1)",
-                                          summary = c("box", "median")) {
+                                          y_lab = NULL,
+                                          summary = c("box", "median"),
+                                          test = c("none", "wilcoxon"),
+                                          percent = FALSE) {
   stopifnot(value_col %in% names(metrics))
+  test  <- match.arg(test)
+  y_lab <- y_lab %||% if (percent) "CD45+ cells (% of all cells)"
+                      else "mIF CD45+ / all cells (unitless, 0-1)"
   df <- metrics |>
     dplyr::mutate(.pid = slide_key(patient_id)) |>
     dplyr::inner_join(dplyr::mutate(groups, .pid = slide_key(patient_id)) |>
                         dplyr::select(.pid, group = dplyr::all_of(group_col)),
                       by = ".pid") |>
     dplyr::filter(is.finite(.data[[value_col]]), !is.na(group)) |>
-    dplyr::mutate(group = hotcold_order(group))
+    dplyr::mutate(group = hotcold_order(group),
+                  .value = .data[[value_col]] * if (percent) 100 else 1)
   if (nrow(df) == 0) {
     warning("paper_immune_fraction_hotcold(): nothing to plot after joining groups")
     return(NULL)
@@ -306,7 +317,7 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
                  linewidth = pt_line(0.6))
   }
 
-  ggplot(df, aes(group, .data[[value_col]], colour = group)) +
+  p <- ggplot(df, aes(group, .data$.value, colour = group)) +
     summary_layer +
     geom_point(size = 2.6, alpha = .9,
                position = position_jitter(width = .07, height = 0, seed = 1)) +
@@ -315,6 +326,124 @@ paper_immune_fraction_hotcold <- function(metrics, groups,
     # by design and the reader needs the count attached to the group it describes.
     scale_x_discrete(labels = label_n(df$group)) +
     labs(x = NULL, y = y_lab, subtitle = "every case shown")
+  if (test == "none") return(p)
+
+  # Exactly two groups or no test: a P across three immune strata would be a
+  # different (Kruskal) claim, and silently running it is how a legend goes wrong.
+  lv <- levels(droplevels(df$group))
+  if (length(lv) != 2) {
+    warning("paper_immune_fraction_hotcold(): test needs exactly two groups, have ",
+            paste(lv, collapse = ", "), " — no P drawn")
+    return(p)
+  }
+  a  <- df$.value[df$group == lv[1]]; b <- df$.value[df$group == lv[2]]
+  # exact = TRUE where there are no ties; with ties R falls back to the normal
+  # approximation and says so, which is the honest thing to inherit.
+  wt <- suppressWarnings(stats::wilcox.test(a, b, alternative = "two.sided",
+                                            exact = !anyDuplicated(c(a, b))))
+  top <- max(df$.value); pad <- diff(range(c(0, df$.value))) * .06
+  lab <- paste0("P = ", formatC(wt$p.value, format = "f", digits = 3))
+  p <- p +
+    annotate("segment", x = 1, xend = 2, y = top + pad, yend = top + pad,
+             linewidth = pt_line(0.5), colour = "grey20") +
+    annotate("segment", x = c(1, 2), xend = c(1, 2), y = top + pad * .5,
+             yend = top + pad, linewidth = pt_line(0.5), colour = "grey20") +
+    annotate("text", x = 1.5, y = top + pad * 1.6, label = lab,
+             size = pt_text(7), colour = "grey20") +
+    # Short: at the figure's 50mm a longer subtitle runs off the panel.
+    labs(subtitle = "two-sided Wilcoxon")
+  attr(p, "test") <- list(method = "wilcoxon rank-sum, two-sided", p = wt$p.value,
+                          exact = !anyDuplicated(c(a, b)),
+                          n = stats::setNames(c(length(a), length(b)), lv))
+  p
+}
+
+# --- Imaging marker vs bulk RNA, one panel per marker (Fig 6b, bottom row) ------
+# `paired` is the molecular pages' rna_paired frame: one row per (marker, patient)
+# with `rna_expr` (DESeq2-normalised counts, averaged over the marker's genes) and
+# `ihc_posfrac` (the marker-positive fraction of the cells counted, 0-1).
+#
+# RNA ON x, IMAGING ON y, as the figure draws it — the transpose of the molecular
+# pages, which put the imaging fraction on x. The figure asks "does the slide follow
+# the bulk", so the bulk is the explanatory axis.
+#
+# `r` IS PEARSON ON THE PLOTTED AXES (log1p expression vs percent), so the number in
+# the corner describes the cloud the reader sees, and the fit line drawn through it
+# is the least-squares line of that same r. Spearman is in attr(p, "stats") beside
+# it: with eight cases one point can move r a long way, and the rank statistic is
+# the check on that.
+#
+# Each marker is its own panel with FREE scales. The five markers span two orders of
+# magnitude in both expression and abundance (FOXP3 tops out near 7 %, CD4 near 60 %),
+# and a shared axis would flatten the small ones into a line along the floor.
+paper_rna_marker_scatter <- function(paired, groups = NULL,
+                                     markers = c("CD45", "CD3", "CD8", "CD4", "FOXP3"),
+                                     genes = NULL, ncol = length(markers)) {
+  stopifnot(all(c("marker", "patient_id", "rna_expr", "ihc_posfrac") %in% names(paired)))
+  df <- paired |>
+    dplyr::filter(.data$marker %in% markers,
+                  is.finite(.data$rna_expr), is.finite(.data$ihc_posfrac)) |>
+    dplyr::mutate(x = log1p(.data$rna_expr), y = 100 * .data$ihc_posfrac,
+                  marker = factor(.data$marker,
+                                  levels = intersect(markers, unique(.data$marker))))
+  if (nrow(df) == 0) {
+    warning("paper_rna_marker_scatter(): no finite pairs for ",
+            paste(markers, collapse = ", "))
+    return(NULL)
+  }
+  # left_join: a case outside both hotscore groups stays in the panel, grey, and in
+  # the fit — dropping it would change r without the figure showing why.
+  if (!is.null(groups) && nrow(groups)) {
+    df <- df |>
+      dplyr::mutate(.pid = slide_key(.data$patient_id)) |>
+      dplyr::left_join(dplyr::transmute(groups, .pid = slide_key(patient_id), group),
+                       by = ".pid") |>
+      dplyr::select(-".pid") |>
+      dplyr::mutate(group = hotcold_order(.data$group))
+  } else {
+    df$group <- factor(NA_character_)
+  }
+
+  stats <- df |>
+    dplyr::group_by(.data$marker) |>
+    dplyr::summarise(
+      n        = dplyr::n(),
+      r        = if (dplyr::n() >= 3 && stats::sd(x) > 0 && stats::sd(y) > 0)
+                   stats::cor(x, y) else NA_real_,
+      spearman = if (dplyr::n() >= 3 && stats::sd(x) > 0 && stats::sd(y) > 0)
+                   stats::cor(x, y, method = "spearman") else NA_real_,
+      # The label sits ABOVE the highest point, not at it: each panel's free y
+      # scale then grows to hold it, and it can never cover a case.
+      x_lab    = min(x), y_lab = max(y) + 0.18 * diff(range(c(0, y))),
+      .groups = "drop") |>
+    dplyr::mutate(label = ifelse(is.finite(.data$r),
+                                 paste0("r = ", formatC(.data$r, format = "f", digits = 2)),
+                                 "r = NA"))
+
+  # Strip = the population counted, with its genes underneath when given, so a
+  # reader can see that CD3 is averaged over three genes and CD8 over two.
+  strip <- if (is.null(genes)) ggplot2::label_value
+           else ggplot2::as_labeller(function(m) ifelse(m %in% names(genes),
+                                                        paste0(m, "+\n", genes[m]), m))
+
+  lv <- levels(df$group)
+  p <- ggplot(df, aes(.data$x, .data$y)) +
+    geom_smooth(method = "lm", se = FALSE, formula = y ~ x, colour = "black",
+                linewidth = pt_line(0.6)) +
+    geom_point(aes(colour = .data$group), size = 2.2, alpha = .9) +
+    geom_text(data = stats, aes(x = .data$x_lab, y = .data$y_lab, label = .data$label),
+              hjust = 0, vjust = 1, size = pt_text(7), colour = "grey20",
+              inherit.aes = FALSE) +
+    facet_wrap(~ marker, scales = "free", nrow = ceiling(nlevels(df$marker) / ncol),
+               labeller = strip) +
+    scale_colour_manual(values = if (length(lv)) hotcold_cols(lv) else character(0),
+                        na.value = "grey70", name = "Hotscore group",
+                        na.translate = TRUE) +
+    labs(x = "Bulk RNA-seq expression (log1p DESeq2-normalised counts)",
+         y = "Positive cells (% of all cells)",
+         subtitle = with_n(NULL, df$patient_id, "patients"))
+  attr(p, "stats") <- dplyr::select(stats, "marker", "n", "r", "spearman")
+  p
 }
 
 # --- Imaging vs deconvolution (Fig 5c) ---------------------------------------

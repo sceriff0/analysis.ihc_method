@@ -335,3 +335,69 @@ test_that("the hot/cold panel is a boxplot with every case drawn over it", {
   expect_true(is.null(box$outlier.shape) || all(is.na(box$outlier.shape)) ||
                 isFALSE(box$outliers))
 })
+
+# --- Fig 6 (STARE): the tested hot/cold panel and the marker-vs-RNA row --------
+.m8 <- function() tibble::tibble(
+  patient_id       = c("046", "052", "10338", "15897", "5456", "24086", "15370", "366722"),
+  cd45_over_inside = c(.48, .51, .46, .39, .16, .25, .35, .22))
+.g8 <- function() tibble::tibble(patient_id = .m8()$patient_id,
+                                 group = rep(c("hot", "cold"), each = 4))
+
+test_that("the hot/cold panel still reports nothing unless a test is asked for", {
+  p <- paper_immune_fraction_hotcold(.m8(), .g8())
+  expect_null(attr(p, "test"))
+  expect_false(any(grepl("P *=", unlist(p$labels))))
+})
+
+test_that("test = 'wilcoxon' prints the exact two-sided P on the panel", {
+  # Four a side, perfectly separated: the exact two-sided Wilcoxon P is 2/70.
+  p  <- paper_immune_fraction_hotcold(.m8(), .g8(), test = "wilcoxon")
+  tt <- attr(p, "test")
+  expect_equal(tt$p, 2 / 70, tolerance = 1e-9)
+  expect_equal(tt$n, c(cold = 4L, hot = 4L))
+  txt <- unlist(lapply(p$layers, function(l) l$aes_params$label))
+  expect_true("P = 0.029" %in% txt)
+})
+
+test_that("percent = TRUE puts the fraction on 0-100 and says so on the axis", {
+  p <- paper_immune_fraction_hotcold(.m8(), .g8(), percent = TRUE)
+  expect_equal(max(p$data$.value), 51)
+  expect_match(p$labels$y, "%")
+})
+
+.rna_paired <- function() {
+  set.seed(7)
+  pids <- .m8()$patient_id
+  tidyr::expand_grid(marker = c("CD45", "CD3", "CD8", "CD4", "FOXP3", "SMA"),
+                     patient_id = pids) |>
+    dplyr::mutate(ihc_posfrac = runif(dplyr::n(), 0, .5),
+                  rna_expr    = expm1(ihc_posfrac * 10 + rnorm(dplyr::n(), 0, .3)))
+}
+
+test_that("the marker row keeps the markers asked for, in that order", {
+  mk <- c("CD45", "CD3", "CD8", "CD4", "FOXP3")
+  p  <- paper_rna_marker_scatter(.rna_paired(), .g8(), markers = mk)
+  expect_s3_class(p, "ggplot")
+  expect_equal(levels(p$data$marker), mk)
+  expect_false("SMA" %in% p$data$marker)
+})
+
+test_that("the marker row's r is Pearson on the plotted axes, one per marker", {
+  d  <- .rna_paired()
+  p  <- paper_rna_marker_scatter(d, .g8(), markers = c("CD45", "CD8"))
+  st <- attr(p, "stats")
+  x  <- dplyr::filter(d, marker == "CD8")
+  expect_equal(st$r[st$marker == "CD8"],
+               cor(log1p(x$rna_expr), 100 * x$ihc_posfrac), tolerance = 1e-9)
+  expect_equal(st$n, c(8L, 8L))
+  # RNA on x, imaging % on y, as Fig 6b draws them.
+  expect_match(p$labels$x, "log1p DESeq2")
+  expect_match(p$labels$y, "% of all cells")
+})
+
+test_that("the marker row colours by the hotscore groups and keeps ungrouped cases grey", {
+  g <- .g8()[1:6, ]
+  p <- paper_rna_marker_scatter(.rna_paired(), g, markers = "CD45")
+  expect_equal(sum(is.na(p$data$group)), 2)
+  expect_equal(nrow(p$data), 8)
+})

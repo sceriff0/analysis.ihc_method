@@ -40,8 +40,13 @@ Every page defines `SLUG` equal to its own filename and calls
 `export_pdf_figures(SLUG)` last, so a page's vector figures always land in
 `output/figures/<page name>/`.
 
-## Building the manuscript figures TODO 
+## Building the manuscript figures TODO
 
+- [Fig 6 and Suppl. S10 — STARE data](paper_stare.html) — **the main data since
+  2026-10-23.** Every panel this repository feeds into the manuscript, in one page:
+  CD45⁺ hot vs cold (6a), five markers against bulk RNA (6b), FlowPath populations
+  against quanTIseq (S10), each from Massimo2's gating on the STARE-registered slides,
+  with Massimo1's gating as the supplementary twin. Reads `data/stare/`.
 - [Paper figures](paper_figures.html) — the panel assembly sheet. One panel per
   plot at publication proportions, exported as vector PDFs to
   `output/figures/paper_figures/` for assembly in Affinity, plus a named slot with

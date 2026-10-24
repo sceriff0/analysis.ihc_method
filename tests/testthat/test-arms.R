@@ -8,9 +8,34 @@ test_that("every arm declares a region tier and resolves to a root", {
     spec <- arm_spec(a, data_dir = "/data")
     expect_equal(spec$arm, a)
     expect_false(is.null(spec$region_csv), info = a)
-    expect_false(is.null(spec$region_poly), info = a)
     expect_equal(spec$region_csv$path, file.path("/data", spec$root, spec$region_csv$dir))
   }
+})
+
+test_that("only the STARE arms ship no polygons, and they say how membership is decided", {
+  # An arm with no polygon tier must state a rule for its bare files, or every one
+  # of its patients would be dropped as a layout contradiction.
+  for (a in ARM_MODES) {
+    spec <- arm_spec(a, data_dir = "/data")
+    if (startsWith(a, "stare_")) {
+      expect_null(spec$region_poly, info = a)
+      expect_identical(spec$bare_region_is, "flag", info = a)
+    } else {
+      expect_false(is.null(spec$region_poly), info = a)
+    }
+  }
+})
+
+test_that("the two STARE arms share one root and differ only in their gating session", {
+  m1 <- arm_spec("stare_massimo1", data_dir = "/data")
+  m2 <- arm_spec("stare_massimo2", data_dir = "/data")
+  expect_equal(m1$root, "stare")
+  expect_equal(m2$root, m1$root)
+  expect_equal(basename(m1$region_csv$path), "Massimo1")
+  expect_equal(basename(m2$region_csv$path), "Massimo2")
+  expect_equal(m1$region_csv$pattern, "flat_bare")
+  expect_false(arm_has_union_tier(m1))
+  expect_false(arm_has_fallback(m1))
 })
 
 test_that("the inverted arm reads massimo1's polygons, not its own", {
@@ -67,6 +92,21 @@ test_that("each naming pattern keys the patient and the region it declares", {
                list(patient = "24086", annotation = "ANNOTATION_3"))
   expect_equal(p("annotation_selected/052/052_a2.geojson", "nested_digit"),
                list(patient = "052", annotation = "ANNOTATION_2"))
+  expect_equal(p("Massimo2/046.csv", "flat_bare"),
+               list(patient = "046", annotation = NA_character_))
+})
+
+test_that("flat_bare keeps the whole stem as the patient, suffix and all", {
+  # A STARE file is one patient's whole slide; "36766_2" is a patient stem, not a
+  # region suffix, and must not be split as one.
+  expect_equal(arm_parse_name("stare/36766_2.csv", "flat_bare")$patient, "36766_2")
+  expect_equal(arm_parse_name("stare/Massimo1/24086_a1.csv", "flat_bare")$patient, "24086_a1")
+})
+
+test_that("arm_bare_annotation says what a region-tier file with no suffix means", {
+  expect_identical(arm_bare_annotation(arm_spec("massimo2", data_dir = "/data")), "whole_slide")
+  expect_identical(arm_bare_annotation(arm_spec("stare_massimo2", data_dir = "/data")), "ANNOTATION_1")
+  expect_true(is.na(arm_bare_annotation(arm_spec("massimo1", data_dir = "/data"))))
 })
 
 test_that("the directory name wins over the filename stem in every nested pattern", {
@@ -143,14 +183,34 @@ test_that("the csv-only patients are recognised under every spelling slide_key()
   expect_length(arm_flag_patient(character(0)), 0)
 })
 
-test_that("every arm points the csv-only patients at the same data/flowpath files", {
+test_that("every annotated arm points the csv-only patients at the same data/flowpath files", {
   d <- file.path(tempdir(), paste0("flagdata-", sample(1e6, 1)))
   dir.create(file.path(d, "flowpath"), recursive = TRUE)
   file.create(file.path(d, "flowpath", "153070.csv"))
-  for (arm in ARM_MODES) {
+  for (arm in grep("^stare_", ARM_MODES, value = TRUE, invert = TRUE)) {
     ff <- arm_flag_files(arm_spec(arm, data_dir = d))
     expect_equal(ff$patient_id, c("15370", "36672_2"))
     expect_equal(basename(ff$path), c("153070.csv", "36672_2.csv"))
     expect_equal(ff$exists, c(TRUE, FALSE))
   }
+})
+
+test_that("the STARE arms read their csv-only patients from the STARE root, 36766_2 as 36672_2", {
+  # STARE's share names the second csv-only case 36766_2; the clinical sheet and the
+  # RNA crosswalk call it 36672-2. The registry MAPS the file to the patient, so the
+  # case keeps its clinical row and its bulk sample.
+  d <- file.path(tempdir(), paste0("staredata-", sample(1e6, 1)))
+  dir.create(file.path(d, "stare"), recursive = TRUE)
+  file.create(file.path(d, "stare", "36766_2.csv"))
+  for (arm in c("stare_massimo1", "stare_massimo2")) {
+    spec <- arm_spec(arm, data_dir = d)
+    ff   <- arm_flag_files(spec)
+    expect_equal(ff$patient_id, c("15370", "36672_2"))
+    expect_equal(basename(ff$path), c("15370.csv", "36766_2.csv"))
+    expect_equal(normalizePath(dirname(ff$path)), rep(normalizePath(file.path(d, "stare")), 2))
+    expect_equal(ff$exists, c(FALSE, TRUE))
+  }
+  # Every STARE csv-only patient must ALSO be a registry csv-only patient, or
+  # arm_flag_patient() would not recognise it and its bare file would be read twice.
+  expect_true(all(arm_flag_patient(names(STARE_FLAG_FILES))))
 })

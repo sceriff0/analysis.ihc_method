@@ -10,7 +10,13 @@ navbar:
   - text: Home
     href: index.html
   - text: Paper figures
-    href: paper_figures.html
+    menu:
+    # The STARE page is the main data since 2026-10-23; the assembly sheet keeps
+    # the earlier arms' panels and the hand-made slots.
+    - text: Fig 6 and Suppl. S10 — STARE data
+      href: paper_stare.html
+    - text: Panel assembly sheet (earlier arms)
+      href: paper_figures.html
   - text: 1 · Clinical
     menu:
     # One page per phenotyping arm, in arm order. They are identical in
