@@ -469,6 +469,17 @@ test_that("Additional file 2 is one row per arm plus the two baselines, with bot
   expect_equal(tab$n_slides[tab$arm == "high / micro 2"], 2L)
 })
 
+test_that("Additional file 2 builds without VALIS summaries, TRE left NA", {
+  # With no VALIS rows the TRE side is a zero-row table, and ifelse() on zero rows
+  # returns logical(0) whatever its yes/no — so memory_mode turned <logical> and the
+  # qc/tre join stopped with "incompatible types" (the cluster's paper_figures build).
+  man <- arm_manifest(arms_tree(valis = FALSE))
+  tab <- arm_paper_table(read_arms_seg_qc(man), read_arms_valis(man), man)
+  expect_type(tab$memory_mode, "character")
+  expect_true(nrow(tab) > 0)
+  expect_true(all(is.na(tab$valis_tre)))
+})
+
 # --- placeholder mode (code/placeholders.R) ---------------------------------------
 # arms.csv is the FULL plan. With the switch on, an arm it lists with no tree yet —
 # and a patient an arm has not reached — are synthesised, flagged, and drawn as such.

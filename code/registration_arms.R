@@ -1384,9 +1384,16 @@ arm_paper_table <- function(seg = read_arms_seg_qc(), valis = read_arms_valis(),
   }
 
   # Baseline rows carry no preset or depth of their own: they pool the depth-0 runs.
+  # The keys are cast to one type on BOTH sides: a VALIS table whose memory_mode is
+  # all NA reads back as logical, ifelse() keeps that type, and the join below then
+  # refuses to match it to qc's character column.
   collapse <- function(x) dplyr::mutate(x,
-    memory_mode = ifelse(arm %in% c(BASELINE_NONE, BASELINE_RIGID), NA_character_, memory_mode),
-    micro_reg   = ifelse(arm %in% c(BASELINE_NONE, BASELINE_RIGID), NA_integer_, micro_reg))
+    arm         = as.character(arm),
+    backend     = as.character(backend),
+    memory_mode = as.character(ifelse(arm %in% c(BASELINE_NONE, BASELINE_RIGID),
+                                      NA_character_, memory_mode)),
+    micro_reg   = as.integer(ifelse(arm %in% c(BASELINE_NONE, BASELINE_RIGID),
+                                    NA_integer_, micro_reg)))
   qc  <- collapse(qc)  |> dplyr::group_by(dplyr::across(dplyr::all_of(keys))) |>
     dplyr::summarise(n_slides = sum(n_slides), stage = paste(unique(stage), collapse = "/"),
                      dplyr::across(c(disp_um_p50, dice_matched, pair_fraction),
